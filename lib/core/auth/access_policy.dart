@@ -1,0 +1,186 @@
+import '../../features/auth/domain/entities/user_role.dart';
+import '../../features/subscription/domain/entities/entitlement.dart';
+import 'app_session.dart';
+
+abstract final class AccessPolicy {
+  /// Session boundary for staff data. Routine token rotation keeps open forms
+  /// and filters; identity, tenant, authority or entitlement changes reset them.
+  static Object? staffScope(AppSession? session) {
+    if (session == null) return null;
+    return (
+      userId: session.authenticatedUser.id,
+      restaurantId: session.authenticatedUser.restaurantId,
+      role: session.authenticatedUser.role,
+      permissions: (session.permissions.toList()..sort()).join(','),
+      features: (session.features.toList()..sort()).join(','),
+      status: session.subscriptionStatus,
+      maxStaff: session.maxStaff,
+    );
+  }
+
+  static bool canStaff(AppSession? session, String permission) {
+    if (session == null) return false;
+    final role = session.authenticatedUser.role;
+    return (role == UserRole.owner || role == UserRole.manager) &&
+        session.subscriptionStatus == SubscriptionStatus.active &&
+        session.authenticatedUser.restaurantId != null &&
+        session.permissions.contains(permission) &&
+        session.features.contains('STAFF_MANAGEMENT') &&
+        (permission != 'STAFF_PERMISSION_MANAGE' ||
+            session.features.contains('STAFF_PERMISSION'));
+  }
+
+  static bool canAssignStaffRole(AppSession? session, String code) =>
+      session != null &&
+      (session.authenticatedUser.role == UserRole.owner ||
+          session.authenticatedUser.role == UserRole.manager) &&
+      (const {'WAITER', 'KITCHEN', 'CASHIER'}.contains(code) ||
+          (code == 'MANAGER' &&
+              session.authenticatedUser.role == UserRole.owner));
+
+  static bool canManageStaff(
+    AppSession? session,
+    String permission,
+    String staffId,
+    String roleCode,
+  ) =>
+      canStaff(session, permission) &&
+      session!.authenticatedUser.id != staffId &&
+      canAssignStaffRole(session, roleCode);
+
+  static bool hasPermission(AppSession session, String permission) {
+    return session.permissions.contains(permission);
+  }
+
+  static bool hasFeature(AppSession session, String feature) {
+    return session.features.contains(feature);
+  }
+
+  static bool canAccess(
+    AppSession session, {
+    required String permission,
+    String? feature,
+  }) {
+    return hasPermission(session, permission) &&
+        (feature == null || hasFeature(session, feature));
+  }
+
+  static bool canAccessAny(
+    AppSession session,
+    Iterable<({String permission, String? feature})> requirements,
+  ) {
+    return requirements.any(
+      (item) => canAccess(
+        session,
+        permission: item.permission,
+        feature: item.feature,
+      ),
+    );
+  }
+
+  /// Determines the initial route after successful authentication.
+  ///
+  /// All restaurant roles with an active subscription and at least one
+  /// accessible feature are sent to the unified `/app/home` shell. The
+  /// shell's sidebar then shows only the items the user is permitted to see.
+  static String initialRouteFor(AppSession session) {
+    final user = session.authenticatedUser;
+
+    // Super admin or user without a restaurant → admin web only.
+    if (user.role == UserRole.superAdmin || user.restaurantId == null) {
+      return '/admin-web-only';
+    }
+
+    // Cashier uses a separate web-based system.
+    if (user.role == UserRole.cashier) {
+      return '/cashier-web-only';
+    }
+
+    // Unsupported roles.
+    if (user.role == UserRole.unsupported) {
+      return '/unsupported-role';
+    }
+
+    // Subscription check.
+    final subscriptionActive =
+        session.subscriptionStatus == SubscriptionStatus.active;
+
+    if (!subscriptionActive) {
+      // Owner / Manager can act on subscription; others just see a message.
+      if (user.role == UserRole.owner || user.role == UserRole.manager) {
+        return '/subscription-required';
+      }
+      return '/subscription-unavailable';
+    }
+
+    // Must have at least one accessible feature to enter the app.
+    if (!_hasAnyAccessibleFeature(session)) {
+      return '/no-accessible-feature';
+    }
+
+    // All checks passed → unified app shell.
+    return '/app/home';
+  }
+
+  /// Whether the user is allowed to open the given [location].
+  static bool canOpenRoute(AppSession session, String location) {
+    if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
+    // Unified app shell — allowed if subscribed and has features.
+    if (location == '/app/home') {
+      final user = session.authenticatedUser;
+      final isRestaurantRole =
+          user.role == UserRole.owner ||
+          user.role == UserRole.manager ||
+          user.role == UserRole.waiter ||
+          user.role == UserRole.kitchen;
+      return isRestaurantRole &&
+          session.subscriptionStatus == SubscriptionStatus.active &&
+          _hasAnyAccessibleFeature(session);
+    }
+
+    // Access message screens — role-appropriate checks.
+    final role = session.authenticatedUser.role;
+    return switch (location) {
+      '/subscription-required' =>
+        (role == UserRole.owner || role == UserRole.manager) &&
+            session.subscriptionStatus != SubscriptionStatus.active,
+      '/subscription-unavailable' =>
+        (role == UserRole.waiter || role == UserRole.kitchen) &&
+            session.subscriptionStatus != SubscriptionStatus.active,
+      '/feature-unavailable' =>
+        session.subscriptionStatus == SubscriptionStatus.active &&
+            !_hasAnyAccessibleFeature(session),
+      '/no-accessible-feature' =>
+        initialRouteFor(session) == '/no-accessible-feature',
+      '/cashier-web-only' => role == UserRole.cashier,
+      '/admin-web-only' =>
+        role == UserRole.superAdmin ||
+            session.authenticatedUser.restaurantId == null,
+      '/unsupported-role' => role == UserRole.unsupported,
+      _ => false,
+    };
+  }
+
+  /// Returns `true` when the user has at least one permission+feature
+  /// combination that would produce a visible sidebar item.
+  static bool _hasAnyAccessibleFeature(AppSession session) {
+    return canStaff(session, 'STAFF_VIEW') ||
+        canAccessAny(session, const [
+          (permission: 'MENU_VIEW', feature: 'MENU_MANAGEMENT'),
+          (permission: 'TABLE_VIEW', feature: 'TABLE_MANAGEMENT'),
+          (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),
+          (permission: 'ORDER_CREATE', feature: 'ORDER_MANAGEMENT'),
+          (permission: 'PAYMENT_VIEW', feature: 'PAYMENT_MANAGEMENT'),
+          (permission: 'REPORT_VIEW', feature: 'REPORTING'),
+          (permission: 'REPORT_DAILY_VIEW', feature: 'DAILY_REVENUE'),
+          (permission: 'KITCHEN_VIEW', feature: 'KITCHEN_DISPLAY'),
+          (permission: 'KITCHEN_UPDATE', feature: 'KITCHEN_DISPLAY'),
+          (permission: 'INVENTORY_VIEW', feature: 'INVENTORY_MANAGEMENT'),
+          (permission: 'DASHBOARD_VIEW', feature: 'REPORTING'),
+          (
+            permission: 'RESTAURANT_SETTINGS_VIEW',
+            feature: 'RESTAURANT_SETTINGS',
+          ),
+        ]);
+  }
+}

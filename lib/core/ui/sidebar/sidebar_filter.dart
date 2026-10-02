@@ -1,0 +1,43 @@
+import '../../auth/access_policy.dart';
+import '../../auth/app_session.dart';
+import 'sidebar_category.dart';
+import 'sidebar_menu_item.dart';
+
+/// Filters a list of [SidebarMenuItem] based on the current [AppSession].
+///
+/// An item is visible when:
+///  - All [SidebarMenuItem.requiredPermissions] are present in the session.
+///  - All [SidebarMenuItem.requiredFeatures] are present in the session.
+List<SidebarMenuItem> filterMenuItems(
+  AppSession session,
+  List<SidebarMenuItem> allItems,
+) {
+  return allItems.where((item) {
+    if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
+    final hasAllPermissions = item.requiredPermissions.every(
+      (p) => session.permissions.contains(p),
+    );
+    final hasAllFeatures = item.requiredFeatures.every(
+      (f) => session.features.contains(f),
+    );
+    return hasAllPermissions && hasAllFeatures;
+  }).toList();
+}
+
+/// Filters a list of [SidebarCategory] based on the current [AppSession].
+///
+/// Each category's items are filtered by [filterMenuItems]. Categories
+/// that end up with zero visible items are removed entirely.
+List<SidebarCategory> filterCategories(
+  AppSession session,
+  List<SidebarCategory> allCategories,
+) {
+  final result = <SidebarCategory>[];
+  for (final category in allCategories) {
+    final visibleItems = filterMenuItems(session, category.items);
+    if (visibleItems.isNotEmpty) {
+      result.add(SidebarCategory(title: category.title, items: visibleItems));
+    }
+  }
+  return result;
+}

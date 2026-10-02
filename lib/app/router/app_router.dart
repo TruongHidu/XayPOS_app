@@ -1,0 +1,101 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/ui/shell/app_shell.dart';
+import '../../features/access/presentation/access_message_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
+import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../providers.dart';
+import 'app_routes.dart';
+import 'route_guard.dart';
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final authController = ref.read(authControllerProvider);
+  final guard = RouteGuard(authController);
+  final router = GoRouter(
+    initialLocation: AppRoutes.splash,
+    refreshListenable: authController,
+    redirect: (context, state) => guard.redirect(state),
+    routes: [
+      GoRoute(
+        path: '/app/staff',
+        builder: (context, state) => const AppShell(initialSection: 'staff'),
+      ),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sessionError,
+        builder: (context, state) => const SessionBootstrapScreen(),
+      ),
+
+      // ── Unified application shell ─────────────────────────
+      GoRoute(
+        path: AppRoutes.appHome,
+        builder: (context, state) => const AppShell(),
+      ),
+
+      // ── Access message screens ─────────────────────────────
+      GoRoute(
+        path: AppRoutes.subscriptionRequired,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Nhà hàng chưa có gói hoạt động',
+          ownerMessage: 'Vui lòng chọn hoặc mua gói để tiếp tục.',
+          staffMessage:
+              'Nhà hàng chưa có gói hoạt động. Vui lòng liên hệ chủ nhà hàng.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.subscriptionUnavailable,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Gói dịch vụ chưa hoạt động',
+          ownerMessage: 'Vui lòng liên hệ OWNER hoặc MANAGER.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.featureUnavailable,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Tính năng chưa khả dụng',
+          ownerMessage: 'Gói hiện tại không hỗ trợ chức năng này.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.noAccessibleFeature,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Không có chức năng khả dụng',
+          ownerMessage: 'Tài khoản chưa được cấp quyền truy cập chức năng.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.cashierWebOnly,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Cashier Web',
+          ownerMessage:
+              'Tài khoản thu ngân hiện được sử dụng trên hệ thống Cashier Web.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.adminWebOnly,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Quản trị hệ thống',
+          ownerMessage: 'SUPER_ADMIN sử dụng trang quản trị web.',
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.unsupportedRole,
+        builder: (context, state) => const AccessMessageScreen(
+          title: 'Vai trò chưa được hỗ trợ',
+          ownerMessage: 'Ứng dụng chưa hỗ trợ vai trò của tài khoản này.',
+        ),
+      ),
+    ],
+  );
+  ref.onDispose(router.dispose);
+  return router;
+});
