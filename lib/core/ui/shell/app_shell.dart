@@ -103,6 +103,7 @@ class _AppShellState extends ConsumerState<AppShell>
         ],
       ),
       body: Stack(
+        fit: StackFit.expand,
         children: [
           // Main content area
           Positioned.fill(child: _buildContent(session, allVisibleItems)),
@@ -160,34 +161,45 @@ class _AppShellState extends ConsumerState<AppShell>
 
     // Placeholder content for each section.
     // Will be replaced by real feature widgets when implemented.
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              selected.icon,
-              size: 64,
-              color: Theme.of(context).colorScheme.primary,
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  selected.icon,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        selected.label,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Màn hình ${selected.label} đang được hoàn thiện.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              selected.label,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Màn hình ${selected.label} đang được hoàn thiện.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

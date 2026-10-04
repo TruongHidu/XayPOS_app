@@ -13,12 +13,13 @@ class SessionBootstrapScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
+          child: SizedBox(
+            width: double.infinity,
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(Icons.cloud_off_outlined, size: 56),
                   const SizedBox(height: 20),

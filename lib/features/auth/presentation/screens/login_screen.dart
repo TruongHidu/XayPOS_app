@@ -80,8 +80,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 55),
                       const AppLogo(size: 72),
                       const SizedBox(height: 42),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
+                      SizedBox(
+                        width: double.infinity,
                         child: AutofillGroup(
                           child: LoginForm(
                             controller: _formController,

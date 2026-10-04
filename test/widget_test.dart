@@ -43,6 +43,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('login form uses desktop width', (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = await _unauthenticatedController();
+    await _pumpApp(tester, controller);
+
+    expect(
+      tester.getSize(find.byKey(const Key('email-field'))).width,
+      closeTo(1400, 0.1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('password visibility can be toggled', (tester) async {
     final controller = await _unauthenticatedController();
     await _pumpApp(tester, controller);
@@ -78,6 +94,14 @@ void main() {
     await _pumpApp(tester, controller);
 
     expect(find.byType(AppShell), findsOneWidget);
+    expect(
+      tester.getSize(find.byType(Card).first).width,
+      closeTo(
+        tester.view.physicalSize.width / tester.view.devicePixelRatio - 48,
+        0.1,
+      ),
+    );
+    expect(tester.takeException(), isNull);
   });
 }
 

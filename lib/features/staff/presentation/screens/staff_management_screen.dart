@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
+import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/staff_member.dart';
 import '../widgets/create_staff_dialog.dart';
+import '../widgets/staff_filter_panel.dart';
+import '../widgets/staff_member_card.dart';
 import '../widgets/edit_staff_dialog.dart';
 import '../widgets/staff_permission_dialog.dart';
 import '../widgets/toggle_status_dialog.dart';
@@ -107,21 +111,66 @@ class StaffManagementScreen extends ConsumerWidget {
         onSubmit: controller.toggleStatus,
       ),
       'permissions' => StaffPermissionDialog(staff: staff),
-      _ => AlertDialog(
-        title: Text(staff.name),
-        scrollable: true,
-        content: Text(
-          '${staff.email}\n${staff.phone ?? "—"}\n${staff.role.name}\n'
-          '${staff.active ? "Hoạt động" : "Đã vô hiệu hóa"}\n'
-          'Đăng nhập cuối: ${staff.lastLoginAt?.toLocal() ?? "—"}\n'
-          'Ngày tạo: ${staff.createdAt.toLocal()}\nCập nhật: ${staff.updatedAt.toLocal()}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-            child: const Text('Đóng'),
+      _ => ResponsiveDialog(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                staff.name,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Thông tin nhân viên',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 20),
+              ResponsiveColumns(
+                children: [
+                  _StaffDetailField(label: 'Email', value: staff.email),
+                  _StaffDetailField(
+                    label: 'Số điện thoại',
+                    value: staff.phone ?? 'Chưa có số điện thoại',
+                  ),
+                  _StaffDetailField(label: 'Vai trò', value: staff.role.name),
+                  _StaffDetailField(
+                    label: 'Trạng thái',
+                    value: staff.active ? 'Hoạt động' : 'Đã vô hiệu hóa',
+                  ),
+                  _StaffDetailField(
+                    label: 'Đăng nhập cuối',
+                    value: _formatDate(staff.lastLoginAt),
+                  ),
+                  _StaffDetailField(
+                    label: 'Ngày tạo',
+                    value: _formatDate(staff.createdAt),
+                  ),
+                  _StaffDetailField(
+                    label: 'Cập nhật',
+                    value: _formatDate(staff.updatedAt),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () =>
+                      Navigator.of(context, rootNavigator: true).pop(),
+                  child: const Text('Đóng'),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     };
     await _dialog(
@@ -144,260 +193,400 @@ class StaffManagementScreen extends ConsumerWidget {
     }
     final controller = ref.watch(staffListControllerProvider);
     final state = controller.state;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Scaffold(
+      backgroundColor: colors.surfaceContainerLow,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Quản lý nhân viên',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Thông tin, vai trò và quyền truy cập của đội ngũ.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (AccessPolicy.canStaff(session, 'STAFF_CREATE'))
+                    FilledButton.icon(
+                      onPressed: state.isRolesLoading || state.roles.isEmpty
+                          ? null
+                          : () => _dialog(
+                              context,
+                              ref,
+                              session!,
+                              'STAFF_CREATE',
+                              CreateStaffDialog(
+                                roles: state.roles,
+                                fieldErrors: () =>
+                                    controller.lastFailure?.fieldErrors ?? {},
+                                onSubmit: controller.addStaff,
+                              ),
+                            ),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Thêm nhân viên'),
+                    ),
+                  IconButton.outlined(
+                    onPressed: controller.loadInitial,
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Tải lại',
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _StaffNotice(
+            icon: Icons.info_outline_rounded,
+            message:
+                'Giới hạn nhân viên hoạt động: ${session!.maxStaff ?? "Không giới hạn"} (không tính chủ nhà hàng).',
+          ),
+          const SizedBox(height: 16),
+          StaffFilterPanel(controller: controller),
+          if (state.rolesError != null) ...[
+            const SizedBox(height: 12),
+            _StaffNotice(
+              icon: Icons.error_outline_rounded,
+              message: state.rolesError!,
+              isError: true,
+              actionLabel: 'Tải lại vai trò',
+              onAction: controller.loadRoles,
+            ),
+          ],
+          if (state.errorMessage != null) ...[
+            const SizedBox(height: 12),
+            _StaffNotice(
+              icon: Icons.error_outline_rounded,
+              message: state.errorMessage!,
+              isError: true,
+              actionLabel: 'Thử lại',
+              onAction: controller.loadInitial,
+            ),
+          ],
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
             spacing: 12,
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                'Quản lý nhân viên',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              if (AccessPolicy.canStaff(session, 'STAFF_CREATE'))
-                FilledButton.icon(
-                  onPressed: state.isRolesLoading || state.roles.isEmpty
-                      ? null
-                      : () => _dialog(
-                          context,
-                          ref,
-                          session!,
-                          'STAFF_CREATE',
-                          CreateStaffDialog(
-                            roles: state.roles,
-                            fieldErrors: () =>
-                                controller.lastFailure?.fieldErrors ?? {},
-                            onSubmit: controller.addStaff,
-                          ),
-                        ),
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Thêm nhân viên'),
+                'Danh sách nhân viên',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              IconButton(
-                onPressed: controller.loadInitial,
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Tải lại',
+              ),
+              Text(
+                '${state.totalElements} kết quả',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ],
           ),
-          Text(
-            'Giới hạn nhân viên hoạt động: ${session!.maxStaff ?? "Không giới hạn"} (không tính OWNER).',
-          ),
           const SizedBox(height: 12),
-          TextFormField(
-            key: ObjectKey(controller),
-            initialValue: state.query,
-            decoration: const InputDecoration(
-              labelText: 'Tìm tên, email, số điện thoại',
-              prefixIcon: Icon(Icons.search),
-              border: OutlineInputBorder(),
-            ),
-            onChanged: controller.setSearchQuery,
-          ),
-          const SizedBox(height: 12),
-          ExpansionTile(
-            title: const Text('Bộ lọc và sắp xếp'),
-            children: [
-              DropdownButtonFormField<String>(
-                value: state.selectedRoleCode ?? '',
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Vai trò'),
-                items: [
-                  const DropdownMenuItem(
-                    value: '',
-                    child: Text('Tất cả vai trò'),
-                  ),
-                  if (state.selectedRoleCode != null &&
-                      !state.roles.any((r) => r.code == state.selectedRoleCode))
-                    DropdownMenuItem(
-                      value: state.selectedRoleCode,
-                      child: Text(state.selectedRoleCode!),
-                    ),
-                  ...state.roles.map(
-                    (r) => DropdownMenuItem(value: r.code, child: Text(r.name)),
-                  ),
-                ],
-                onChanged: (v) => controller.setRoleFilter(v == '' ? null : v),
-              ),
-              DropdownButtonFormField<String>(
-                value: state.selectedActive?.toString() ?? '',
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Trạng thái'),
-                items: const [
-                  DropdownMenuItem(value: '', child: Text('Tất cả trạng thái')),
-                  DropdownMenuItem(value: 'true', child: Text('Hoạt động')),
-                  DropdownMenuItem(
-                    value: 'false',
-                    child: Text('Đã vô hiệu hóa'),
-                  ),
-                ],
-                onChanged: (v) =>
-                    controller.setStatusFilter(v == '' ? null : v == 'true'),
-              ),
-              DropdownButtonFormField<String>(
-                value: state.sortBy,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Sắp xếp theo'),
-                items: const [
-                  DropdownMenuItem(value: 'createdAt', child: Text('Ngày tạo')),
-                  DropdownMenuItem(value: 'name', child: Text('Tên')),
-                  DropdownMenuItem(value: 'email', child: Text('Email')),
-                  DropdownMenuItem(
-                    value: 'lastLoginAt',
-                    child: Text('Đăng nhập cuối'),
-                  ),
-                ],
-                onChanged: (v) => controller.setSorting(v!, state.direction),
-              ),
-              DropdownButtonFormField<String>(
-                value: state.direction,
-                decoration: const InputDecoration(labelText: 'Thứ tự'),
-                items: const [
-                  DropdownMenuItem(value: 'asc', child: Text('Tăng dần')),
-                  DropdownMenuItem(value: 'desc', child: Text('Giảm dần')),
-                ],
-                onChanged: (v) => controller.setSorting(state.sortBy, v!),
-              ),
-              DropdownButtonFormField<int>(
-                value: state.size,
-                decoration: const InputDecoration(
-                  labelText: 'Số dòng mỗi trang',
-                ),
-                items: [10, 20, 50, 100]
-                    .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
-                    .toList(),
-                onChanged: (v) => controller.setSize(v!),
-              ),
-            ],
-          ),
-          if (state.rolesError != null) ...[
-            Text(
-              state.rolesError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            TextButton(
-              onPressed: controller.loadRoles,
-              child: const Text('Tải lại vai trò'),
-            ),
-          ],
-          if (state.errorMessage != null) ...[
-            Text(
-              state.errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            TextButton(
-              onPressed: controller.loadInitial,
-              child: const Text('Thử lại'),
-            ),
-          ],
           if (state.isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (state.staffList.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Text('Không tìm thấy nhân viên nào.'),
-            )
+            const _StaffListPlaceholder(isLoading: true)
+          else if (state.staffList.isEmpty && state.errorMessage == null)
+            const _StaffListPlaceholder()
           else
             ...state.staffList.map(
-              (staff) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        staff.name,
-                        style: Theme.of(context).textTheme.titleMedium,
+              (staff) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: StaffMemberCard(
+                  key: ValueKey('staff-card-${staff.id}'),
+                  staff: staff,
+                  actions: [
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 48),
                       ),
-                      Text(staff.email),
-                      Text(staff.phone ?? 'Chưa có số điện thoại'),
-                      Text(
-                        '${staff.role.name} • ${staff.active ? "Hoạt động" : "Đã vô hiệu hóa"}',
+                      onPressed: () => _open(context, ref, staff, 'detail'),
+                      icon: const Icon(Icons.info_outline, size: 18),
+                      label: const Text('Chi tiết'),
+                    ),
+                    if (AccessPolicy.canManageStaff(
+                      session,
+                      'STAFF_UPDATE',
+                      staff.id,
+                      staff.role.code,
+                    ))
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                        ),
+                        onPressed: state.roles.isEmpty
+                            ? null
+                            : () => _open(context, ref, staff, 'edit'),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Sửa'),
                       ),
-                      Text(
-                        'Đăng nhập cuối: ${staff.lastLoginAt?.toLocal() ?? "—"}',
+                    if (AccessPolicy.canManageStaff(
+                      session,
+                      'STAFF_DISABLE',
+                      staff.id,
+                      staff.role.code,
+                    ))
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                          foregroundColor: staff.active
+                              ? colors.error
+                              : colors.primary,
+                        ),
+                        onPressed: () => _open(context, ref, staff, 'status'),
+                        icon: Icon(
+                          staff.active
+                              ? Icons.block_outlined
+                              : Icons.check_circle_outline,
+                          size: 18,
+                        ),
+                        label: Text(
+                          staff.active ? 'Vô hiệu hóa' : 'Kích hoạt lại',
+                        ),
                       ),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          TextButton(
-                            onPressed: () =>
-                                _open(context, ref, staff, 'detail'),
-                            child: const Text('Chi tiết'),
-                          ),
-                          if (AccessPolicy.canManageStaff(
-                            session,
-                            'STAFF_UPDATE',
-                            staff.id,
-                            staff.role.code,
-                          ))
-                            TextButton(
-                              onPressed: state.roles.isEmpty
-                                  ? null
-                                  : () => _open(context, ref, staff, 'edit'),
-                              child: const Text('Sửa'),
-                            ),
-                          if (AccessPolicy.canManageStaff(
-                            session,
-                            'STAFF_DISABLE',
-                            staff.id,
-                            staff.role.code,
-                          ))
-                            TextButton(
-                              onPressed: () =>
-                                  _open(context, ref, staff, 'status'),
-                              child: Text(
-                                staff.active ? 'Vô hiệu hóa' : 'Kích hoạt lại',
-                              ),
-                            ),
-                          if (AccessPolicy.canManageStaff(
-                            session,
-                            'STAFF_PERMISSION_MANAGE',
-                            staff.id,
-                            staff.role.code,
-                          ))
-                            TextButton(
-                              onPressed: () =>
-                                  _open(context, ref, staff, 'permissions'),
-                              child: const Text('Phân quyền'),
-                            ),
-                        ],
+                    if (AccessPolicy.canManageStaff(
+                      session,
+                      'STAFF_PERMISSION_MANAGE',
+                      staff.id,
+                      staff.role.code,
+                    ))
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                        ),
+                        onPressed: () =>
+                            _open(context, ref, staff, 'permissions'),
+                        icon: const Icon(
+                          Icons.admin_panel_settings_outlined,
+                          size: 18,
+                        ),
+                        label: const Text('Phân quyền'),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
-          Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          _StaffPanel(
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'Tổng ${state.totalElements} nhân viên • Trang ${state.page + 1}/${state.totalPages == 0 ? 1 : state.totalPages}',
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    IconButton.outlined(
+                      tooltip: 'Trang trước',
+                      onPressed: state.isLoading || state.page == 0
+                          ? null
+                          : () => controller.setPage(state.page - 1),
+                      icon: const Icon(Icons.chevron_left),
+                    ),
+                    IconButton.outlined(
+                      tooltip: 'Trang sau',
+                      onPressed:
+                          state.isLoading || state.page >= state.totalPages - 1
+                          ? null
+                          : () => controller.setPage(state.page + 1),
+                      icon: const Icon(Icons.chevron_right),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatDate(DateTime? value) {
+  if (value == null) return 'Chưa đăng nhập';
+  final date = value.toLocal();
+  String twoDigits(int number) => number.toString().padLeft(2, '0');
+  return '${twoDigits(date.day)}/${twoDigits(date.month)}/${date.year} '
+      '${twoDigits(date.hour)}:${twoDigits(date.minute)}';
+}
+
+class _StaffDetailField extends StatelessWidget {
+  const _StaffDetailField({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(value, style: theme.textTheme.bodyLarge),
+      ],
+    );
+  }
+}
+
+class _StaffPanel extends StatelessWidget {
+  const _StaffPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _StaffNotice extends StatelessWidget {
+  const _StaffNotice({
+    required this.icon,
+    required this.message,
+    this.isError = false,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String message;
+  final bool isError;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final foreground = isError
+        ? colors.onErrorContainer
+        : colors.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isError ? colors.errorContainer : colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isError ? colors.errorContainer : colors.outlineVariant,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Tổng ${state.totalElements} nhân viên • Trang ${state.page + 1}/${state.totalPages == 0 ? 1 : state.totalPages}',
-              ),
-              IconButton(
-                onPressed: state.isLoading || state.page == 0
-                    ? null
-                    : () => controller.setPage(state.page - 1),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              IconButton(
-                onPressed: state.isLoading || state.page >= state.totalPages - 1
-                    ? null
-                    : () => controller.setPage(state.page + 1),
-                icon: const Icon(Icons.chevron_right),
+              Icon(icon, size: 20, color: foreground),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: foreground,
+                  ),
+                ),
               ),
             ],
           ),
+          if (actionLabel != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: TextButton.styleFrom(foregroundColor: foreground),
+                onPressed: onAction,
+                child: Text(actionLabel!),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _StaffListPlaceholder extends StatelessWidget {
+  const _StaffListPlaceholder({this.isLoading = false});
+
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _StaffPanel(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          children: [
+            if (isLoading)
+              const SizedBox.square(
+                dimension: 32,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              )
+            else
+              Icon(
+                Icons.person_search_outlined,
+                size: 48,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            const SizedBox(height: 16),
+            Text(
+              isLoading
+                  ? 'Đang tải danh sách nhân viên…'
+                  : 'Không tìm thấy nhân viên nào.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium,
+            ),
+            if (!isLoading) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Thử thay đổi từ khóa hoặc bộ lọc để tìm lại.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

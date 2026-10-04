@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../core/ui/widgets/responsive_columns.dart';
+
 import '../../domain/entities/staff_member.dart';
 import '../../domain/entities/staff_role.dart';
 
@@ -102,79 +105,73 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            onChanged: () {
-              if (_errorMessage != null) setState(() => _errorMessage = null);
-            },
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return ResponsiveDialog(
+      child: Form(
+        key: _formKey,
+        onChanged: () {
+          if (_errorMessage != null) setState(() => _errorMessage = null);
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.edit_outlined,
-                          color: theme.colorScheme.secondary,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Cập nhật nhân viên',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(width: 12),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Đóng',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: theme.colorScheme.error),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Cập nhật nhân viên',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          _errorMessage!,
+                          style: TextStyle(color: theme.colorScheme.error),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Đóng',
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 16),
+              ],
 
-                  if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: theme.colorScheme.error,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: TextStyle(color: theme.colorScheme.error),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
+              ResponsiveColumns(
+                children: [
                   // Name field
                   TextFormField(
                     controller: _nameController,
@@ -194,7 +191,6 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
 
                   // Email field
                   TextFormField(
@@ -221,7 +217,6 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
 
                   // Phone field
                   TextFormField(
@@ -238,15 +233,7 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
 
-                  if (_selectedRoleCode != widget.staff.role.code)
-                    const Text(
-                      'Đổi vai trò sẽ xóa toàn bộ permission overrides cũ.',
-                    ),
-                  const Text(
-                    'Đổi email hoặc vai trò sẽ thu hồi các refresh token của nhân viên.',
-                  ),
                   // Role selector
                   DropdownButtonFormField<String>(
                     isExpanded: true,
@@ -275,38 +262,46 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
                     validator: (v) =>
                         v == null ? 'Vui lòng chọn vai trò' : null,
                   ),
-                  const SizedBox(height: 24),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_selectedRoleCode != widget.staff.role.code)
+                const Text(
+                  'Đổi vai trò sẽ xóa toàn bộ permission overrides cũ.',
+                ),
+              const Text(
+                'Đổi email hoặc vai trò sẽ thu hồi các refresh token của nhân viên.',
+              ),
+              const SizedBox(height: 24),
 
-                  Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      OutlinedButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        child: const Text('Hủy'),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton(
-                        onPressed: _isSubmitting ? null : _submit,
-                        child: _isSubmitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Lưu thay đổi'),
-                      ),
-                    ],
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    child: const Text('Hủy'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Lưu thay đổi'),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),

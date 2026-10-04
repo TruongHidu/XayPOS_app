@@ -94,7 +94,7 @@ class AppSidebar extends StatelessWidget {
             SlideTransition(
               position: slide,
               child: Material(
-                elevation: 16,
+                elevation: animation.value == 0 ? 0 : 16,
                 shadowColor: Colors.black26,
                 child: SizedBox(
                   width: _width,

@@ -25,16 +25,21 @@ class AccessMessageScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Xây POS')),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
+        child: SizedBox(
+          width: double.infinity,
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Icon(Icons.info_outline, size: 56),
                 const SizedBox(height: 16),
-                Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 12),
                 Text(message, textAlign: TextAlign.center),
                 const SizedBox(height: 24),
