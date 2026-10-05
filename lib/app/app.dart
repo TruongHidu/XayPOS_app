@@ -29,6 +29,18 @@ class _AppState extends ConsumerState<App> {
       });
     });
     final router = ref.watch(appRouterProvider);
+    ref.listen<String?>(menuNoticeProvider, (previous, message) {
+      if (message == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        if (ref.read(menuNoticeProvider) == message) {
+          ref.read(menuNoticeProvider.notifier).state = null;
+        }
+      });
+    });
     return MaterialApp.router(
       scaffoldMessengerKey: _messengerKey,
       title: 'Xây POS',

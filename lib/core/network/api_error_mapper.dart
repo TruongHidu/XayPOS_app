@@ -24,6 +24,57 @@ abstract final class ApiErrorMapper {
         ? ApiErrorDto.fromJson(data)
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
+    final menuError = switch (apiError.code) {
+      'INVALID_REQUEST_BODY' => (
+        FailureType.validation,
+        'Nội dung yêu cầu không hợp lệ. Vui lòng kiểm tra dữ liệu.',
+      ),
+      'MENU_GROUP_NAME_EXISTS' => (
+        FailureType.conflict,
+        'Tên nhóm đã được sử dụng.',
+      ),
+      'SKU_EXISTS' => (
+        FailureType.conflict,
+        'SKU đã được sử dụng hoặc đang được giữ bởi món đã xóa.',
+      ),
+      'MENU_GROUP_INACTIVE' => (
+        FailureType.conflict,
+        'Nhóm đã ngừng hoạt động. Vui lòng tải lại lựa chọn nhóm.',
+      ),
+      'MENU_GROUP_NOT_EMPTY' => (
+        FailureType.conflict,
+        'Nhóm còn món chưa xóa, kể cả món ngừng bán. Hãy chuyển, bỏ nhóm hoặc xóa các món trước.',
+      ),
+      'MENU_ITEM_NOT_FOUND' => (
+        FailureType.notFound,
+        'Món không còn tồn tại hoặc bạn không còn quyền truy cập.',
+      ),
+      'MENU_GROUP_NOT_FOUND' => (
+        FailureType.notFound,
+        'Nhóm không còn tồn tại hoặc bạn không còn quyền truy cập.',
+      ),
+      'INVALID_MENU_ITEM_TRANSITION' => (
+        FailureType.conflict,
+        'Trạng thái món không cho phép thao tác này. Vui lòng tải lại chi tiết.',
+      ),
+      'CONCURRENT_MENU_UPDATE' => (
+        FailureType.conflict,
+        'Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để kiểm tra.',
+      ),
+      'INTERNAL_ERROR' => (
+        FailureType.internal,
+        'Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại sau.',
+      ),
+      _ => null,
+    };
+    if (menuError != null) {
+      return Failure(
+        type: menuError.$1,
+        message: menuError.$2,
+        code: apiError.code,
+        fieldErrors: apiError.fieldErrors,
+      );
+    }
     final mapped = switch (apiError.code) {
       'UNAUTHORIZED' || 'ACCOUNT_INACTIVE' => FailureType.unauthorized,
       'TENANT_ACCESS_DENIED' ||

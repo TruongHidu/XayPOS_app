@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+export '../features/menu/presentation/providers/menu_providers.dart';
+
 import '../core/auth/session_events.dart';
 import '../core/auth/access_policy.dart';
 import '../core/network/api_client.dart';

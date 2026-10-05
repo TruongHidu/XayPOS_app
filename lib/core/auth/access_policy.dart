@@ -3,6 +3,38 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static Object? menuScope(AppSession? session) {
+    if (session == null) return null;
+    return (
+      userId: session.authenticatedUser.id,
+      restaurantId: session.authenticatedUser.restaurantId,
+      role: session.authenticatedUser.role,
+      permissions: (session.permissions.toList()..sort()).join(','),
+      features: (session.features.toList()..sort()).join(','),
+      subscriptionId: session.subscriptionId,
+      status: session.subscriptionStatus,
+    );
+  }
+
+  static bool canMenu(AppSession? session, String permission) =>
+      session != null &&
+      const {
+        UserRole.owner,
+        UserRole.manager,
+        UserRole.waiter,
+        UserRole.kitchen,
+      }.contains(session.authenticatedUser.role) &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('MENU_MANAGEMENT') &&
+      const {
+        'MENU_VIEW',
+        'MENU_CREATE',
+        'MENU_UPDATE',
+        'MENU_DELETE',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
   /// Session boundary for staff data. Routine token rotation keeps open forms
   /// and filters; identity, tenant, authority or entitlement changes reset them.
   static Object? staffScope(AppSession? session) {
@@ -124,6 +156,7 @@ abstract final class AccessPolicy {
 
   /// Whether the user is allowed to open the given [location].
   static bool canOpenRoute(AppSession session, String location) {
+    if (location == '/app/menu') return canMenu(session, 'MENU_VIEW');
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
     // Unified app shell — allowed if subscribed and has features.
     if (location == '/app/home') {
@@ -165,8 +198,8 @@ abstract final class AccessPolicy {
   /// combination that would produce a visible sidebar item.
   static bool _hasAnyAccessibleFeature(AppSession session) {
     return canStaff(session, 'STAFF_VIEW') ||
+        canMenu(session, 'MENU_VIEW') ||
         canAccessAny(session, const [
-          (permission: 'MENU_VIEW', feature: 'MENU_MANAGEMENT'),
           (permission: 'TABLE_VIEW', feature: 'TABLE_MANAGEMENT'),
           (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),
           (permission: 'ORDER_CREATE', feature: 'ORDER_MANAGEMENT'),

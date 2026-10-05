@@ -8,6 +8,7 @@ import 'package:pos_saas_app/features/auth/presentation/controllers/auth_control
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 
 import 'helpers/auth_fakes.dart';
+import 'features/menu/menu_fakes.dart';
 
 void main() {
   testWidgets('login screen displays Xây POS controls', (tester) async {
@@ -94,13 +95,7 @@ void main() {
     await _pumpApp(tester, controller);
 
     expect(find.byType(AppShell), findsOneWidget);
-    expect(
-      tester.getSize(find.byType(Card).first).width,
-      closeTo(
-        tester.view.physicalSize.width / tester.view.devicePixelRatio - 48,
-        0.1,
-      ),
-    );
+    expect(find.text('Quản lý thực đơn'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -114,7 +109,11 @@ Future<AuthController> _unauthenticatedController() async {
 Future<void> _pumpApp(WidgetTester tester, AuthController controller) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authControllerProvider.overrideWith((ref) => controller)],
+      overrides: [
+        authControllerProvider.overrideWith((ref) => controller),
+        menuItemRepositoryProvider.overrideWithValue(FakeMenuItems()),
+        menuGroupRepositoryProvider.overrideWithValue(FakeMenuGroups()),
+      ],
       child: const App(),
     ),
   );

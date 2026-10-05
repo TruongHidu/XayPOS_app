@@ -24,7 +24,7 @@ class ResponsiveColumns extends StatelessWidget {
         final columns =
             ((constraints.maxWidth + spacing) / (minColumnWidth + spacing))
                 .floor()
-                .clamp(1, maxColumns.clamp(1, children.length));
+                .clamp(1, maxColumns);
         final width =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(

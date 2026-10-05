@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../auth/app_session.dart';
+import '../../auth/access_policy.dart';
 import '../sidebar/app_sidebar.dart';
 import '../sidebar/app_sidebar_registry.dart';
 import '../sidebar/sidebar_filter.dart';
 import '../sidebar/sidebar_menu_item.dart';
 
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
+import '../../../features/menu/presentation/screens/menu_management_screen.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -39,6 +41,14 @@ class _AppShellState extends ConsumerState<AppShell>
       duration: const Duration(milliseconds: 300),
     );
     _selectedId = widget.initialSection;
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSection != widget.initialSection) {
+      _selectedId = widget.initialSection;
+    }
   }
 
   @override
@@ -157,6 +167,11 @@ class _AppShellState extends ConsumerState<AppShell>
 
     if (selected.id == 'staff') {
       return const StaffManagementScreen();
+    }
+    if (selected.id == 'menu') {
+      return MenuManagementScreen(
+        key: ValueKey(AccessPolicy.menuScope(session)),
+      );
     }
 
     // Placeholder content for each section.

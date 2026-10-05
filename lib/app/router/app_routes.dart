@@ -2,6 +2,7 @@ abstract final class AppRoutes {
   static const splash = '/splash';
   static const login = '/login';
   static const appHome = '/app/home';
+  static const menu = '/app/menu';
   static const subscriptionRequired = '/subscription-required';
   static const subscriptionUnavailable = '/subscription-unavailable';
   static const featureUnavailable = '/feature-unavailable';

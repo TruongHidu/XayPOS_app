@@ -13,6 +13,7 @@ List<SidebarMenuItem> filterMenuItems(
   List<SidebarMenuItem> allItems,
 ) {
   return allItems.where((item) {
+    if (item.id == 'menu') return AccessPolicy.canMenu(session, 'MENU_VIEW');
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),
