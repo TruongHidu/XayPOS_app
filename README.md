@@ -19,6 +19,11 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 
 `CASHIER_WEB_URL` có thể được truyền tương tự khi URL Cashier Web sẵn sàng.
 
+Module quản lý bàn nằm tại `/app/tables`, yêu cầu feature `TABLE_MANAGEMENT`
+và quyền `TABLE_VIEW`; các thao tác tạo/sửa/phục vụ kiểm tra quyền riêng.
+Xem [tài liệu quản lý bàn](docs/table-management.md) để biết API, version,
+QR và giới hạn phiên phục vụ. Chạy riêng test module: `flutter test test/features/tables`.
+
 Trên Windows, dự án sử dụng plugin native nên cần bật **Developer Mode** để
 Flutter tạo symlink: Settings → System → For developers → Developer Mode.
 

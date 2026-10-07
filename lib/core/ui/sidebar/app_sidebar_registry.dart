@@ -39,14 +39,6 @@ abstract final class AppSidebarRegistry {
           requiredPermissions: ['PAYMENT_VIEW'],
           requiredFeatures: ['PAYMENT_MANAGEMENT'],
         ),
-        SidebarMenuItem(
-          id: 'tables',
-          label: 'Sơ đồ bàn',
-          icon: Icons.table_restaurant_outlined,
-          routePath: '/app/tables',
-          requiredPermissions: ['TABLE_VIEW'],
-          requiredFeatures: ['TABLE_MANAGEMENT'],
-        ),
       ],
     ),
 
@@ -100,6 +92,14 @@ abstract final class AppSidebarRegistry {
           routePath: '/app/menu',
           requiredPermissions: ['MENU_VIEW'],
           requiredFeatures: ['MENU_MANAGEMENT'],
+        ),
+        SidebarMenuItem(
+          id: 'tables',
+          label: 'Sơ đồ bàn',
+          icon: Icons.table_restaurant_outlined,
+          routePath: '/app/tables',
+          requiredPermissions: ['TABLE_VIEW'],
+          requiredFeatures: ['TABLE_MANAGEMENT'],
         ),
         SidebarMenuItem(
           id: 'settings',

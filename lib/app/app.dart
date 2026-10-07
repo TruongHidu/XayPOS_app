@@ -29,6 +29,18 @@ class _AppState extends ConsumerState<App> {
       });
     });
     final router = ref.watch(appRouterProvider);
+    ref.listen<String?>(tableNoticeProvider, (previous, message) {
+      if (message == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+        if (ref.read(tableNoticeProvider) == message) {
+          ref.read(tableNoticeProvider.notifier).state = null;
+        }
+      });
+    });
     ref.listen<String?>(menuNoticeProvider, (previous, message) {
       if (message == null) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {

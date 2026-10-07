@@ -19,6 +19,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) => guard.redirect(state),
     routes: [
       GoRoute(
+        path: AppRoutes.tables,
+        builder: (context, state) => const AppShell(initialSection: 'tables'),
+      ),
+      GoRoute(
         path: AppRoutes.menu,
         builder: (context, state) => const AppShell(initialSection: 'menu'),
       ),

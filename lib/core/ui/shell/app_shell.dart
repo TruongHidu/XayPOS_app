@@ -11,6 +11,7 @@ import '../sidebar/sidebar_menu_item.dart';
 
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
 import '../../../features/menu/presentation/screens/menu_management_screen.dart';
+import '../../../features/tables/presentation/screens/tables_management_screen.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -93,14 +94,46 @@ class _AppShellState extends ConsumerState<AppShell>
       _selectedId = allVisibleItems.first.id;
     }
 
+    final width = MediaQuery.sizeOf(context).width;
+    final largeScreen = width >= 1024;
+    final mediumScreen = width >= 600;
+    final toolbarHeight = largeScreen
+        ? 80.0
+        : mediumScreen
+        ? 72.0
+        : kToolbarHeight;
+    final menuButtonSize = largeScreen
+        ? 72.0
+        : mediumScreen
+        ? 64.0
+        : 48.0;
+    final menuIconSize = largeScreen
+        ? 36.0
+        : mediumScreen
+        ? 32.0
+        : 24.0;
+
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          onPressed: _toggleSidebar,
-          tooltip: 'Menu',
-          icon: AnimatedIcon(
-            icon: AnimatedIcons.menu_close,
-            progress: _sidebarController,
+        toolbarHeight: toolbarHeight,
+        leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
+        leading: Center(
+          child: SizedBox.square(
+            dimension: menuButtonSize,
+            child: IconButton(
+              onPressed: _toggleSidebar,
+              tooltip: 'Menu',
+              iconSize: menuIconSize,
+              style: IconButton.styleFrom(
+                fixedSize: Size.square(menuButtonSize),
+                padding: EdgeInsets.zero,
+              ),
+              icon: AnimatedIcon(
+                icon: AnimatedIcons.menu_close,
+                progress: _sidebarController,
+                size: menuIconSize,
+              ),
+            ),
           ),
         ),
         title: Text(_currentTitle(allVisibleItems)),
@@ -171,6 +204,11 @@ class _AppShellState extends ConsumerState<AppShell>
     if (selected.id == 'menu') {
       return MenuManagementScreen(
         key: ValueKey(AccessPolicy.menuScope(session)),
+      );
+    }
+    if (selected.id == 'tables') {
+      return TablesManagementScreen(
+        key: ValueKey(AccessPolicy.tableScope(session)),
       );
     }
 

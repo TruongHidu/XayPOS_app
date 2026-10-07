@@ -3,6 +3,27 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static Object? tableScope(AppSession? session) => menuScope(session);
+
+  static bool canTables(AppSession? session, String permission) =>
+      session != null &&
+      const {
+        UserRole.owner,
+        UserRole.manager,
+        UserRole.waiter,
+        UserRole.kitchen,
+      }.contains(session.authenticatedUser.role) &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('TABLE_MANAGEMENT') &&
+      const {
+        'TABLE_VIEW',
+        'TABLE_CREATE',
+        'TABLE_UPDATE',
+        'TABLE_OPEN',
+        'TABLE_CLOSE',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
   static Object? menuScope(AppSession? session) {
     if (session == null) return null;
     return (
@@ -156,6 +177,7 @@ abstract final class AccessPolicy {
 
   /// Whether the user is allowed to open the given [location].
   static bool canOpenRoute(AppSession session, String location) {
+    if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (location == '/app/menu') return canMenu(session, 'MENU_VIEW');
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
     // Unified app shell — allowed if subscribed and has features.
@@ -198,9 +220,9 @@ abstract final class AccessPolicy {
   /// combination that would produce a visible sidebar item.
   static bool _hasAnyAccessibleFeature(AppSession session) {
     return canStaff(session, 'STAFF_VIEW') ||
+        canTables(session, 'TABLE_VIEW') ||
         canMenu(session, 'MENU_VIEW') ||
         canAccessAny(session, const [
-          (permission: 'TABLE_VIEW', feature: 'TABLE_MANAGEMENT'),
           (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),
           (permission: 'ORDER_CREATE', feature: 'ORDER_MANAGEMENT'),
           (permission: 'PAYMENT_VIEW', feature: 'PAYMENT_MANAGEMENT'),

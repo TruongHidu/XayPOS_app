@@ -25,6 +25,57 @@ abstract final class ApiErrorMapper {
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
     final menuError = switch (apiError.code) {
+      'TABLE_AREA_NAME_EXISTS' => (
+        FailureType.conflict,
+        'Tên khu vực đã được sử dụng.',
+      ),
+      'TABLE_CODE_EXISTS' => (
+        FailureType.conflict,
+        'Mã bàn đã được sử dụng hoặc đang được giữ bởi bàn đã xóa.',
+      ),
+      'TABLE_AREA_INACTIVE' => (
+        FailureType.conflict,
+        'Khu vực đang ngừng hoạt động.',
+      ),
+      'TABLE_AREA_NOT_EMPTY' => (
+        FailureType.conflict,
+        'Khu vực còn bàn. Hãy chuyển hoặc xóa các bàn trước.',
+      ),
+      'TABLE_AREA_HAS_OPEN_SESSIONS' => (
+        FailureType.conflict,
+        'Khu vực có bàn đang phục vụ, chưa thể tắt.',
+      ),
+      'TABLE_INACTIVE' => (FailureType.conflict, 'Bàn đang ngừng hoạt động.'),
+      'TABLE_ALREADY_OCCUPIED' => (
+        FailureType.conflict,
+        'Bàn đã có phiên phục vụ. Vui lòng tải lại.',
+      ),
+      'TABLE_HAS_OPEN_SESSION' => (
+        FailureType.conflict,
+        'Bàn đang có khách, không thể thực hiện thao tác này.',
+      ),
+      'INVALID_TABLE_SESSION_TRANSITION' => (
+        FailureType.conflict,
+        'Trạng thái phiên không cho phép thao tác này.',
+      ),
+      'CONCURRENT_TABLE_UPDATE' => (
+        FailureType.conflict,
+        'Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để kiểm tra.',
+      ),
+      'TABLE_AREA_NOT_FOUND' ||
+      'TABLE_NOT_FOUND' ||
+      'TABLE_SESSION_NOT_FOUND' => (
+        FailureType.notFound,
+        'Tài nguyên không còn tồn tại hoặc bạn không còn quyền truy cập.',
+      ),
+      'QR_TOKEN_CONFLICT' => (
+        FailureType.conflict,
+        'Chưa thể tạo mã QR mới. Vui lòng thử lại.',
+      ),
+      'EMPTY_UPDATE_REQUEST' => (
+        FailureType.validation,
+        'Chưa có thay đổi để lưu.',
+      ),
       'INVALID_REQUEST_BODY' => (
         FailureType.validation,
         'Nội dung yêu cầu không hợp lệ. Vui lòng kiểm tra dữ liệu.',

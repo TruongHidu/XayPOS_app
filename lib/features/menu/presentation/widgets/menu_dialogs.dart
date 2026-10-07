@@ -1,3 +1,4 @@
+import '../../../../core/ui/formatters/local_date.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
@@ -212,8 +213,4 @@ InputDecoration menuField(String label, {String? helper, String? error}) =>
       errorText: error,
     );
 
-String menuDate(DateTime value) {
-  final date = value.toLocal();
-  String two(int value) => value.toString().padLeft(2, '0');
-  return '${two(date.day)}/${two(date.month)}/${date.year} ${two(date.hour)}:${two(date.minute)}';
-}
+String menuDate(DateTime value) => formatLocalDate(value);
