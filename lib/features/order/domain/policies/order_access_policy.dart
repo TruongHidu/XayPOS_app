@@ -1,0 +1,38 @@
+import '../entities/order_entities.dart';
+
+/// Pure action rules; permission/entitlement are supplied by the application.
+abstract final class OrderAccessPolicy {
+  static bool isUuid(String? value) =>
+      value != null &&
+      RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(value);
+  static bool canEdit(OrderDetail order, bool updatePermission) =>
+      updatePermission && order.editable;
+  static bool canAppend(OrderDetail order, bool updateAndTypeFeature) =>
+      updateAndTypeFeature &&
+      order.unpaid &&
+      const {
+        OrderStatus.open,
+        OrderStatus.confirmed,
+      }.contains(order.summary.status);
+  static String lineCancelPermission(OrderDetail order) =>
+      order.confirmedAt == null ? 'ORDER_UPDATE' : 'ORDER_CANCEL';
+  static bool canCancelLine(
+    OrderDetail order,
+    OrderLine line,
+    bool permission,
+  ) =>
+      permission &&
+      order.unpaid &&
+      const {
+        OrderStatus.open,
+        OrderStatus.confirmed,
+      }.contains(order.summary.status) &&
+      line.status == OrderItemStatus.pending;
+  static bool canConfirm(OrderDetail order, bool updatePermission) =>
+      canEdit(order, updatePermission) &&
+      order.items.any((line) => line.status != OrderItemStatus.cancelled);
+  static bool canCancel(OrderDetail order, bool cancelPermission) =>
+      cancelPermission && order.cancellable;
+}

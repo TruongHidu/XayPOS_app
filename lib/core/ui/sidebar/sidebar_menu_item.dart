@@ -12,6 +12,7 @@ class SidebarMenuItem {
     required this.icon,
     required this.routePath,
     this.requiredPermissions = const [],
+    this.requiredAnyPermissions = const [],
     this.requiredFeatures = const [],
   });
 
@@ -29,6 +30,9 @@ class SidebarMenuItem {
 
   /// Permission strings that the session must have (all required).
   final List<String> requiredPermissions;
+
+  /// Optional alternatives in addition to all-required permissions/features.
+  final List<String> requiredAnyPermissions;
 
   /// Feature strings that the subscription must have (all required).
   final List<String> requiredFeatures;

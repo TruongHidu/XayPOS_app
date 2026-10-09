@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../features/order/presentation/screens/order_list_screen.dart';
+import '../../../features/order/presentation/screens/order_service_context_screen.dart';
 
 import '../../../app/providers.dart';
 import '../../auth/app_session.dart';
@@ -20,7 +23,8 @@ import '../../../features/tables/presentation/screens/tables_management_screen.d
 /// is built dynamically from [AppSidebarRegistry], filtered by the
 /// user's effective permissions and subscription features.
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key, this.initialSection});
+  const AppShell({super.key, this.initialSection, this.child});
+  final Widget? child;
 
   /// Optional initial section id, used when navigating from a route.
   final String? initialSection;
@@ -66,7 +70,26 @@ class _AppShellState extends ConsumerState<AppShell>
     }
   }
 
-  void _onItemTap(SidebarMenuItem item) {
+  void _onItemTap(SidebarMenuItem item) async {
+    if (const {
+      'orders',
+      'order-create',
+      'tables',
+      'menu',
+      'staff',
+    }.contains(item.id)) {
+      final router = GoRouter.maybeOf(context);
+      if (router != null) {
+        if (item.id == 'order-create' &&
+            GoRouterState.of(context).uri.path == '/app/order-create') {
+          final allowed = await ref.read(orderExitGuardProvider).allow(context);
+          if (!mounted || !allowed) return;
+        }
+        _sidebarController.reverse();
+        router.go(item.routePath);
+        return;
+      }
+    }
     setState(() => _selectedId = item.id);
     _sidebarController.reverse();
     // Navigation to the actual feature screens will be wired
@@ -197,6 +220,14 @@ class _AppShellState extends ConsumerState<AppShell>
     if (selected == null) {
       return const Center(child: Text('Chọn chức năng từ menu.'));
     }
+    if (widget.child != null) {
+      return KeyedSubtree(
+        key: ValueKey(AccessPolicy.orderScope(session)),
+        child: widget.child!,
+      );
+    }
+    if (selected.id == 'orders') return const OrderListScreen();
+    if (selected.id == 'order-create') return const OrderServiceContextScreen();
 
     if (selected.id == 'staff') {
       return const StaffManagementScreen();

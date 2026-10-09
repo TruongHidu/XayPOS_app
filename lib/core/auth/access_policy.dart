@@ -3,7 +3,44 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static Object? orderScope(AppSession? session) => menuScope(session);
+
+  static bool canOrders(AppSession? session, String permission) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('ORDER_MANAGEMENT') &&
+      const {
+        'ORDER_VIEW',
+        'ORDER_CREATE',
+        'ORDER_UPDATE',
+        'ORDER_CANCEL',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
+  static bool canCreateOrder(AppSession? session, {required bool takeaway}) =>
+      canOrders(session, 'ORDER_CREATE') &&
+      session!.features.contains(
+        takeaway ? 'POS_QUICK_ORDER' : 'TABLE_MANAGEMENT',
+      );
+
   static Object? tableScope(AppSession? session) => menuScope(session);
+  static bool canOrderWorkspace(AppSession? session) =>
+      canOrders(session, 'ORDER_VIEW') || canOrders(session, 'ORDER_CREATE');
+  static bool canSubmitOrder(AppSession? session, {required bool takeaway}) =>
+      canCreateOrder(session, takeaway: takeaway) &&
+      canOrders(session, 'ORDER_UPDATE');
+
+  static bool canAppendOrder(AppSession? session, {required bool takeaway}) =>
+      canOrders(session, 'ORDER_UPDATE') &&
+      session!.features.contains(
+        takeaway ? 'POS_QUICK_ORDER' : 'TABLE_MANAGEMENT',
+      );
 
   static bool canTables(AppSession? session, String permission) =>
       session != null &&
@@ -177,6 +214,24 @@ abstract final class AccessPolicy {
 
   /// Whether the user is allowed to open the given [location].
   static bool canOpenRoute(AppSession session, String location) {
+    final uri = Uri.tryParse(location);
+    final path = uri?.path ?? location;
+    if (path == '/app/orders' || path.startsWith('/app/orders/')) {
+      return canOrders(session, 'ORDER_VIEW');
+    }
+    if (path == '/app/order-create') {
+      if (uri?.queryParameters['tableId'] != null) {
+        return canSubmitOrder(session, takeaway: false) &&
+            canTables(session, 'TABLE_VIEW');
+      }
+      if (uri?.queryParameters['serviceType'] == 'TAKEAWAY') {
+        return canCreateOrder(session, takeaway: true);
+      }
+      if (uri?.queryParameters['tableSessionId'] != null) {
+        return canCreateOrder(session, takeaway: false);
+      }
+      return canOrderWorkspace(session);
+    }
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (location == '/app/menu') return canMenu(session, 'MENU_VIEW');
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');

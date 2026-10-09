@@ -28,7 +28,7 @@ abstract final class AppSidebarRegistry {
           label: 'Gọi món',
           icon: Icons.add_shopping_cart_outlined,
           routePath: '/app/order-create',
-          requiredPermissions: ['ORDER_CREATE'],
+          requiredAnyPermissions: ['ORDER_VIEW', 'ORDER_CREATE'],
           requiredFeatures: ['ORDER_MANAGEMENT'],
         ),
         SidebarMenuItem(

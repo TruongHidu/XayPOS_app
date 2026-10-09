@@ -1,5 +1,15 @@
 # Xây POS
 
+Gọi món tại bàn/mang đi: `/app/order-create`; danh sách: `/app/orders`.
+Xem [tài liệu Order](docs/order-management.md) về permission, feature,
+idempotency, version và giới hạn chưa có payment/KDS.
+Grid Gọi món tải toàn bộ bàn AVAILABLE, ghép serving order theo currentSession để
+hiển thị totalAmount/currency. Nhấn bàn có bill mở trực tiếp detail; FAB “+” gọi thêm.
+Chọn bàn/chọn món không mở phiên. “Gửi đơn” dùng tableId+SUBMIT tạo phiên nếu cần
+và xác nhận order trong một request. “Tạo nháp” chỉ giữ cho legacy session/TAKEAWAY.
+“Gọi thêm món” vào order đã chọn (OPEN/CONFIRMED) có key/version bất biến để
+resolve timeout an toàn; không tự tạo đơn mới hoặc đổi occupancy của bàn.
+
 Ứng dụng Flutter POS SaaS với luồng đăng nhập, khôi phục phiên, refresh token
 rotation, phân quyền theo permission và giới hạn tính năng theo package.
 

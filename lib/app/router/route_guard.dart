@@ -22,7 +22,7 @@ class RouteGuard {
         auth.status == AuthStatus.restoring ||
         auth.status == AuthStatus.bootstrapping) {
       if (!isSplash && !isLogin && !isSessionError) {
-        _pendingDeepLink = location;
+        _pendingDeepLink = routerState.uri.toString();
       }
       return isSplash ? null : AppRoutes.splash;
     }
@@ -52,12 +52,14 @@ class RouteGuard {
     final pending = _pendingDeepLink;
     _pendingDeepLink = null;
     if (pending != null && AccessPolicy.canOpenRoute(session, pending)) {
-      return pending == location ? null : pending;
+      return pending == routerState.uri.toString() ? null : pending;
     }
 
     if (isLogin || isSplash || isSessionError) return initialRoute;
     if (location == initialRoute) return null;
-    if (AccessPolicy.canOpenRoute(session, location)) return null;
+    if (AccessPolicy.canOpenRoute(session, routerState.uri.toString())) {
+      return null;
+    }
     return initialRoute;
   }
 }

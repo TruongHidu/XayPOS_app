@@ -2,6 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/ui/shell/app_shell.dart';
+import '../../features/order/presentation/screens/order_create_screen.dart';
+import '../../features/order/presentation/screens/order_detail_screen.dart';
+import '../../features/order/presentation/screens/order_list_screen.dart';
+import '../../features/order/presentation/screens/order_service_context_screen.dart';
 import '../../features/access/presentation/access_message_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
@@ -18,6 +22,47 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: authController,
     redirect: (context, state) => guard.redirect(state),
     routes: [
+      GoRoute(
+        path: AppRoutes.orders,
+        builder: (context, state) => AppShell(
+          initialSection: 'orders',
+          child: OrderListScreen(
+            sessionId: state.uri.queryParameters['tableSessionId'],
+          ),
+        ),
+        routes: [
+          GoRoute(
+            path: ':orderId',
+            onExit: (context, state) =>
+                ref.read(orderExitGuardProvider).allow(context),
+            builder: (context, state) => AppShell(
+              initialSection: 'orders',
+              child: OrderDetailScreen(id: state.pathParameters['orderId']!),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.orderCreate,
+        onExit: (context, state) =>
+            ref.read(orderExitGuardProvider).allow(context),
+        builder: (context, state) {
+          final params = state.uri.queryParameters;
+          return AppShell(
+            initialSection: 'order-create',
+            child:
+                params.containsKey('serviceType') ||
+                    params.containsKey('tableId') ||
+                    params.containsKey('tableSessionId')
+                ? OrderCreateScreen(
+                    tableId: params['tableId'],
+                    sessionId: params['tableSessionId'],
+                    takeaway: params['serviceType'] == 'TAKEAWAY',
+                  )
+                : const OrderServiceContextScreen(),
+          );
+        },
+      ),
       GoRoute(
         path: AppRoutes.tables,
         builder: (context, state) => const AppShell(initialSection: 'tables'),

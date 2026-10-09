@@ -13,6 +13,12 @@ List<SidebarMenuItem> filterMenuItems(
   List<SidebarMenuItem> allItems,
 ) {
   return allItems.where((item) {
+    if (item.id == 'orders') {
+      return AccessPolicy.canOrders(session, 'ORDER_VIEW');
+    }
+    if (item.id == 'order-create') {
+      return AccessPolicy.canOrderWorkspace(session);
+    }
     if (item.id == 'tables') {
       return AccessPolicy.canTables(session, 'TABLE_VIEW');
     }
@@ -24,7 +30,10 @@ List<SidebarMenuItem> filterMenuItems(
     final hasAllFeatures = item.requiredFeatures.every(
       (f) => session.features.contains(f),
     );
-    return hasAllPermissions && hasAllFeatures;
+    final hasAny =
+        item.requiredAnyPermissions.isEmpty ||
+        item.requiredAnyPermissions.any(session.permissions.contains);
+    return hasAllPermissions && hasAny && hasAllFeatures;
   }).toList();
 }
 

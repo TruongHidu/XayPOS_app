@@ -24,6 +24,108 @@ abstract final class ApiErrorMapper {
         ? ApiErrorDto.fromJson(data)
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
+    final orderError = switch (apiError.code) {
+      'ORDER_NOT_FOUND' || 'ORDER_ITEM_NOT_FOUND' => (
+        FailureType.notFound,
+        'Đơn hoặc dòng món không còn tồn tại hoặc bạn không có quyền truy cập.',
+      ),
+      'CONCURRENT_ORDER_UPDATE' => (
+        FailureType.conflict,
+        'Đơn đã được cập nhật. Bản đang sửa được giữ; hãy tải lại để đối chiếu.',
+      ),
+      'IDEMPOTENCY_KEY_REUSED' => (
+        FailureType.conflict,
+        'Yêu cầu tạo/gọi thêm có key xung đột. Không tự tạo key mới; hãy đối chiếu với người quản lý.',
+      ),
+      'ORDER_CODE_CONFLICT' => (
+        FailureType.conflict,
+        'Mã đơn xung đột. Yêu cầu chưa được lưu.',
+      ),
+      'ORDER_NOT_EDITABLE' || 'ORDER_ITEM_NOT_EDITABLE' => (
+        FailureType.conflict,
+        'Đơn hoặc dòng món không còn cho phép sửa.',
+      ),
+      'INVALID_ORDER_TRANSITION' => (
+        FailureType.conflict,
+        'Trạng thái đơn không cho phép thao tác này.',
+      ),
+      'EMPTY_ORDER' => (
+        error.response?.statusCode == 409
+            ? FailureType.conflict
+            : FailureType.validation,
+        'Đơn cần ít nhất một món còn hiệu lực.',
+      ),
+      'TABLE_SESSION_NOT_OPEN' => (
+        FailureType.conflict,
+        'Phiên bàn không còn mở. Hãy kiểm tra lại bàn.',
+      ),
+      'TABLE_SESSION_HAS_SERVING_ORDER' => (
+        FailureType.conflict,
+        'Bàn đã có đơn đang phục vụ. Giữ giỏ và kiểm tra đơn hiện tại để gọi thêm.',
+      ),
+      'INCONSISTENT_SERVING_ORDER_STATE' ||
+      'INCONSISTENT_TABLE_SESSION_STATE' => (
+        FailureType.conflict,
+        'Dữ liệu phiên/đơn chưa nhất quán. Không tự chọn đơn; hãy tải lại hoặc liên hệ quản lý.',
+      ),
+      'TABLE_SESSION_IN_USE' => (
+        FailureType.conflict,
+        'Phiên đang có đơn hoặc nghĩa vụ thanh toán, không thể hủy phiên.',
+      ),
+      'ITEM_NOT_SELLABLE' || 'ITEM_OUT_OF_STOCK' => (
+        FailureType.conflict,
+        'Món vừa hết hàng hoặc không còn được bán. Hãy kiểm tra giỏ món.',
+      ),
+      'ORDER_CURRENCY_MISMATCH' => (
+        FailureType.conflict,
+        'Tiền tệ hiện tại khác đơn cũ. Không thể thêm dòng vào đơn này.',
+      ),
+      'ORDER_HAS_FINANCIAL_OBLIGATIONS' => (
+        FailureType.conflict,
+        'Đơn có nghĩa vụ thanh toán, không thể gọi thêm hoặc hủy trong luồng hiện tại.',
+      ),
+      'INVALID_IDEMPOTENCY_KEY' => (
+        FailureType.validation,
+        'Key tạo đơn/gọi thêm phải không trống và tối đa 100 ký tự.',
+      ),
+      'DINE_IN_SESSION_REQUIRED' => (
+        FailureType.validation,
+        'Đơn tại bàn cần mã bàn hoặc phiên đang mở.',
+      ),
+      'AMBIGUOUS_ORDER_SEATING' => (
+        FailureType.validation,
+        'Chỉ dùng mã bàn hoặc mã phiên, không gửi đồng thời cả hai.',
+      ),
+      'TABLE_ORDER_REQUIRES_SUBMIT' => (
+        FailureType.validation,
+        'Tạo từ bàn phải gửi SUBMIT, không được tạo nháp.',
+      ),
+      'TAKEAWAY_TABLE_NOT_ALLOWED' => (
+        FailureType.validation,
+        'Đơn mang đi không được gắn bàn.',
+      ),
+      'TAKEAWAY_SESSION_NOT_ALLOWED' => (
+        FailureType.validation,
+        'Đơn mang đi không được có phiên bàn.',
+      ),
+      'UNSUPPORTED_ORDER_SOURCE' => (
+        FailureType.validation,
+        'Kênh gọi món không được hỗ trợ trên API nhân viên.',
+      ),
+      'ORDER_AMOUNT_LIMIT_EXCEEDED' => (
+        FailureType.validation,
+        'Tổng tiền vượt giới hạn cho phép.',
+      ),
+      _ => null,
+    };
+    if (orderError != null) {
+      return Failure(
+        type: orderError.$1,
+        message: orderError.$2,
+        code: apiError.code,
+        fieldErrors: apiError.fieldErrors,
+      );
+    }
     final menuError = switch (apiError.code) {
       'TABLE_AREA_NAME_EXISTS' => (
         FailureType.conflict,
