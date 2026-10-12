@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const tables = '/app/tables';
   static const orders = '/app/orders';
   static const orderCreate = '/app/order-create';
+  static const orderCreateBill = '/app/order-create/bill';
   static const subscriptionRequired = '/subscription-required';
   static const subscriptionUnavailable = '/subscription-unavailable';
   static const featureUnavailable = '/feature-unavailable';

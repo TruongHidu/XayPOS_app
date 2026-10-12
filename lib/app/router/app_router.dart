@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/ui/shell/app_shell.dart';
+import '../../features/order/presentation/screens/order_append_screen.dart';
 import '../../features/order/presentation/screens/order_create_screen.dart';
 import '../../features/order/presentation/screens/order_detail_screen.dart';
 import '../../features/order/presentation/screens/order_list_screen.dart';
@@ -62,6 +63,43 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 : const OrderServiceContextScreen(),
           );
         },
+        routes: [
+          GoRoute(
+            path: 'bill/:orderId',
+            onExit: (context, state) =>
+                ref.read(orderExitGuardProvider).allow(context),
+            builder: (context, state) {
+              final orderId = state.pathParameters['orderId']!;
+              final tableName = state.uri.queryParameters['tableName'];
+              return AppShell(
+                initialSection: 'order-create',
+                child: OrderDetailScreen(
+                  id: orderId,
+                  tableName: tableName,
+                  isOrderCreateFlow: true,
+                ),
+              );
+            },
+            routes: [
+              GoRoute(
+                path: 'add-items',
+                onExit: (context, state) =>
+                    ref.read(orderExitGuardProvider).allow(context),
+                builder: (context, state) {
+                  final orderId = state.pathParameters['orderId']!;
+                  final tableName = state.uri.queryParameters['tableName'];
+                  return AppShell(
+                    initialSection: 'order-create',
+                    child: OrderAppendScreen(
+                      orderId: orderId,
+                      tableName: tableName,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.tables,

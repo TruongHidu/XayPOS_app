@@ -44,6 +44,13 @@ abstract final class TableRequests {
     if (input.note != null) 'note': input.note,
     'expectedVersion': input.expectedVersion,
   };
+  static Map<String, dynamic> transferTableSession(
+    TransferTableSessionInput input,
+  ) => {
+    'targetTableId': input.targetTableId,
+    'expectedVersion': input.expectedVersion,
+    'reason': input.reason,
+  };
   static Map<String, dynamic> assignment(String? areaId, int version) => {
     'areaId': areaId,
     'expectedVersion': version,

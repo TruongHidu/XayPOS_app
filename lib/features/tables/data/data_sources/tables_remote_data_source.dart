@@ -209,6 +209,62 @@ class TablesRemoteDataSource {
     );
     return TableDto.tableSession(response.data);
   }
+
+  Future<TableSessionTransferResult> tableSessionTransfer(
+    String id,
+    TransferTableSessionInput input,
+    String idempotencyKey,
+  ) async {
+    final key = Uri.encodeComponent(id);
+    late final Response<dynamic> response;
+    try {
+      response = await _dio.post<dynamic>(
+        '/api/v1/table-sessions/$key/transfer',
+        data: TableRequests.transferTableSession(input),
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
+        ),
+      );
+    } on DioException catch (error) {
+      if ((error.response?.statusCode ?? 0) >= 500) {
+        throw const _UncertainTableTransferException();
+      }
+      rethrow;
+    }
+    final replayHeader = response.headers.value('Idempotency-Replayed');
+    final replayed = switch (replayHeader?.toLowerCase()) {
+      'true' => true,
+      'false' => false,
+      _ => null,
+    };
+    return TableSessionTransferResult(
+      session: TableDto.tableSession(response.data),
+      replayed: replayed,
+    );
+  }
+
+  Future<TablePage<TableSessionTransferHistoryEntry>> tableSessionTransfers(
+    String id, {
+    required int page,
+    required int size,
+  }) async {
+    if (page < 0 || size < 1 || size > 100) {
+      throw const FormatException('Invalid transfer history query');
+    }
+    final key = Uri.encodeComponent(id);
+    final response = await _dio.get<dynamic>(
+      '/api/v1/table-sessions/$key/transfers',
+      queryParameters: {'page': page, 'size': size},
+    );
+    return TableDto.page(response.data, TableDto.tableSessionTransfer);
+  }
+}
+
+class _UncertainTableTransferException implements Exception {
+  const _UncertainTableTransferException();
 }
 
 Map<String, dynamic> _query(TableQuery q, TableQueryKind kind) {

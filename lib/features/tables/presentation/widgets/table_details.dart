@@ -9,6 +9,7 @@ import 'table_actions.dart';
 import 'table_area_picker.dart';
 import 'table_navigation.dart';
 import 'table_session_form.dart';
+import 'table_transfer_dialog.dart';
 
 class TableDetails extends ConsumerStatefulWidget {
   const TableDetails({super.key, required this.id});
@@ -146,6 +147,19 @@ class _TableSessionCardState extends ConsumerState<TableSessionCard> {
         return;
       }
       final b = (result as Success<TableSession>).value;
+      if (action == 'transfer') {
+        await showTableTransferDialog(context, ref, sessionId: b.id);
+        return;
+      }
+      if (action == 'transferHistory') {
+        await showTableDialog(
+          context,
+          ref,
+          permission: 'TABLE_VIEW',
+          child: TableTransferHistoryView(sessionId: b.id),
+        );
+        return;
+      }
       await showTableDialog(
         context,
         ref,
@@ -160,7 +174,39 @@ class _TableSessionCardState extends ConsumerState<TableSessionCard> {
                 busy: false,
                 onSubmit: null,
                 showSubmit: false,
-                children: sessionInfo(b),
+                children: [
+                  ...sessionInfo(b),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (b.status == TableSessionStatus.open &&
+                          ref
+                              .read(tableSessionControllerProvider(b.tableId))
+                              .can('TABLE_TRANSFER'))
+                        FilledButton.tonalIcon(
+                          onPressed: () => showTableTransferDialog(
+                            context,
+                            ref,
+                            sessionId: b.id,
+                          ),
+                          icon: const Icon(Icons.swap_horiz),
+                          label: const Text('Chuyển bàn'),
+                        ),
+                      OutlinedButton.icon(
+                        onPressed: () => showTableDialog(
+                          context,
+                          ref,
+                          permission: 'TABLE_VIEW',
+                          child: TableTransferHistoryView(sessionId: b.id),
+                        ),
+                        icon: const Icon(Icons.history),
+                        label: const Text('Lịch sử chuyển bàn'),
+                      ),
+                    ],
+                  ),
+                ],
               )
             : TableSessionForm(session: b, cancel: action == 'cancel'),
       );
@@ -194,6 +240,23 @@ class _TableSessionCardState extends ConsumerState<TableSessionCard> {
                         : () => _action('edit'),
                     child: const Text('Sửa phiên'),
                   ),
+                if (s.status == TableSessionStatus.open &&
+                    c.can('TABLE_TRANSFER'))
+                  TextButton.icon(
+                    onPressed:
+                        _opening ||
+                            ref
+                                .watch(tableEventsProvider)
+                                .sessionTransferBlocked(s.id)
+                        ? null
+                        : () => _action('transfer'),
+                    icon: const Icon(Icons.swap_horiz),
+                    label: const Text('Chuyển bàn'),
+                  ),
+                TextButton(
+                  onPressed: _opening ? null : () => _action('transferHistory'),
+                  child: const Text('Lịch sử chuyển bàn'),
+                ),
                 if (s.status == TableSessionStatus.open && c.can('TABLE_CLOSE'))
                   TextButton(
                     onPressed: _opening || c.pending('session:${s.id}')

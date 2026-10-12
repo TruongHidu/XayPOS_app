@@ -43,3 +43,23 @@ class CancelTableSession {
   Future<Result<TableSession>> call(String id, String reason, int version) =>
       repository.cancel(id, reason, version);
 }
+
+class TransferTableSession {
+  const TransferTableSession(this.repository);
+  final TableSessionRepository repository;
+  Future<Result<TableSessionTransferResult>> call(
+    String id,
+    TransferTableSessionInput input,
+    String idempotencyKey,
+  ) => repository.transfer(id, input, idempotencyKey);
+}
+
+class GetTableSessionTransfers {
+  const GetTableSessionTransfers(this.repository);
+  final TableSessionRepository repository;
+  Future<Result<TablePage<TableSessionTransferHistoryEntry>>> call(
+    String id, {
+    required int page,
+    required int size,
+  }) => repository.transfers(id, page: page, size: size);
+}

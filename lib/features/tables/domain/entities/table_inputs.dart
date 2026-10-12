@@ -84,3 +84,28 @@ class UpdateTableSessionInput {
   final int expectedVersion;
   bool get isEmpty => guestCount == null && note == null;
 }
+
+class TransferTableSessionInput {
+  const TransferTableSessionInput({
+    required this.targetTableId,
+    required this.expectedVersion,
+    this.reason,
+  });
+
+  final String targetTableId;
+  final int expectedVersion;
+  final String? reason;
+
+  TransferTableSessionInput normalized() {
+    final value = reason?.trim();
+    return TransferTableSessionInput(
+      targetTableId: targetTableId.trim(),
+      expectedVersion: expectedVersion,
+      reason: value == null || value.isEmpty ? null : value,
+    );
+  }
+}
+
+abstract interface class TableTransferKeyGenerator {
+  String next();
+}

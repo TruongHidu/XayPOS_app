@@ -113,12 +113,12 @@ class AppSidebar extends StatelessWidget {
                     child: SafeArea(
                       child: Column(
                         children: [
-                          _Header(
-                            userName: userName,
-                            userRole: userRole,
-                            restaurantName: restaurantName,
-                            packageCode: packageCode,
-                          ),
+                          // _Header(
+                          //   userName: userName,
+                          //   userRole: userRole,
+                          //   restaurantName: restaurantName,
+                          //   packageCode: packageCode,
+                          // ),
                           const Divider(height: 1),
                           Expanded(child: _buildCategoryList(context)),
                           const Divider(height: 1),
@@ -142,6 +142,12 @@ class AppSidebar extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
+        _Header(
+          userName: userName,
+          userRole: userRole,
+          restaurantName: restaurantName,
+          packageCode: packageCode,
+        ),
         for (int i = 0; i < categories.length; i++) ...[
           // Category header
           if (_showHeaders) ...[

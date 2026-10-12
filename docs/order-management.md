@@ -29,9 +29,11 @@ sidebar filter và AppShell. Giữ cashier/super-admin web-only, theme toàn app
 - /app/order-create?tableId=<uuid>: kiểm bàn/active-order, giỏ local và SUBMIT deferred seating.
 - /app/order-create?tableSessionId=<uuid>: kiểm tra phiên OPEN và bàn thực tế
   rồi mở composer legacy, tab Lịch sử trong phiên khi có ORDER_VIEW.
-- /app/orders: tìm mã, trạng thái/loại đơn/sort/phân trang.
+- /app/order-create/bill/:orderId: màn chi tiết đơn phục vụ trong luồng Gọi món (sidebar giữ Gọi món).
+- /app/order-create/bill/:orderId/add-items: màn chọn món gọi thêm vào order hiện tại qua FAB (+) (sidebar giữ Gọi món).
+- /app/orders: tìm mã, trạng thái/loại đơn/sort/phân trang (sidebar chọn Đơn hàng).
 - /app/orders?tableSessionId=<uuid>: các đơn trong phiên.
-- /app/orders/<orderId>: chi tiết.
+- /app/orders/<orderId>: chi tiết đơn lịch sử (sidebar chọn Đơn hàng).
 
 Tên không hardcode. Sử dụng/Còn trống lọc occupied trên snapshot đã tải đủ các trang,
 không đổi TableStatus AVAILABLE/INACTIVE. Khu vực active được tải đủ các trang.
@@ -332,6 +334,30 @@ phạm vi byte-identical. Generated Kotlin cache mới của build được chuy
   đối chiếu với người quản lý, không tự bỏ request rồi sinh key khác.
 - Chưa E2E với backend thật hoặc thiết bị vật lý.
 
+## Đồng bộ chuyển bàn
+
+Chi tiết đơn DINE_IN có action “Chuyển bàn” trong menu ba chấm khi order có
+`tableSessionId`, session mới nhất còn OPEN và tài khoản có đồng thời TABLE_VIEW,
+TABLE_TRANSFER, feature TABLE_MANAGEMENT. Đơn TAKEAWAY không tạo controller đọc
+session và không hiển thị action. Quyền TABLE_TRANSFER không cấp ORDER_VIEW;
+quản lý bàn vẫn chuyển được session chưa có order mà không đọc dữ liệu order.
+
+`tableName` từ query route chỉ là hint ban đầu. Khi tải được session context theo
+`sessionId`, tiêu đề chi tiết, phiếu tạm tính và query mở màn gọi thêm dùng tên bàn
+từ session. Transfer không thay order.version, orderId, sessionId, danh sách món
+hoặc số tiền. FAB “Gọi thêm món” tiếp tục truyền orderId cũ.
+
+Trong lúc chuyển đang gửi hoặc chưa xác định, TableEvents khóa mutation của đúng
+session/order: sửa, xác nhận, hủy và gửi giỏ gọi thêm đều bị chặn. Giỏ gọi thêm
+chưa gửi không bị xóa. Create/append/order mutation đang gửi hoặc chưa xác định
+phải được xử lý trước khi xác nhận transfer. Exit guard giữ người dùng ở luồng
+để replay đúng ý định khi cần.
+
+Sau thành công, event refresh danh sách bàn và workspace gọi món. Serving order
+vẫn liên kết bằng sessionId, nên occupancy đi sang bàn thực tế trong response và
+amount tiếp tục lấy từ ORDER response. Refresh đọc lỗi sau POST 200 không phát
+thêm POST transfer.
+
 ## File của lượt SUBMIT / gọi thêm
 
 30 file của lượt này (tách khỏi các thay đổi ORDER/auth/sidebar đã có trong worktree):
@@ -413,3 +439,74 @@ phạm vi byte-identical. Generated Kotlin cache mới của build được chuy
 - `README.md`
 - `docs/order-management.md`
 - `test/features/order/goldens/order_service_context.png`
+- `test/features/order/order_goi_mon_flow_test.dart`
+
+## Luồng Gọi Món & Thiết kế Màn Hình (10/10/2026)
+
+### 1. Luồng Gọi món → Bill → Gọi thêm
+
+1. **Từ Grid Bàn**:
+   - Khi nhấn một bàn occupied có active order, app điều hướng trực tiếp tới `/app/order-create/bill/:orderId?tableName=...` (không qua `OrderListScreen` và **không đổi section trên sidebar sang "Đơn hàng"**).
+   - Sidebar vẫn làm nổi bật mục **"Gọi món"** (`initialSection: 'order-create'`).
+   - Nút Back trên màn bill gọi `context.pop()` trở về đúng grid bàn của Gọi món.
+
+2. **Từ Bill → Màn Chọn Món Gọi Thêm**:
+   - Màn chi tiết đơn hiển thị nút FAB (+) màu cam nổi góc phải phía trên footer.
+   - Nhấn FAB (+) mở màn hình chọn món gọi thêm tại route `/app/order-create/bill/:orderId/add-items?tableName=...`.
+   - Sidebar vẫn giữ **"Gọi món"**.
+   - Nút Back từ màn chọn món gọi thêm quay trở về đúng màn bill của đơn hàng hiện tại (`/app/order-create/bill/:orderId`).
+
+3. **Bàn chưa có đơn**:
+   - Mở màn tạo món local (`/app/order-create?tableId=...`).
+   - Thao tác chọn món, chỉnh số lượng, bấm Back không gọi API tạo phiên hay tạo order.
+   - Chỉ khi nhấn "Gửi đơn", API `POST /api/v1/orders` với `tableId` và `submissionMode: SUBMIT` mới được gọi.
+
+### 2. Phân biệt Route Workspace Gọi món và Lịch sử Đơn hàng
+
+- **Workspace Gọi món**:
+  - `/app/order-create`: Grid bàn / chọn phương thức phục vụ.
+  - `/app/order-create/bill/:orderId`: Xem chi tiết đơn đang phục vụ của bàn.
+  - `/app/order-create/bill/:orderId/add-items`: Chọn món gọi thêm vào order hiện tại.
+  - Sử dụng `AppShell(initialSection: 'order-create')`.
+- **Lịch sử Đơn hàng**:
+  - `/app/orders`: Danh sách và bộ lọc lịch sử đơn.
+  - `/app/orders/:orderId`: Chi tiết đơn trong ngữ cảnh lịch sử.
+  - Sử dụng `AppShell(initialSection: 'orders')`.
+
+### 3. API và Phân Quyền
+
+- **Xem Bill trong Gọi món** (`/app/order-create/bill/:orderId`):
+  - Quyền yêu cầu: `ORDER_VIEW` và feature `ORDER_MANAGEMENT`.
+  - Không bắt buộc `ORDER_CREATE` hay `MENU_VIEW` đối với nhân viên chỉ có quyền xem bill.
+- **Chọn Món Gọi Thêm** (`/app/order-create/bill/:orderId/add-items`):
+  - Quyền yêu cầu: `ORDER_UPDATE`, `MENU_VIEW`, cùng feature theo `serviceType` (`TABLE_MANAGEMENT` cho DINE_IN, `POS_QUICK_ORDER` cho TAKEAWAY).
+  - Không yêu cầu `ORDER_CREATE` hay `TABLE_OPEN`.
+
+### 4. Dòng Local Giỏ Hàng so với Dòng Đã Lưu
+
+- **Dòng trong Giỏ Hàng (Chưa gửi)**:
+  - Cho phép dùng nút `+` / `-` trực tiếp trên card món để tăng/giảm số lượng local.
+  - Giảm về 0 sẽ tự động xóa dòng local tương ứng khỏi giỏ, không gửi quantity=0 lên backend.
+  - Hỗ trợ stepper số lượng chính xác qua `OrderQuantity` (không dùng float/double).
+  - Hai dòng cùng `itemId` nhưng khác ghi chú được quản lý độc lập.
+- **Dòng Đã Lưu trên Bill**:
+  - Khi order ở trạng thái `CONFIRMED`: các dòng cũ là read-only snapshot, không có stepper `±` local. Muốn gọi thêm bắt buộc dùng nút FAB (+) và gửi qua append SUBMIT.
+  - Khi order ở trạng thái `OPEN` và dòng `PENDING`: cho phép chỉnh sửa qua form xác nhận với quyền `ORDER_UPDATE`, gửi `PATCH /api/v1/orders/:orderId/items/:orderItemId`. Không auto-PATCH trên từng cú bấm stepper.
+  - Món `CANCELLED`: hiển thị style gạch ngang riêng biệt, không cộng vào tổng hiệu lực.
+
+### 5. Giới Hạn Nghiệp Vụ Backend & Thao Tác Chưa Hỗ Trợ
+
+- **Thanh toán & Gửi bếp & Thông báo**:
+  - Backend hiện tại chưa có API thanh toán, gửi bếp, đóng bill hay thông báo.
+  - Không triển khai mutation giả. Màn hình chi tiết đơn hiển thị thông báo rõ: *"Chưa hỗ trợ gửi bếp, thanh toán hoặc đóng bill."*
+- **Tạm tính**:
+  - Chỉ hiển thị bản xem trước các dòng và tổng tiền snapshot hiện có của backend trong popup xem nhanh, không gọi endpoint tạo hóa đơn mới hay thay đổi trạng thái đơn.
+- **Ảnh Thumbnail**:
+  - Snapshot backend `OrderResponse` chưa lưu URL ảnh món. App tận dụng cache danh mục ảnh trong bộ nhớ khi đã tải catalog, hoặc fallback sang icon/placeholder hài hòa, không gọi HTTP riêng cho từng dòng.
+
+### 6. Retry và Xử Lý Kết Quả Chưa Xác Định (Unknown Outcome)
+
+- Khi gửi tạo đơn hoặc gọi thêm gặp lỗi mạng, timeout hoặc HTTP 5xx: intent được đóng băng với cùng `Idempotency-Key`, `expectedVersion`, và danh sách items.
+- Người dùng có thể bấm "Kiểm tra lại" để retry bằng cùng key mà không làm mất giỏ hàng.
+- Lỗi `409 CONCURRENT_ORDER_UPDATE`: giữ nguyên giỏ, yêu cầu người dùng xác nhận làm mới để đối chiếu.
+- Lỗi `409 TABLE_SESSION_HAS_SERVING_ORDER`: giữ giỏ, không tự động chuyển thành auto-append.

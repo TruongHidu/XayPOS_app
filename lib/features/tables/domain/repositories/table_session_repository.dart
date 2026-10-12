@@ -10,4 +10,14 @@ abstract interface class TableSessionRepository {
   Future<Result<TableSession>> open(String id, OpenTableSessionInput input);
   Future<Result<TableSession>> update(String id, UpdateTableSessionInput input);
   Future<Result<TableSession>> cancel(String id, String reason, int version);
+  Future<Result<TableSessionTransferResult>> transfer(
+    String id,
+    TransferTableSessionInput input,
+    String idempotencyKey,
+  );
+  Future<Result<TablePage<TableSessionTransferHistoryEntry>>> transfers(
+    String id, {
+    required int page,
+    required int size,
+  });
 }

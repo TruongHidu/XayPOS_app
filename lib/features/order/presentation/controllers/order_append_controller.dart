@@ -26,6 +26,7 @@ class OrderAppendController extends OrderController {
     required this.submitItems,
     required this.keys,
     this.blocked,
+    this.retryBlocked,
     this.appliedSource,
   });
 
@@ -34,6 +35,7 @@ class OrderAppendController extends OrderController {
   final void Function() beforeSend;
   final void Function(OrderDetail) onApplied;
   final bool Function()? blocked;
+  final bool Function()? retryBlocked;
   final Object? Function()? appliedSource;
   final SubmitOrderItems submitItems;
   final OrderKeyGenerator keys;
@@ -73,7 +75,12 @@ class OrderAppendController extends OrderController {
   bool get canPick =>
       appendable && AccessPolicy.canMenu(session(), 'MENU_VIEW');
   bool get canRetry =>
-      uncertain && !keyConflict && !busy && authority && _intent != null;
+      uncertain &&
+      !keyConflict &&
+      !busy &&
+      retryBlocked?.call() != true &&
+      authority &&
+      _intent != null;
   BigInt get previewMinor =>
       _lines.fold(BigInt.zero, (sum, line) => sum + line.previewMinor);
 
@@ -202,11 +209,14 @@ class OrderAppendController extends OrderController {
   Future<Result<OrderDetail>> retry() async {
     // Intentionally no cached-version, mutable menu/seating or appendable checks.
     if (!canRetry) return const Error(OrderController.denied);
-    return _execute();
+    return _execute(retrying: true);
   }
 
-  Future<Result<OrderDetail>> _execute() async {
-    if (!authority || _intent == null || !events.lock(id)) {
+  Future<Result<OrderDetail>> _execute({bool retrying = false}) async {
+    if (!authority ||
+        (retrying ? retryBlocked?.call() : blocked?.call()) == true ||
+        _intent == null ||
+        !events.lock(id)) {
       return const Error(OrderController.busyFailure);
     }
     final previouslyUncertain = uncertain;

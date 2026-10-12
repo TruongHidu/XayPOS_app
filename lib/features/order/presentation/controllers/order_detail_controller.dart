@@ -21,6 +21,7 @@ class OrderDetailController extends OrderController {
     required this.confirmOrder,
     required this.cancelLine,
     required this.cancelOrder,
+    this.externalBlocked,
   }) {
     events.addListener(_event);
   }
@@ -32,6 +33,7 @@ class OrderDetailController extends OrderController {
   final ConfirmOrder confirmOrder;
   final CancelOrderItem cancelLine;
   final CancelOrder cancelOrder;
+  final bool Function()? externalBlocked;
   OrderDetail? order;
   Failure? failure;
   bool loading = false;
@@ -42,20 +44,25 @@ class OrderDetailController extends OrderController {
   int _generation = 0;
   int _eventRevision = 0;
   bool get busy => events.pending(id);
+  bool get blocked => externalBlocked?.call() == true;
   bool get editable =>
       order != null &&
+      !blocked &&
       !requiresVerification &&
       OrderAccessPolicy.canEdit(order!, can('ORDER_UPDATE'));
   bool get confirmable =>
       order != null &&
+      !blocked &&
       !requiresVerification &&
       OrderAccessPolicy.canConfirm(order!, can('ORDER_UPDATE'));
   bool get cancellable =>
       order != null &&
+      !blocked &&
       !requiresVerification &&
       OrderAccessPolicy.canCancel(order!, can('ORDER_CANCEL'));
   bool lineCancellable(OrderLine line) =>
       order != null &&
+      !blocked &&
       !requiresVerification &&
       OrderAccessPolicy.canCancelLine(
         order!,
@@ -139,7 +146,7 @@ class OrderDetailController extends OrderController {
     if (!can(permission) || order == null) {
       return const Error(OrderController.denied);
     }
-    if (busy || requiresVerification) {
+    if (busy || blocked || requiresVerification) {
       return Error(failure ?? OrderController.busyFailure);
     }
     if (version != order!.version) {

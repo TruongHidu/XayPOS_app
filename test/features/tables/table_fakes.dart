@@ -10,6 +10,7 @@ const tablePermissions = {
   'TABLE_UPDATE',
   'TABLE_OPEN',
   'TABLE_CLOSE',
+  'TABLE_TRANSFER',
 };
 Map<String, dynamic> areaJson({
   String id = 'a1',
@@ -27,13 +28,15 @@ Map<String, dynamic> areaJson({
 };
 Map<String, dynamic> tableJson({
   String id = 't1',
+  String code = 'B01',
+  String name = 'Window table',
   int version = 9,
   bool occupied = false,
   bool canOpen = true,
 }) => {
   'id': id,
-  'code': 'B01',
-  'name': 'Window table',
+  'code': code,
+  'name': name,
   'capacity': 4,
   'displayOrder': 0,
   'status': 'AVAILABLE',
@@ -57,12 +60,15 @@ Map<String, dynamic> sessionJson({
   String id = 's1',
   int version = 3,
   String status = 'OPEN',
+  String tableId = 't1',
+  String tableCode = 'B01',
+  String tableName = 'Window table',
 }) => {
   'id': id,
   'sessionCode': 'TS-1',
-  'tableId': 't1',
-  'tableCode': 'B01',
-  'tableName': 'Window table',
+  'tableId': tableId,
+  'tableCode': tableCode,
+  'tableName': tableName,
   'status': status,
   'guestCount': 6,
   'note': null,
@@ -74,6 +80,17 @@ Map<String, dynamic> sessionJson({
   'version': version,
   'createdAt': '2026-10-06T03:00:00Z',
   'updatedAt': '2026-10-06T03:00:00Z',
+};
+Map<String, dynamic> transferJson({String? reason = 'Quiet area'}) => {
+  'id': 'x1',
+  'sessionId': 's1',
+  'fromTable': {'id': 't1', 'code': 'B01', 'name': 'Window table'},
+  'toTable': {'id': 't2', 'code': 'B02', 'name': 'Garden table'},
+  'actorUserId': 'u1',
+  'reason': reason,
+  'sessionVersionBefore': 3,
+  'sessionVersionAfter': 4,
+  'transferredAt': '2026-10-11T03:20:00Z',
 };
 Map<String, dynamic> qrJson({int version = 9}) => {
   'tableId': 't1',
@@ -128,6 +145,8 @@ class TableServer {
       status = 204;
     } else if (path.endsWith('/qr') || path.endsWith('/qr/rotate')) {
       data = qrJson(version: path.endsWith('rotate') ? 10 : 9);
+    } else if (r.method == 'GET' && path.endsWith('/transfers')) {
+      data = pageJson([transferJson()]);
     } else if (r.method == 'GET' &&
         const [
           '/api/v1/tables',

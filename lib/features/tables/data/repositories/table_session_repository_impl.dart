@@ -29,4 +29,19 @@ class TableSessionRepositoryImpl implements TableSessionRepository {
   @override
   Future<Result<TableSession>> cancel(String id, String reason, int version) =>
       tableResult(() => remote.tableSessionCancel(id, reason, version));
+  @override
+  Future<Result<TableSessionTransferResult>> transfer(
+    String id,
+    TransferTableSessionInput input,
+    String idempotencyKey,
+  ) =>
+      tableResult(() => remote.tableSessionTransfer(id, input, idempotencyKey));
+  @override
+  Future<Result<TablePage<TableSessionTransferHistoryEntry>>> transfers(
+    String id, {
+    required int page,
+    required int size,
+  }) => tableResult(
+    () => remote.tableSessionTransfers(id, page: page, size: size),
+  );
 }

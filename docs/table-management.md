@@ -2,7 +2,8 @@
 
 ## Phạm vi và contract
 
-Module `lib/features/tables/` tích hợp 21 endpoint V15. Contract được đối chiếu với
+Module `lib/features/tables/` tích hợp 23 endpoint, gồm chuyển bàn và lịch sử
+chuyển bàn. Contract được đối chiếu với
 `pos-saas-be/docs/tenant-api.md`, `docs/openapi/tenant-api.yaml`, controllers,
 request/response DTO, query, command services và lifecycle/validation policies
 trong `com.possaas.modules.table`. Không phát hiện khác biệt ảnh hưởng các endpoint
@@ -10,7 +11,7 @@ trong `com.possaas.modules.table`. Không phát hiện khác biệt ảnh hưở
 
 Triển khai khu vực và bàn: tìm kiếm, lọc, sort, phân trang, chi tiết, tạo, sửa,
 bật/tắt, xóa mềm; bàn thêm gán/bỏ khu vực và quản lý QR. Phiên phục vụ gồm mở,
-xem phiên hiện tại, sửa số khách/ghi chú, hủy mở nhầm và xem lịch sử.
+xem phiên hiện tại, sửa số khách/ghi chú, chuyển bàn, hủy mở nhầm và xem lịch sử.
 
 ## Cấu trúc và phụ thuộc
 
@@ -29,7 +30,7 @@ Widget → ChangeNotifier controller → Use case → Repository interface
 | `domain/entities/table_query.dart` | Query, sort allowlist, giới hạn page/size và khoảng ngày |
 | `domain/validation/table_validation.dart` | Quy tắc text, số nguyên, guestCount, capacity và version |
 | `domain/repositories/` | TableAreaRepository, RestaurantTableRepository, TableSessionRepository |
-| `domain/use_cases/` | Use case cụ thể cho 21 thao tác |
+| `domain/use_cases/` | Use case cụ thể cho 23 thao tác |
 | `data/dto/` | Parse response chặt chẽ; serialize request theo allowlist |
 | `data/data_sources/tables_remote_data_source.dart` | Method/path/body/query đúng contract |
 | `data/repositories/` | Chuyển response/lỗi thành Result/Failure |
@@ -84,6 +85,7 @@ request. Không suy từ packageCode hoặc tự cấp OWNER/MANAGER bypass.
 | TABLE_UPDATE | Sửa cấu hình, status, area assignment, xóa mềm, xem QR, rotate QR |
 | TABLE_OPEN | Mở phiên, sửa guestCount/note |
 | TABLE_CLOSE | Hủy phiên mở nhầm |
+| TABLE_TRANSFER | Chuyển phiên OPEN sang bàn trống; UI chọn bàn còn cần TABLE_VIEW |
 
 Không có TABLE_DELETE/TABLE_CANCEL/TABLE_QR_MANAGE hoặc yêu cầu QR_MENU_VIEW.
 OWNER, MANAGER, WAITER, KITCHEN dùng effective permissions; CASHIER và SUPER_ADMIN
@@ -118,6 +120,8 @@ restaurantId hoặc X-Restaurant-Id. Response entity/page trực tiếp, không 
 | GET | /table-sessions/{id} | Chi tiết phiên / TABLE_VIEW |
 | PATCH | /table-sessions/{id} | Sửa guestCount/note / TABLE_OPEN |
 | POST | /table-sessions/{id}/cancel | Phiên CANCELLED / TABLE_CLOSE |
+| POST | /table-sessions/{id}/transfer | Phiên hiện tại + header replay / TABLE_TRANSFER |
+| GET | /table-sessions/{id}/transfers?page=0&size=20 | Page lịch sử chuyển / TABLE_VIEW |
 
 Query page bắt đầu 0, size mặc định 20, tối đa 100. Khu vực/bàn mặc định
 displayOrder desc; phiên openedAt desc. Search debounce 350 ms; thay query reset
@@ -167,6 +171,36 @@ table summaries và detail; table/QR đổi làm refresh list/detail; session đ
 refresh occupancy/detail và current/history đang dùng. Không tải current-session
 cho từng card. Mutation lock dùng resource ID trong cùng scope, không khóa toàn màn.
 
+## Chuyển bàn
+
+“Chuyển bàn” có trong chi tiết phiên OPEN và card phiên của quản lý bàn. Giao
+diện responsive hiển thị bàn hiện tại, mã phiên, số khách, tìm kiếm debounce,
+bộ lọc khu vực, bàn trống phân trang, bàn đã chọn và lý do tùy chọn. Bàn đích
+được lấy bằng `status=AVAILABLE&occupied=false`; client loại bàn nguồn và khu vực
+inactive, nhưng không chặn theo capacity và không dùng `canOpen`. Không có request
+`current-session` cho từng card.
+
+Controller chuyển bàn định danh bằng `sessionId`. Một ý định bất biến giữ bàn
+đích, `session.version`, reason đã trim và `Idempotency-Key`. Timeout, mất mạng,
+5xx hoặc response 200 không parse được chuyển sang trạng thái chưa xác định;
+người dùng chỉ có thể replay đúng payload/key/version. Conflict xác định không
+tự retry; controller tải lại phiên và danh sách để người dùng xem rồi tạo ý định
+mới. Token rotation cùng scope giữ intent; đổi user/tenant/quyền loại response trễ.
+
+Response POST là `TableSession` hiện tại. Với resource replay, request A→B có thể
+trả phiên đang ở C hoặc đã CLOSED/CANCELLED sau một thay đổi khác; UI luôn dùng
+bàn và trạng thái từ response, không ép về B. Thành công phát một `TableChange`
+có `sessionId` và tập bàn nguồn/đích/bàn thực tế để refresh occupancy, current
+session, lịch sử và workspace gọi món mà vẫn giữ nguyên sessionId/orderId.
+
+Lịch sử chuyển bàn đọc được cả với phiên terminal, giữ thứ tự server và snapshot
+tên/mã bàn nguồn → đích. UI hiển thị giờ local, lý do và actorUserId, không gọi
+staff API theo từng dòng.
+
+Intent chưa xác định chỉ được giữ trong RAM qua rebuild/đóng mở dialog nhờ
+`keepAlive` và exit guard. Nếu app bị tắt hẳn, app tải hiện trạng mới khi mở lại
+và không tự replay mutation cũ.
+
 Access recovery dùng AuthController.restore hiện có, một lần mỗi scope và
 single-flight; không logout mọi lỗi 403 hoặc tự lặp restore/refetch vô hạn.
 Thông báo đi qua messenger toàn app để còn hiển thị sau redirect.
@@ -198,25 +232,26 @@ flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.4:8080
 không tạo dữ liệu trong nhà hàng thật. Chưa chạy kiểm thử end-to-end trên backend
 thật hoặc kiểm tra APK trên thiết bị vật lý.
 
-Các test mới tại `test/features/tables/` kiểm tra contract đủ 21 endpoint,
+Các test tại `test/features/tables/` kiểm tra contract đủ 23 endpoint,
 parse/204/null/version/error mapping, quyền và web-only roles, scope/rotation,
 debounce/stale response/dispose, double-submit/conflict/timeout/404, pagination,
 selector ngoài page đầu, refresh phụ thuộc, QR confirmation/version, terminal
-session, draft và form 320 px/bàn phím, màn 320/800/1440 px.
+session, chuyển bàn/idempotency/resource replay/lịch sử, draft và form 320 px/bàn
+phím, màn 320/800/1440 px.
 
-Kết quả xác minh ngày 06/10/2026:
+Kết quả xác minh ngày 11/10/2026:
 
 - `dart format`: đã định dạng các file tạo/sửa.
 - `flutter analyze`: No issues found.
-- `flutter test --reporter compact`: 130 test passed, gồm 31 test tables và
-  99 test auth/network/menu/staff/shell hiện có.
+- `flutter test`: 277/277 test passed, gồm test chuyển bàn và toàn bộ hồi quy
+  auth/network/menu/staff/order/tables/shell hiện có.
 - `flutter build apk --debug --dart-define=API_BASE_URL=http://192.168.1.4:8080`:
   thành công trên bản code cuối. APK tại `build/app/outputs/flutter-apk/app-debug.apk`.
 - Test QR bổ sung xác nhận GET cũ không ghi đè token/version mới sau rotate.
 
 ## Mở rộng Order/Payment
 
-Không có Order, Payment, reservation, chuyển/gộp/tách, realtime hay offline sync.
+Không có Payment, reservation, gộp/tách bàn, realtime hay offline sync.
 Khi thêm Order/Payment, dùng sessionId để liên kết nghiệp vụ, bổ sung use case/API
 close sau thanh toán và policy kiểm tra session đang được sử dụng ở backend.
 Cancel vẫn chỉ phục vụ hủy mở nhầm; không đổi nhãn hoặc dùng cancel để thanh toán.

@@ -20,6 +20,7 @@ class TableAreaController extends TableListController<TableArea> {
     required this.statusArea,
     required this.deleteArea,
   }) : super(kind: TableQueryKind.areas, list: list.call) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final DetailTableArea get;
@@ -27,7 +28,10 @@ class TableAreaController extends TableListController<TableArea> {
   final UpdateTableArea updateArea;
   final SetStatusTableArea statusArea;
   final DeleteTableArea deleteArea;
+  int _eventRevision = 0;
   void _event() {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
     if (events.change?.kind == TableChangeKind.area) unawaited(load());
   }
 
@@ -105,6 +109,7 @@ class TableAreaSelectorController extends TableListController<TableArea> {
            direction: 'asc',
          ),
        ) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final bool activeOnly;
@@ -113,7 +118,10 @@ class TableAreaSelectorController extends TableListController<TableArea> {
     value.copyWith(active: () => activeOnly ? true : value.active),
     debounce: debounce,
   );
+  int _eventRevision = 0;
   void _event() {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
     if (events.change?.kind == TableChangeKind.area) unawaited(load());
   }
 

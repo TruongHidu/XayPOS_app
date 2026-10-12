@@ -14,6 +14,7 @@ import 'package:pos_saas_app/features/order/data/dto/order_dto.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_submission.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_service_context_screen.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_create_screen.dart';
+import 'package:pos_saas_app/features/order/presentation/screens/order_append_screen.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_detail_screen.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_list_screen.dart';
 import 'package:pos_saas_app/features/order/presentation/widgets/order_mutation_forms.dart';
@@ -402,6 +403,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+  testWidgets(
+    'append menu stays usable with a short keyboard viewport and 200% text',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 700);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 380);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      final orders = FakeOrders()
+        ..current = OrderDto.detail(
+          orderJson(status: 'CONFIRMED', confirmed: true),
+        );
+
+      await pumpOrder(
+        tester,
+        orders: orders,
+        scale: 2,
+        child: const OrderAppendScreen(orderId: 'o1', tableName: 'Bàn 1'),
+      );
+
+      expect(find.text('Tìm món...'), findsOneWidget);
+    },
+  );
   testWidgets(
     'explicit selected order on second session page receives addition, never auto-latest',
     (tester) async {

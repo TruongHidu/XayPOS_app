@@ -5,10 +5,12 @@ import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../data/data_sources/tables_remote_data_source.dart';
+import '../../data/table_transfer_key_generator.dart';
 import '../controllers/table_events.dart';
 import '../controllers/table_area_controller.dart';
 import '../controllers/restaurant_table_controller.dart';
 import '../controllers/table_session_controller.dart';
+import '../controllers/table_transfer_controller.dart';
 import '../controllers/table_detail_controller.dart';
 import '../../data/repositories/table_area_repository_impl.dart';
 import '../../domain/repositories/table_area_repository.dart';
@@ -18,6 +20,7 @@ import '../../domain/repositories/restaurant_table_repository.dart';
 import '../../domain/use_cases/restaurant_table_use_cases.dart';
 import '../../data/repositories/table_session_repository_impl.dart';
 import '../../domain/repositories/table_session_repository.dart';
+import '../../domain/entities/table_inputs.dart';
 import '../../domain/use_cases/table_session_use_cases.dart';
 
 final tablesRemoteProvider = Provider(
@@ -74,6 +77,9 @@ final restaurantTableRepositoryProvider = Provider<RestaurantTableRepository>(
 );
 final tableSessionRepositoryProvider = Provider<TableSessionRepository>(
   (ref) => TableSessionRepositoryImpl(ref.watch(tablesRemoteProvider)),
+);
+final tableTransferKeyGeneratorProvider = Provider<TableTransferKeyGenerator>(
+  (ref) => SecureTableTransferKeyGenerator(),
 );
 final tableAreaControllerProvider = ChangeNotifierProvider<TableAreaController>(
   (ref) {
@@ -146,6 +152,54 @@ final tableSessionControllerProvider = ChangeNotifierProvider.autoDispose
         openSession: OpenTableSession(repository),
         updateSession: UpdateTableSession(repository),
         cancelSession: CancelTableSession(repository),
+      );
+      return controller;
+    });
+final tableTransferControllerProvider = ChangeNotifierProvider.autoDispose
+    .family<TableTransferController, String>((ref, sessionId) {
+      ref.watch(tableScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final sessionRepository = ref.watch(tableSessionRepositoryProvider);
+      final controller = TableTransferController(
+        session: () => auth.state.session,
+        events: ref.read(tableEventsProvider),
+        onAccessDenied: ref.read(tableRecoveryProvider).handle,
+        sessionId: sessionId,
+        getSession: DetailTableSession(sessionRepository),
+        listTables: ListRestaurantTable(
+          ref.watch(restaurantTableRepositoryProvider),
+        ),
+        transferSession: TransferTableSession(sessionRepository),
+        keys: ref.watch(tableTransferKeyGeneratorProvider),
+      );
+      void Function()? release;
+      void retainIntent() {
+        if (controller.busy || controller.uncertain) {
+          release ??= ref.keepAlive().close;
+        } else {
+          release?.call();
+          release = null;
+        }
+      }
+
+      controller.addListener(retainIntent);
+      ref.onDispose(() => controller.removeListener(retainIntent));
+      Future.microtask(controller.loadSession);
+      return controller;
+    });
+final tableTransferHistoryControllerProvider = ChangeNotifierProvider
+    .autoDispose
+    .family<TableTransferHistoryController, String>((ref, sessionId) {
+      ref.watch(tableScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final controller = TableTransferHistoryController(
+        session: () => auth.state.session,
+        events: ref.read(tableEventsProvider),
+        onAccessDenied: ref.read(tableRecoveryProvider).handle,
+        sessionId: sessionId,
+        getTransfers: GetTableSessionTransfers(
+          ref.watch(tableSessionRepositoryProvider),
+        ),
       );
       return controller;
     });

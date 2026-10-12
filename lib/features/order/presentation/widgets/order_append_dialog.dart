@@ -106,6 +106,7 @@ class _OrderAppendDialogState extends ConsumerState<OrderAppendDialog> {
                                 permission: 'ORDER_UPDATE',
                                 onSelect: cart.add,
                                 enabled: cart.canPick,
+                                cartLines: cart.lines,
                               ),
                               ListView(
                                 padding: const EdgeInsets.all(12),

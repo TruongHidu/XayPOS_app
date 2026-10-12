@@ -1,16 +1,41 @@
 import 'package:flutter/material.dart';
 import '../controllers/order_draft_controller.dart';
 import '../controllers/order_append_controller.dart';
+import '../../../tables/presentation/controllers/table_transfer_controller.dart';
+import '../../../tables/presentation/widgets/table_dialogs.dart';
 import 'order_widgets.dart';
 
 class OrderExitGuard {
   OrderDraftController? draft;
   final Set<OrderAppendController> _appends = {};
+  final Set<TableTransferController> _transfers = {};
   void registerAppend(OrderAppendController controller) =>
       _appends.add(controller);
   void unregisterAppend(OrderAppendController controller) =>
       _appends.remove(controller);
+  void registerTransfer(TableTransferController controller) =>
+      _transfers.add(controller);
+  void unregisterTransfer(TableTransferController controller) =>
+      _transfers.remove(controller);
   Future<bool> allow(BuildContext context) async {
+    for (final transfer in _transfers) {
+      if (transfer.isCurrent && (transfer.busy || transfer.uncertain)) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => TableScopeGuard(
+            scope: transferScope(transfer),
+            permission: 'TABLE_TRANSFER',
+            child: const AlertDialog(
+              title: Text('Chưa xác định kết quả chuyển bàn'),
+              content: Text(
+                'Hãy mở lại chuyển bàn và thử lại đúng yêu cầu ban đầu trước khi rời màn hình.',
+              ),
+            ),
+          ),
+        );
+        return false;
+      }
+    }
     for (final append in _appends) {
       if (append.current && (append.busy || append.uncertain)) {
         await showDialog<void>(
@@ -71,4 +96,6 @@ class OrderExitGuard {
         ) ??
         false;
   }
+
+  Object? transferScope(TableTransferController controller) => controller.scope;
 }

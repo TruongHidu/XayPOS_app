@@ -22,7 +22,9 @@ class OrderServiceContextScreen extends ConsumerWidget {
     if (result case Success(value: final selection)) {
       switch (selection) {
         case ViewTableOrder(order: final order):
-          await context.push('/app/orders/${Uri.encodeComponent(order.id)}');
+          await context.push(
+            '/app/order-create/bill/${Uri.encodeComponent(order.id)}?tableName=${Uri.encodeQueryComponent(table.name)}',
+          );
         case ComposeTableOrder(context: final target):
           await context.push(
             '/app/order-create?tableId=${Uri.encodeQueryComponent(target.tableId!)}',

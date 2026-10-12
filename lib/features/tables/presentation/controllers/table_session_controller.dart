@@ -30,6 +30,7 @@ class TableSessionController extends TableListController<TableSession> {
            sortBy: 'openedAt',
          ),
        ) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final String tableId;
@@ -42,10 +43,18 @@ class TableSessionController extends TableListController<TableSession> {
   Failure? currentFailure;
   bool currentLoading = false;
   int _currentGeneration = 0;
+  int _eventRevision = 0;
   bool _watchCurrent = false, _watchHistory = false;
   void _event() {
-    if (tableId.isNotEmpty && events.change?.id != tableId) return;
-    if (events.change?.kind == TableChangeKind.session) {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
+    final change = events.change;
+    if (tableId.isNotEmpty &&
+        change?.id != tableId &&
+        change?.relatedTableIds.contains(tableId) != true) {
+      return;
+    }
+    if (change?.kind == TableChangeKind.session) {
       if (_watchCurrent) unawaited(loadCurrent());
       if (_watchHistory) unawaited(load());
     }

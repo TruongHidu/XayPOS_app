@@ -2,7 +2,16 @@
 class OrderQuantity {
   const OrderQuantity._(this.milliUnits);
   final int milliUnits;
+  static const zero = OrderQuantity._(0);
   static const one = OrderQuantity._(1000);
+
+  factory OrderQuantity.fromMilli(int milli) => OrderQuantity._(milli);
+
+  OrderQuantity operator +(OrderQuantity other) =>
+      OrderQuantity._(milliUnits + other.milliUnits);
+
+  OrderQuantity operator -(OrderQuantity other) =>
+      OrderQuantity._(milliUnits - other.milliUnits);
   factory OrderQuantity.parse(String text) {
     final value = text.trim();
     if (!RegExp(r'^\d{1,9}(?:\.\d{1,3})?$').hasMatch(value)) {

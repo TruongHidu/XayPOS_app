@@ -132,6 +132,10 @@ bool tableNeedsReload(Failure? failure) =>
     failure?.type == FailureType.notFound ||
     failure?.isNetwork == true ||
     failure?.code == 'TABLE_ALREADY_OCCUPIED' ||
+    failure?.code == 'SAME_TABLE_TRANSFER_NOT_ALLOWED' ||
+    failure?.code == 'INCONSISTENT_TABLE_SESSION_STATE' ||
+    failure?.code == 'TABLE_INACTIVE' ||
+    failure?.code == 'TABLE_AREA_INACTIVE' ||
     failure?.code == 'TABLE_HAS_OPEN_SESSION' ||
     failure?.code == 'INVALID_TABLE_SESSION_TRANSITION';
 

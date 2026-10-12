@@ -12,6 +12,7 @@ import 'package:pos_saas_app/features/tables/presentation/widgets/restaurant_tab
 import 'package:pos_saas_app/features/tables/presentation/widgets/table_details.dart';
 import 'package:pos_saas_app/features/tables/presentation/widgets/table_dialogs.dart';
 import 'package:pos_saas_app/features/tables/presentation/widgets/table_session_form.dart';
+import 'package:pos_saas_app/features/tables/presentation/widgets/table_transfer_dialog.dart';
 import '../../helpers/auth_fakes.dart';
 import 'table_fakes.dart';
 
@@ -53,6 +54,34 @@ Future<ProviderContainer> pumpTables(
 }
 
 void main() {
+  for (final width in [320.0, 800.0]) {
+    testWidgets('transfer picker is responsive at $width with keyboard', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 760);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 220);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      final server = TableServer()
+        ..table = tableJson(id: 't2', code: 'B02', name: 'Garden table');
+      await pumpTables(
+        tester,
+        server,
+        child: const TableTransferDialog(sessionId: 's1'),
+      );
+      expect(find.textContaining('Bàn hiện tại: B01'), findsOneWidget);
+      expect(find.text('B02 • Garden table'), findsOneWidget);
+      await tester.ensureVisible(find.text('Xác nhận chuyển bàn'));
+      expect(tester.takeException(), isNull);
+      expect(
+        server.requests.where((r) => r.path.endsWith('/current-session')),
+        isEmpty,
+      );
+    });
+  }
+
   for (final width in [320.0, 800.0, 1440.0]) {
     testWidgets('responsive tables at $width and independent occupied badge', (
       tester,
@@ -170,6 +199,19 @@ void main() {
     );
     expect(find.text('Sửa phiên'), findsNothing);
     expect(find.text('Hủy mở nhầm'), findsNothing);
+  });
+  testWidgets('open session without order exposes transfer and history', (
+    tester,
+  ) async {
+    final server = TableServer();
+    await pumpTables(
+      tester,
+      server,
+      child: TableSessionCard(session: TableDto.tableSession(sessionJson())),
+    );
+    expect(find.text('Chuyển bàn'), findsOneWidget);
+    expect(find.text('Lịch sử chuyển bàn'), findsOneWidget);
+    expect(server.requests.where((r) => r.path.contains('/orders')), isEmpty);
   });
   testWidgets('cancel form requires a reason before any request', (
     tester,

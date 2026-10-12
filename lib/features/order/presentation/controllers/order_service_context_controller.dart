@@ -27,6 +27,7 @@ class OrderServiceContextController extends OrderController {
     required this.getActive,
     required this.tableEvents,
   }) {
+    _tableRevision = tableEvents.revision;
     tableEvents.addListener(_tableEvent);
     events.addListener(_orderEvent);
   }
@@ -60,7 +61,7 @@ class OrderServiceContextController extends OrderController {
       areasLoading = false,
       billsLoading = false,
       selecting = false;
-  int _generation = 0, _areasGeneration = 0, _revision = 0;
+  int _generation = 0, _areasGeneration = 0, _revision = 0, _tableRevision = 0;
   Timer? _refreshTimer;
   bool get workspaceAllowed =>
       current && AccessPolicy.canOrderWorkspace(session());
@@ -100,6 +101,8 @@ class OrderServiceContextController extends OrderController {
   }
 
   void _tableEvent() {
+    if (_tableRevision == tableEvents.revision) return;
+    _tableRevision = tableEvents.revision;
     if (!tableAccess) return;
     if (tableEvents.change?.kind == TableChangeKind.area) {
       final change = tableEvents.change!;

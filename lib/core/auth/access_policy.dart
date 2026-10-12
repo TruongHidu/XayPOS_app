@@ -59,6 +59,7 @@ abstract final class AccessPolicy {
         'TABLE_UPDATE',
         'TABLE_OPEN',
         'TABLE_CLOSE',
+        'TABLE_TRANSFER',
       }.contains(permission) &&
       session.permissions.contains(permission);
   static Object? menuScope(AppSession? session) {
@@ -218,6 +219,19 @@ abstract final class AccessPolicy {
     final path = uri?.path ?? location;
     if (path == '/app/orders' || path.startsWith('/app/orders/')) {
       return canOrders(session, 'ORDER_VIEW');
+    }
+    final billMatch = RegExp(
+      r'^/app/order-create/bill/([^/]+)$',
+    ).firstMatch(path);
+    if (billMatch != null) {
+      return canOrders(session, 'ORDER_VIEW');
+    }
+    final addItemsMatch = RegExp(
+      r'^/app/order-create/bill/([^/]+)/add-items$',
+    ).firstMatch(path);
+    if (addItemsMatch != null) {
+      return canOrders(session, 'ORDER_UPDATE') &&
+          canMenu(session, 'MENU_VIEW');
     }
     if (path == '/app/order-create') {
       if (uri?.queryParameters['tableId'] != null) {

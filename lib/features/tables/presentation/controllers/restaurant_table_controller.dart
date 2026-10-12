@@ -21,6 +21,7 @@ class RestaurantTableController extends TableListController<RestaurantTable> {
     required this.assignTable,
     required this.deleteTable,
   }) : super(kind: TableQueryKind.tables, list: list.call) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final DetailRestaurantTable get;
@@ -30,12 +31,15 @@ class RestaurantTableController extends TableListController<RestaurantTable> {
   final AssignAreaRestaurantTable assignTable;
   final DeleteRestaurantTable deleteTable;
   TableAreaSummary? selectedArea;
+  int _eventRevision = 0;
   void filterArea(TableAreaSummary? area) {
     selectedArea = area;
     setQuery(query.copyWith(areaId: () => area?.id));
   }
 
   void _event() {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
     final e = events.change;
     if (e?.kind == TableChangeKind.area &&
         e!.id == query.areaId &&

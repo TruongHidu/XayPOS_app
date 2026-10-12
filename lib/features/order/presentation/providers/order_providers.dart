@@ -10,6 +10,7 @@ import '../../../menu/domain/use_cases/menu_group_use_cases.dart';
 import '../../../tables/domain/use_cases/restaurant_table_use_cases.dart';
 import '../../../tables/domain/use_cases/table_area_use_cases.dart';
 import '../../../tables/domain/use_cases/table_session_use_cases.dart';
+import '../../../tables/presentation/controllers/table_transfer_controller.dart';
 import '../../domain/entities/order_inputs.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/use_cases/order_use_cases.dart';
@@ -100,7 +101,9 @@ final orderDetailProvider = ChangeNotifierProvider.autoDispose
       ref.watch(orderScopeProvider);
       final auth = ref.read(authControllerProvider);
       final repo = ref.watch(orderRepositoryProvider);
-      final controller = OrderDetailController(
+      final tableEvents = ref.read(tableEventsProvider);
+      late final OrderDetailController controller;
+      controller = OrderDetailController(
         session: () => auth.state.session,
         events: ref.read(orderEventsProvider),
         onAccessDenied: ref.read(orderRecoveryProvider).handle,
@@ -112,7 +115,24 @@ final orderDetailProvider = ChangeNotifierProvider.autoDispose
         confirmOrder: ConfirmOrder(repo),
         cancelLine: CancelOrderItem(repo),
         cancelOrder: CancelOrder(repo),
+        externalBlocked: () => tableEvents.sessionTransferBlocked(
+          controller.order?.summary.tableSessionId,
+        ),
       );
+      ref.listen(tableEventsProvider, (_, _) => controller.changed());
+      void syncTableBlock() {
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          controller.order?.summary.tableSessionId,
+          controller.busy || controller.requiresVerification,
+        );
+      }
+
+      controller.addListener(syncTableBlock);
+      ref.onDispose(() {
+        controller.removeListener(syncTableBlock);
+        tableEvents.markExternalSessionBlocked(controller, null, false);
+      });
       Future.microtask(controller.load);
       return controller;
     });
@@ -139,7 +159,21 @@ final orderDraftProvider = ChangeNotifierProvider.autoDispose
       }
 
       controller.addListener(retainIntent);
-      ref.onDispose(() => controller.removeListener(retainIntent));
+      final tableEvents = ref.read(tableEventsProvider);
+      void syncTableBlock() {
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          context.tableSessionId,
+          controller.busy || controller.uncertain,
+        );
+      }
+
+      controller.addListener(syncTableBlock);
+      ref.onDispose(() {
+        controller.removeListener(retainIntent);
+        controller.removeListener(syncTableBlock);
+        tableEvents.markExternalSessionBlocked(controller, null, false);
+      });
       return controller;
     });
 final orderAppendProvider = ChangeNotifierProvider.autoDispose
@@ -152,7 +186,19 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
         onAccessDenied: ref.read(orderRecoveryProvider).handle,
         id: id,
         root: () => ref.read(orderDetailProvider(id)).order,
-        blocked: () => ref.read(orderDetailProvider(id)).requiresVerification,
+        blocked: () {
+          final detail = ref.read(orderDetailProvider(id));
+          return detail.requiresVerification ||
+              ref
+                  .read(tableEventsProvider)
+                  .sessionTransferBlocked(detail.order?.summary.tableSessionId);
+        },
+        retryBlocked: () {
+          final detail = ref.read(orderDetailProvider(id));
+          return ref
+              .read(tableEventsProvider)
+              .sessionTransferBlocked(detail.order?.summary.tableSessionId);
+        },
         beforeSend: () => ref.read(orderDetailProvider(id)).beginSubmission(),
         onApplied: (value) =>
             ref.read(orderDetailProvider(id)).applySubmission(value),
@@ -162,6 +208,7 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
       );
       // Keep the selected read-side alive without rebuilding the append controller.
       ref.listen(orderDetailProvider(id), (_, _) => controller.changed());
+      ref.listen(tableEventsProvider, (_, _) => controller.changed());
       void Function()? release;
       void retainIntent() {
         if (controller.busy || controller.uncertain) {
@@ -173,12 +220,33 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
       }
 
       controller.addListener(retainIntent);
+      final tableEvents = ref.read(tableEventsProvider);
+      void syncTableBlock() {
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          ref.read(orderDetailProvider(id)).order?.summary.tableSessionId,
+          controller.busy || controller.uncertain,
+        );
+      }
+
+      controller.addListener(syncTableBlock);
       final exit = ref.read(orderExitGuardProvider);
       exit.registerAppend(controller);
       ref.onDispose(() {
         controller.removeListener(retainIntent);
+        controller.removeListener(syncTableBlock);
+        tableEvents.markExternalSessionBlocked(controller, null, false);
         exit.unregisterAppend(controller);
       });
+      return controller;
+    });
+
+final orderTableTransferProvider = Provider.autoDispose
+    .family<TableTransferController, String>((ref, sessionId) {
+      final controller = ref.watch(tableTransferControllerProvider(sessionId));
+      final exit = ref.read(orderExitGuardProvider);
+      exit.registerTransfer(controller);
+      ref.onDispose(() => exit.unregisterTransfer(controller));
       return controller;
     });
 final orderMenuPickerProvider = ChangeNotifierProvider.autoDispose
@@ -223,3 +291,13 @@ final orderServiceContextProvider = ChangeNotifierProvider.autoDispose((ref) {
   Future.microtask(controller.refresh);
   return controller;
 });
+
+final Map<String, String> _catalogImageCache = {};
+
+void cacheCatalogImage(String itemId, String? url) {
+  if (url != null && url.isNotEmpty) {
+    _catalogImageCache[itemId] = url;
+  }
+}
+
+String? getCachedCatalogImage(String itemId) => _catalogImageCache[itemId];

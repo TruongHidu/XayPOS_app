@@ -35,7 +35,7 @@ abstract final class ApiErrorMapper {
       ),
       'IDEMPOTENCY_KEY_REUSED' => (
         FailureType.conflict,
-        'Yêu cầu tạo/gọi thêm có key xung đột. Không tự tạo key mới; hãy đối chiếu với người quản lý.',
+        'Yêu cầu có key xung đột. Không tự tạo key mới; hãy đối chiếu trước khi gửi lại.',
       ),
       'ORDER_CODE_CONFLICT' => (
         FailureType.conflict,
@@ -86,7 +86,7 @@ abstract final class ApiErrorMapper {
       ),
       'INVALID_IDEMPOTENCY_KEY' => (
         FailureType.validation,
-        'Key tạo đơn/gọi thêm phải không trống và tối đa 100 ký tự.',
+        'Idempotency-Key phải không trống và tối đa 100 ký tự.',
       ),
       'DINE_IN_SESSION_REQUIRED' => (
         FailureType.validation,
@@ -151,6 +151,14 @@ abstract final class ApiErrorMapper {
       'TABLE_ALREADY_OCCUPIED' => (
         FailureType.conflict,
         'Bàn đã có phiên phục vụ. Vui lòng tải lại.',
+      ),
+      'SAME_TABLE_TRANSFER_NOT_ALLOWED' => (
+        FailureType.conflict,
+        'Bàn đích đang là bàn hiện tại của phiên.',
+      ),
+      'INCONSISTENT_TABLE_SESSION_STATE' => (
+        FailureType.conflict,
+        'Dữ liệu bàn và phiên chưa nhất quán. Hãy tải lại hoặc liên hệ quản lý.',
       ),
       'TABLE_HAS_OPEN_SESSION' => (
         FailureType.conflict,

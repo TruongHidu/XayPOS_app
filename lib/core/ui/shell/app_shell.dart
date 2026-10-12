@@ -81,7 +81,9 @@ class _AppShellState extends ConsumerState<AppShell>
       final router = GoRouter.maybeOf(context);
       if (router != null) {
         if (item.id == 'order-create' &&
-            GoRouterState.of(context).uri.path == '/app/order-create') {
+            GoRouterState.of(
+              context,
+            ).uri.path.startsWith('/app/order-create')) {
           final allowed = await ref.read(orderExitGuardProvider).allow(context);
           if (!mounted || !allowed) return;
         }
@@ -160,13 +162,13 @@ class _AppShellState extends ConsumerState<AppShell>
           ),
         ),
         title: Text(_currentTitle(allVisibleItems)),
-        actions: [
-          IconButton(
-            onPressed: controller.logout,
-            tooltip: 'Đăng xuất',
-            icon: const Icon(Icons.logout),
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     onPressed: controller.logout,
+        //     tooltip: 'Đăng xuất',
+        //     icon: const Icon(Icons.logout),
+        //   ),
+        // ],
       ),
       body: Stack(
         fit: StackFit.expand,

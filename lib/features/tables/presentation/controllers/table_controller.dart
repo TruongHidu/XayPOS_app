@@ -17,6 +17,7 @@ class TableController extends ChangeNotifier {
        _scope = AccessPolicy.tableScope(session());
   final AppSession? Function() _session;
   final Object? _scope;
+  Object? get scope => _scope;
   final TableEvents events;
   final Future<void> Function(Failure)? onAccessDenied;
   bool _disposed = false;

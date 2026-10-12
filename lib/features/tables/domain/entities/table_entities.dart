@@ -128,6 +128,52 @@ class TableSession {
   final DateTime updatedAt;
 }
 
+class TableSessionTransferResult {
+  const TableSessionTransferResult({
+    required this.session,
+    required this.replayed,
+  });
+
+  final TableSession session;
+  final bool? replayed;
+}
+
+class TableSnapshot {
+  const TableSnapshot({
+    required this.id,
+    required this.code,
+    required this.name,
+  });
+
+  final String id;
+  final String code;
+  final String name;
+}
+
+class TableSessionTransferHistoryEntry {
+  const TableSessionTransferHistoryEntry({
+    required this.id,
+    required this.sessionId,
+    required this.fromTable,
+    required this.toTable,
+    required this.actorUserId,
+    required this.reason,
+    required this.sessionVersionBefore,
+    required this.sessionVersionAfter,
+    required this.transferredAt,
+  });
+
+  final String id;
+  final String sessionId;
+  final TableSnapshot fromTable;
+  final TableSnapshot toTable;
+  final String actorUserId;
+  final String? reason;
+  final int sessionVersionBefore;
+  final int sessionVersionAfter;
+  final DateTime transferredAt;
+}
+
 class TableQrPayload {
   const TableQrPayload({
     required this.tableId,

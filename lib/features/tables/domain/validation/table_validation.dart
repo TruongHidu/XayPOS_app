@@ -72,6 +72,13 @@ abstract final class TableValidation {
           'expectedVersion',
           number(input.expectedVersion, max: 9223372036854775807),
         );
+      case TransferTableSessionInput():
+        add('targetTableId', text(input.targetTableId, 100, required: true));
+        add('reason', text(input.reason, 1000));
+        add(
+          'expectedVersion',
+          number(input.expectedVersion, max: 9223372036854775807),
+        );
     }
     return errors;
   }

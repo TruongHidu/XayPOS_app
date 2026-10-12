@@ -88,6 +88,30 @@ abstract final class TableDto {
     );
   }
 
+  static TableSnapshot tableSnapshot(Object? value) {
+    final j = _object(value);
+    return TableSnapshot(
+      id: _string(j, 'id'),
+      code: _string(j, 'code'),
+      name: _string(j, 'name'),
+    );
+  }
+
+  static TableSessionTransferHistoryEntry tableSessionTransfer(Object? value) {
+    final j = _object(value);
+    return TableSessionTransferHistoryEntry(
+      id: _string(j, 'id'),
+      sessionId: _string(j, 'sessionId'),
+      fromTable: tableSnapshot(j['fromTable']),
+      toTable: tableSnapshot(j['toTable']),
+      actorUserId: _string(j, 'actorUserId'),
+      reason: _nullableString(j, 'reason'),
+      sessionVersionBefore: _integer(j, 'sessionVersionBefore'),
+      sessionVersionAfter: _integer(j, 'sessionVersionAfter'),
+      transferredAt: _date(j, 'transferredAt'),
+    );
+  }
+
   static TablePage<T> page<T>(Object? value, T Function(Object?) parse) {
     final j = _object(value);
     final rows = j['content'];

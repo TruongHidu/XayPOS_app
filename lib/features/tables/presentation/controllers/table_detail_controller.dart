@@ -14,6 +14,7 @@ class TableDetailController extends TableController {
     required this.id,
     required this.get,
   }) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final String id;
@@ -22,9 +23,13 @@ class TableDetailController extends TableController {
   Failure? failure;
   bool loading = false;
   int _generation = 0;
+  int _eventRevision = 0;
   void _event() {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
     if (events.change?.kind == TableChangeKind.area ||
-        events.change?.id == id) {
+        events.change?.id == id ||
+        events.change?.relatedTableIds.contains(id) == true) {
       unawaited(load());
     }
   }
@@ -64,6 +69,7 @@ class TableQrController extends TableController {
     required this.get,
     required this.rotate,
   }) {
+    _eventRevision = events.revision;
     events.addListener(_event);
   }
   final String id;
@@ -73,8 +79,11 @@ class TableQrController extends TableController {
   Failure? failure;
   bool loading = false;
   int _generation = 0;
+  int _eventRevision = 0;
   bool _rotating = false;
   void _event() {
+    if (_eventRevision == events.revision) return;
+    _eventRevision = events.revision;
     if (!_rotating &&
         events.change?.id == id &&
         events.change?.kind != TableChangeKind.session) {
