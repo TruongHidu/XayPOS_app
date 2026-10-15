@@ -59,7 +59,11 @@ abstract final class AppSidebarRegistry {
           label: 'Cập nhật trạng thái món',
           icon: Icons.check_circle_outlined,
           routePath: '/app/dish-status',
-          requiredPermissions: ['KITCHEN_UPDATE'],
+          requiredPermissions: ['KITCHEN_VIEW'],
+          requiredAnyPermissions: [
+            'KITCHEN_START_COOKING',
+            'KITCHEN_MARK_READY',
+          ],
           requiredFeatures: ['KITCHEN_DISPLAY'],
         ),
       ],

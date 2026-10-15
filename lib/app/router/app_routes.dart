@@ -3,6 +3,7 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const appHome = '/app/home';
   static const menu = '/app/menu';
+  static const kitchen = '/app/kitchen';
   static const tables = '/app/tables';
   static const orders = '/app/orders';
   static const orderCreate = '/app/order-create';

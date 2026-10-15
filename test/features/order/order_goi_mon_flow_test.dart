@@ -167,7 +167,9 @@ void main() {
 
       expect(
         find.descendant(
-          of: find.byType(SafeArea),
+          of: find.byWidgetPredicate(
+            (widget) => widget is SafeArea && !widget.top,
+          ),
           matching: find.text('1 món'),
         ),
         findsOneWidget,
@@ -214,7 +216,9 @@ void main() {
 
     expect(
       find.descendant(
-        of: find.byType(SafeArea),
+        of: find.byWidgetPredicate(
+          (widget) => widget is SafeArea && !widget.top,
+        ),
         matching: find.text('1 món'),
       ),
       findsOneWidget,

@@ -38,6 +38,8 @@ class OrderDetailController extends OrderController {
   Failure? failure;
   bool loading = false;
   bool _requiresVerification = false;
+  bool _mutating = false;
+  bool get ownsMutationBlock => _mutating || _requiresVerification;
   bool get requiresVerification =>
       _requiresVerification || events.unresolved(id);
   set requiresVerification(bool value) => _requiresVerification = value;
@@ -165,6 +167,7 @@ class OrderDetailController extends OrderController {
       return Error(failure!);
     }
     if (!events.lock(id)) return const Error(OrderController.busyFailure);
+    _mutating = true;
     ++_generation;
     loading = false;
     changed();
@@ -186,6 +189,7 @@ class OrderDetailController extends OrderController {
       }
       return response;
     } finally {
+      _mutating = false;
       events.unlock(id);
       changed();
     }

@@ -39,8 +39,10 @@ class TableEvents extends ChangeNotifier {
   bool sessionTransferBlocked(String? sessionId) =>
       sessionId != null &&
       (transferPending(sessionId) || transferUnresolved(sessionId));
-  bool externalSessionBlocked(String sessionId) =>
-      _externalSessionBlocks.containsValue(sessionId);
+  bool externalSessionBlocked(String sessionId, {Object? except}) =>
+      _externalSessionBlocks.entries.any(
+        (entry) => entry.key != except && entry.value == sessionId,
+      );
   void markExternalSessionBlocked(
     Object source,
     String? sessionId,

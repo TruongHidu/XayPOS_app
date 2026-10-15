@@ -124,7 +124,7 @@ final orderDetailProvider = ChangeNotifierProvider.autoDispose
         tableEvents.markExternalSessionBlocked(
           controller,
           controller.order?.summary.tableSessionId,
-          controller.busy || controller.requiresVerification,
+          controller.ownsMutationBlock,
         );
       }
 
@@ -225,7 +225,7 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
         tableEvents.markExternalSessionBlocked(
           controller,
           ref.read(orderDetailProvider(id)).order?.summary.tableSessionId,
-          controller.busy || controller.uncertain,
+          controller.ownsMutationBlock,
         );
       }
 

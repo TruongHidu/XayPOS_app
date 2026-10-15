@@ -49,6 +49,10 @@ abstract final class ApiErrorMapper {
         FailureType.conflict,
         'Trạng thái đơn không cho phép thao tác này.',
       ),
+      'INVALID_ORDER_ITEM_TRANSITION' => (
+        FailureType.conflict,
+        'Món đã đổi trạng thái. Hãy tải lại để kiểm tra trước khi thao tác tiếp.',
+      ),
       'EMPTY_ORDER' => (
         error.response?.statusCode == 409
             ? FailureType.conflict

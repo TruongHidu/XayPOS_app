@@ -321,519 +321,523 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
 
     return Material(
       color: Colors.grey.shade50,
-      child: Column(
-        children: [
-          // ── In-page Header ────────────────────────────────────────
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.chevron_left, size: 22),
-                    tooltip: 'Quay lại',
-                    onPressed: _onBack,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 38,
-                      minHeight: 38,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // ── In-page Header ────────────────────────────────────────
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.chevron_left, size: 22),
+                      tooltip: 'Quay lại',
+                      onPressed: _onBack,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 38,
+                        minHeight: 38,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF111827),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
                         ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(top: 2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget.contextInput.sessionAlreadyOpen
-                              ? const Color(0xFFFFF0EB)
-                              : const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 11,
+                        Container(
+                          margin: const EdgeInsets.only(top: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
                             color: widget.contextInput.sessionAlreadyOpen
-                                ? OrderPalette.orange
-                                : Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
+                                ? const Color(0xFFFFF0EB)
+                                : const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: widget.contextInput.sessionAlreadyOpen
+                                  ? OrderPalette.orange
+                                  : Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.search, size: 18),
+                      tooltip: 'Tìm kiếm',
+                      onPressed: () => _tabController.animateTo(0),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 38,
+                        minHeight: 38,
                       ),
-                    ],
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.search, size: 18),
-                    tooltip: 'Tìm kiếm',
-                    onPressed: () => _tabController.animateTo(0),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 38,
-                      minHeight: 38,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, size: 18),
-                    tooltip: 'Thao tác khác',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 38,
-                      minHeight: 38,
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                    itemBuilder: (context) => [
-                      if (widget.contextInput.tableId != null &&
-                          d.can('ORDER_VIEW'))
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, size: 18),
+                      tooltip: 'Thao tác khác',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 38,
+                        minHeight: 38,
+                      ),
+                      itemBuilder: (context) => [
+                        if (widget.contextInput.tableId != null &&
+                            d.can('ORDER_VIEW'))
+                          PopupMenuItem(
+                            value: 'check_table',
+                            onTap: () => _checkTable(d),
+                            child: const Text('Kiểm tra bàn'),
+                          ),
                         PopupMenuItem(
-                          value: 'check_table',
-                          onTap: () => _checkTable(d),
-                          child: const Text('Kiểm tra bàn'),
+                          value: 'refresh',
+                          onTap: () {
+                            ref.invalidate(
+                              orderMenuPickerProvider('ORDER_CREATE'),
+                            );
+                          },
+                          child: const Text('Làm mới menu'),
                         ),
-                      PopupMenuItem(
-                        value: 'refresh',
-                        onTap: () {
-                          ref.invalidate(
-                            orderMenuPickerProvider('ORDER_CREATE'),
-                          );
-                        },
-                        child: const Text('Làm mới menu'),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+
+            // ── Tab Bar ───────────────────────────────────────────────
+            Container(
+              color: Colors.white,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: OrderPalette.orange,
+                labelColor: OrderPalette.orange,
+                unselectedLabelColor: Colors.grey.shade700,
+                tabs: [
+                  const Tab(text: 'Chọn món'),
+                  Tab(text: 'Giỏ (${d.lines.length})'),
+                  if (hasHistory) const Tab(text: 'Lịch sử trong phiên'),
+                ],
+              ),
+            ),
+
+            if (d.busy) const LinearProgressIndicator(),
+
+            // ── Error & Review notices ────────────────────────────────
+            OrderFailurePanel(
+              failure: d.failure,
+              retry: d.canRetry ? d.retry : null,
+              label: 'Kiểm tra bằng yêu cầu tạo ban đầu',
+            ),
+            if (d.needsTableReview && d.can('ORDER_VIEW'))
+              Padding(
+                padding: const EdgeInsets.all(4),
+                child: TextButton(
+                  onPressed: d.busy ? null : () => _checkTable(d),
+                  child: const Text('Kiểm tra đơn của bàn'),
                 ),
-              ],
-            ),
-          ),
-
-          // ── Tab Bar ───────────────────────────────────────────────
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: OrderPalette.orange,
-              labelColor: OrderPalette.orange,
-              unselectedLabelColor: Colors.grey.shade700,
-              tabs: [
-                const Tab(text: 'Chọn món'),
-                Tab(text: 'Giỏ (${d.lines.length})'),
-                if (hasHistory) const Tab(text: 'Lịch sử trong phiên'),
-              ],
-            ),
-          ),
-
-          if (d.busy) const LinearProgressIndicator(),
-
-          // ── Error & Review notices ────────────────────────────────
-          OrderFailurePanel(
-            failure: d.failure,
-            retry: d.canRetry ? d.retry : null,
-            label: 'Kiểm tra bằng yêu cầu tạo ban đầu',
-          ),
-          if (d.needsTableReview && d.can('ORDER_VIEW'))
-            Padding(
-              padding: const EdgeInsets.all(4),
-              child: TextButton(
-                onPressed: d.busy ? null : () => _checkTable(d),
-                child: const Text('Kiểm tra đơn của bàn'),
               ),
-            ),
-          if (d.keyConflict)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text(
-                'Key xung đột. Không tạo key mới; cần đối chiếu với người quản lý.',
-              ),
-            ),
-          if (d.uncertain)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text(
-                'Chưa xác định đơn đã được tạo hay chưa. Giỏ đã khóa; thử lại giữ nguyên yêu cầu và key.',
-              ),
-            ),
-
-          // ── Main Content Area ─────────────────────────────────────
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Tab 1: Menu Picker with Item Steppers
-                OrderMenuPicker(
-                  permission: 'ORDER_CREATE',
-                  cartLines: d.lines,
-                  onSelect: d.add,
-                  onIncrement: (item) => _increment(d, item),
-                  onDecrement: (item) => _decrement(d, item),
-                  onEditLine: (item) => _tabController.animateTo(1),
-                  enabled: !d.frozen && d.canPick,
+            if (d.keyConflict)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'Key xung đột. Không tạo key mới; cần đối chiếu với người quản lý.',
                 ),
+              ),
+            if (d.uncertain)
+              const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'Chưa xác định đơn đã được tạo hay chưa. Giỏ đã khóa; thử lại giữ nguyên yêu cầu và key.',
+                ),
+              ),
 
-                // Tab 2: Cart Review & Details
-                Form(
-                  key: _form,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-                    children: [
-                      if (d.lines.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Center(child: Text('Chưa chọn món nào.')),
-                        ),
-                      for (final line in d.lines)
-                        Card(
-                          color: Colors.white,
-                          elevation: 0,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            side: BorderSide(color: Colors.grey.shade200),
+            // ── Main Content Area ─────────────────────────────────────
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Tab 1: Menu Picker with Item Steppers
+                  OrderMenuPicker(
+                    permission: 'ORDER_CREATE',
+                    cartLines: d.lines,
+                    onSelect: d.add,
+                    onIncrement: (item) => _increment(d, item),
+                    onDecrement: (item) => _decrement(d, item),
+                    onEditLine: (item) => _tabController.animateTo(1),
+                    enabled: !d.frozen && d.canPick,
+                  ),
+
+                  // Tab 2: Cart Review & Details
+                  Form(
+                    key: _form,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                      children: [
+                        if (d.lines.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Center(child: Text('Chưa chọn món nào.')),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        line.item.name,
+                        for (final line in d.lines)
+                          Card(
+                            color: Colors.white,
+                            elevation: 0,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          line.item.name,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        orderMoney(line.previewMinor),
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: OrderPalette.orange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${line.quantity} ${line.item.baseUnit}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  if (line.note?.isNotEmpty == true) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber.shade50,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'Ghi chú: ${line.note}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.brown.shade700,
                                         ),
                                       ),
                                     ),
-                                    Text(
-                                      orderMoney(line.previewMinor),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: OrderPalette.orange,
-                                      ),
-                                    ),
                                   ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${line.quantity} ${line.item.baseUnit}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                if (line.note?.isNotEmpty == true) ...[
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber.shade50,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'Ghi chú: ${line.note}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.brown.shade700,
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: d.frozen
+                                            ? null
+                                            : () => _edit(d, line),
+                                        icon: const Icon(
+                                          Icons.edit_note,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Số lượng / ghi chú'),
                                       ),
-                                    ),
+                                      TextButton.icon(
+                                        onPressed: d.frozen
+                                            ? null
+                                            : () => d.remove(line.id),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Bỏ món'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    TextButton.icon(
-                                      onPressed: d.frozen
-                                          ? null
-                                          : () => _edit(d, line),
-                                      icon: const Icon(
-                                        Icons.edit_note,
-                                        size: 16,
-                                      ),
-                                      label: const Text('Số lượng / ghi chú'),
-                                    ),
-                                    TextButton.icon(
-                                      onPressed: d.frozen
-                                          ? null
-                                          : () => d.remove(line.id),
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        size: 16,
-                                      ),
-                                      label: const Text('Bỏ món'),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: Colors.red.shade700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _name,
+                          readOnly: d.frozen,
+                          maxLength: 100,
+                          onChanged: (_) => _fields(d),
+                          decoration: InputDecoration(
+                            labelText: 'Tên khách (không bắt buộc)',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _name,
-                        readOnly: d.frozen,
-                        maxLength: 100,
-                        onChanged: (_) => _fields(d),
-                        decoration: InputDecoration(
-                          labelText: 'Tên khách (không bắt buộc)',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _phone,
+                          readOnly: d.frozen,
+                          maxLength: 30,
+                          onChanged: (_) => _fields(d),
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            labelText: 'Số điện thoại (không bắt buộc)',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _phone,
-                        readOnly: d.frozen,
-                        maxLength: 30,
-                        onChanged: (_) => _fields(d),
-                        keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          labelText: 'Số điện thoại (không bắt buộc)',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _guests,
+                          readOnly: d.frozen,
+                          keyboardType: TextInputType.number,
+                          onChanged: (_) => _fields(d),
+                          decoration: InputDecoration(
+                            labelText: widget.contextInput.fromTable
+                                ? 'Số khách (không bắt buộc)'
+                                : 'Số khách',
+                            hintText: widget.contextInput.guestCount.toString(),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          validator: (v) {
+                            if (widget.contextInput.fromTable &&
+                                (v?.trim().isEmpty ?? true)) {
+                              return null;
+                            }
+                            final n = int.tryParse(v ?? '');
+                            return n == null || n < 1 || n > 32767
+                                ? 'Nhập số từ 1 đến 32767'
+                                : null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _note,
+                          readOnly: d.frozen,
+                          maxLength: 2000,
+                          maxLines: 3,
+                          onChanged: (_) => _fields(d),
+                          decoration: InputDecoration(
+                            labelText: 'Ghi chú đơn',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _guests,
-                        readOnly: d.frozen,
-                        keyboardType: TextInputType.number,
-                        onChanged: (_) => _fields(d),
-                        decoration: InputDecoration(
-                          labelText: widget.contextInput.fromTable
-                              ? 'Số khách (không bắt buộc)'
-                              : 'Số khách',
-                          hintText: widget.contextInput.guestCount.toString(),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        validator: (v) {
-                          if (widget.contextInput.fromTable &&
-                              (v?.trim().isEmpty ?? true)) {
-                            return null;
-                          }
-                          final n = int.tryParse(v ?? '');
-                          return n == null || n < 1 || n > 32767
-                              ? 'Nhập số từ 1 đến 32767'
-                              : null;
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _note,
-                        readOnly: d.frozen,
-                        maxLength: 2000,
-                        maxLines: 3,
-                        onChanged: (_) => _fields(d),
-                        decoration: InputDecoration(
-                          labelText: 'Ghi chú đơn',
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                // Tab 3: History (if available)
-                if (hasHistory)
-                  OrderListScreen(
-                    sessionId: widget.contextInput.tableSessionId,
-                  ),
-              ],
-            ),
-          ),
-
-          // ── Sticky Bottom Cart Bar ────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 8,
-                    children: [
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${d.lines.length} món',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
-                            ),
-                          ),
-                          Text(
-                            'Tạm tính : ${orderMoney(d.previewMinor)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          OutlinedButton(
-                            onPressed: () => _tabController.animateTo(1),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: OrderPalette.orange,
-                              side: const BorderSide(
-                                color: OrderPalette.orange,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: const [
-                                Text('Xem đơn'),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_upward, size: 15),
-                              ],
-                            ),
-                          ),
-                          FilledButton(
-                            onPressed:
-                                d.busy ||
-                                    d.uncertain ||
-                                    !d.canPick ||
-                                    !d.canSubmit ||
-                                    d.lines.isEmpty
-                                ? null
-                                : () => _submit(d, OrderSubmissionMode.submit),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: OrderPalette.orange,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: Text(d.busy ? 'Đang xử lý...' : 'Gửi đơn'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (d.canDraft || (!d.canSubmit && d.canCreate))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          if (!d.canSubmit && d.canCreate)
-                            Expanded(
-                              child: Text(
-                                widget.contextInput.fromTable
-                                    ? 'Cần quyền gửi đơn và TABLE_OPEN nếu phải mở phiên mới.'
-                                    : 'Cần ORDER_UPDATE để gửi đơn. Bạn có thể tạo nháp.',
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ),
-                          if (d.canDraft)
-                            TextButton(
-                              onPressed:
-                                  d.busy ||
-                                      d.uncertain ||
-                                      !d.canPick ||
-                                      d.lines.isEmpty
-                                  ? null
-                                  : () => _submit(d, OrderSubmissionMode.draft),
-                              child: const Text('Tạo nháp'),
-                            ),
-                        ],
-                      ),
+                  // Tab 3: History (if available)
+                  if (hasHistory)
+                    OrderListScreen(
+                      sessionId: widget.contextInput.tableSessionId,
                     ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // ── Sticky Bottom Cart Bar ────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${d.lines.length} món',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                              ),
+                            ),
+                            Text(
+                              'Tạm tính : ${orderMoney(d.previewMinor)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () => _tabController.animateTo(1),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: OrderPalette.orange,
+                                side: const BorderSide(
+                                  color: OrderPalette.orange,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Text('Xem đơn'),
+                                  SizedBox(width: 4),
+                                  Icon(Icons.arrow_upward, size: 15),
+                                ],
+                              ),
+                            ),
+                            FilledButton(
+                              onPressed:
+                                  d.busy ||
+                                      d.uncertain ||
+                                      !d.canPick ||
+                                      !d.canSubmit ||
+                                      d.lines.isEmpty
+                                  ? null
+                                  : () =>
+                                        _submit(d, OrderSubmissionMode.submit),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: OrderPalette.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: Text(d.busy ? 'Đang xử lý...' : 'Gửi đơn'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (d.canDraft || (!d.canSubmit && d.canCreate))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (!d.canSubmit && d.canCreate)
+                              Expanded(
+                                child: Text(
+                                  widget.contextInput.fromTable
+                                      ? 'Cần quyền gửi đơn và TABLE_OPEN nếu phải mở phiên mới.'
+                                      : 'Cần ORDER_UPDATE để gửi đơn. Bạn có thể tạo nháp.',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            if (d.canDraft)
+                              TextButton(
+                                onPressed:
+                                    d.busy ||
+                                        d.uncertain ||
+                                        !d.canPick ||
+                                        d.lines.isEmpty
+                                    ? null
+                                    : () =>
+                                          _submit(d, OrderSubmissionMode.draft),
+                                child: const Text('Tạo nháp'),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

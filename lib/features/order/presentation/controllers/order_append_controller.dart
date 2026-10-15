@@ -44,6 +44,8 @@ class OrderAppendController extends OrderController {
   AddOrderItemsInput? _intent;
   String? _key;
   bool uncertain = false, needsReview = false;
+  bool _mutating = false;
+  bool get ownsMutationBlock => _mutating || uncertain;
   Failure? failure;
   OrderSubmission? result;
 
@@ -220,6 +222,7 @@ class OrderAppendController extends OrderController {
       return const Error(OrderController.busyFailure);
     }
     final previouslyUncertain = uncertain;
+    _mutating = true;
     beforeSend();
     failure = null;
     changed();
@@ -260,6 +263,7 @@ class OrderAppendController extends OrderController {
           return Error(error);
       }
     } finally {
+      _mutating = false;
       events.unlock(id);
       changed();
     }

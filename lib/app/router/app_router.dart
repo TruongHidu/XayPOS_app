@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/ui/shell/app_shell.dart';
+import '../../features/kitchen/presentation/providers/kitchen_providers.dart';
+import '../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
 import '../../features/order/presentation/screens/order_append_screen.dart';
 import '../../features/order/presentation/screens/order_create_screen.dart';
 import '../../features/order/presentation/screens/order_detail_screen.dart';
@@ -21,8 +23,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: authController,
+    observers: [ref.read(kitchenRouteObserverProvider)],
     redirect: (context, state) => guard.redirect(state),
     routes: [
+      GoRoute(
+        path: AppRoutes.kitchen,
+        builder: (context, state) => const AppShell(
+          initialSection: 'kitchen-display',
+          child: KitchenDisplayScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/app/dish-status',
+        redirect: (context, state) => AppRoutes.kitchen,
+      ),
       GoRoute(
         path: AppRoutes.orders,
         builder: (context, state) => AppShell(
@@ -49,12 +63,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ref.read(orderExitGuardProvider).allow(context),
         builder: (context, state) {
           final params = state.uri.queryParameters;
+          final isComposing =
+              params.containsKey('serviceType') ||
+              params.containsKey('tableId') ||
+              params.containsKey('tableSessionId');
           return AppShell(
             initialSection: 'order-create',
-            child:
-                params.containsKey('serviceType') ||
-                    params.containsKey('tableId') ||
-                    params.containsKey('tableSessionId')
+            showAppBar: !isComposing,
+            child: isComposing
                 ? OrderCreateScreen(
                     tableId: params['tableId'],
                     sessionId: params['tableSessionId'],
@@ -73,6 +89,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final tableName = state.uri.queryParameters['tableName'];
               return AppShell(
                 initialSection: 'order-create',
+                showAppBar: false,
                 child: OrderDetailScreen(
                   id: orderId,
                   tableName: tableName,
@@ -90,6 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   final tableName = state.uri.queryParameters['tableName'];
                   return AppShell(
                     initialSection: 'order-create',
+                    showAppBar: false,
                     child: OrderAppendScreen(
                       orderId: orderId,
                       tableName: tableName,

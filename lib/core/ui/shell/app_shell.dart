@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/order/presentation/screens/order_list_screen.dart';
 import '../../../features/order/presentation/screens/order_service_context_screen.dart';
+import '../../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
 
 import '../../../app/providers.dart';
 import '../../auth/app_session.dart';
@@ -23,11 +24,17 @@ import '../../../features/tables/presentation/screens/tables_management_screen.d
 /// is built dynamically from [AppSidebarRegistry], filtered by the
 /// user's effective permissions and subscription features.
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key, this.initialSection, this.child});
+  const AppShell({
+    super.key,
+    this.initialSection,
+    this.child,
+    this.showAppBar = true,
+  });
   final Widget? child;
 
   /// Optional initial section id, used when navigating from a route.
   final String? initialSection;
+  final bool showAppBar;
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -77,6 +84,8 @@ class _AppShellState extends ConsumerState<AppShell>
       'tables',
       'menu',
       'staff',
+      'kitchen-display',
+      'dish-status',
     }.contains(item.id)) {
       final router = GoRouter.maybeOf(context);
       if (router != null) {
@@ -139,37 +148,39 @@ class _AppShellState extends ConsumerState<AppShell>
         : 24.0;
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: toolbarHeight,
-        leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
-        leading: Center(
-          child: SizedBox.square(
-            dimension: menuButtonSize,
-            child: IconButton(
-              onPressed: _toggleSidebar,
-              tooltip: 'Menu',
-              iconSize: menuIconSize,
-              style: IconButton.styleFrom(
-                fixedSize: Size.square(menuButtonSize),
-                padding: EdgeInsets.zero,
+      appBar: widget.showAppBar
+          ? AppBar(
+              toolbarHeight: toolbarHeight,
+              leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
+              leading: Center(
+                child: SizedBox.square(
+                  dimension: menuButtonSize,
+                  child: IconButton(
+                    onPressed: _toggleSidebar,
+                    tooltip: 'Menu',
+                    iconSize: menuIconSize,
+                    style: IconButton.styleFrom(
+                      fixedSize: Size.square(menuButtonSize),
+                      padding: EdgeInsets.zero,
+                    ),
+                    icon: AnimatedIcon(
+                      icon: AnimatedIcons.menu_close,
+                      progress: _sidebarController,
+                      size: menuIconSize,
+                    ),
+                  ),
+                ),
               ),
-              icon: AnimatedIcon(
-                icon: AnimatedIcons.menu_close,
-                progress: _sidebarController,
-                size: menuIconSize,
-              ),
-            ),
-          ),
-        ),
-        title: Text(_currentTitle(allVisibleItems)),
-        // actions: [
-        //   IconButton(
-        //     onPressed: controller.logout,
-        //     tooltip: 'Đăng xuất',
-        //     icon: const Icon(Icons.logout),
-        //   ),
-        // ],
-      ),
+              title: Text(_currentTitle(allVisibleItems)),
+              // actions: [
+              //   IconButton(
+              //     onPressed: controller.logout,
+              //     tooltip: 'Đăng xuất',
+              //     icon: const Icon(Icons.logout),
+              //   ),
+              // ],
+            )
+          : null,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -230,6 +241,11 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (selected.id == 'orders') return const OrderListScreen();
     if (selected.id == 'order-create') return const OrderServiceContextScreen();
+    if (selected.id == 'kitchen-display' || selected.id == 'dish-status') {
+      return KitchenDisplayScreen(
+        key: ValueKey(AccessPolicy.kitchenScope(session)),
+      );
+    }
 
     if (selected.id == 'staff') {
       return const StaffManagementScreen();

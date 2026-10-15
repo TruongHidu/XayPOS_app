@@ -13,6 +13,14 @@ List<SidebarMenuItem> filterMenuItems(
   List<SidebarMenuItem> allItems,
 ) {
   return allItems.where((item) {
+    if (item.id == 'kitchen-display') {
+      return AccessPolicy.canKitchen(session, 'KITCHEN_VIEW');
+    }
+    if (item.id == 'dish-status') {
+      return AccessPolicy.canKitchen(session, 'KITCHEN_VIEW') &&
+          (AccessPolicy.canKitchen(session, 'KITCHEN_START_COOKING') ||
+              AccessPolicy.canKitchen(session, 'KITCHEN_MARK_READY'));
+    }
     if (item.id == 'orders') {
       return AccessPolicy.canOrders(session, 'ORDER_VIEW');
     }

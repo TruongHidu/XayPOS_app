@@ -43,6 +43,14 @@ Một phiên có nhiều historical orders nhưng tối đa một serving order.
 
 ## Quyền và feature
 
+KDS được triển khai riêng tại `lib/features/kitchen/`, route `/app/kitchen`.
+Queue/start/ready dùng KITCHEN_* + KITCHEN_DISPLAY, độc lập với ORDER_VIEW.
+OrderResponse từ mutation bếp cập nhật version/trạng thái và phát OrderEvents
+cho các màn Order/workspace. READY tự tổng hợp từ món; không complete/close bàn.
+Chi tiết tải queue, batch, retry và polling: [kitchen-display.md](kitchen-display.md).
+Backend hiện chốt sentToKitchenAt khi SUBMIT/confirm; KDS có fallback createdAt
+cho dữ liệu cũ có timestamp null.
+
 Mọi ORDER cần restaurant hợp lệ, subscription ACTIVE và ORDER_MANAGEMENT.
 Không suy từ tên package, không cấp OWNER bypass.
 
@@ -165,7 +173,8 @@ Chốt input bất biến + key trước submit, khóa double tap.
 Timeout/500/parse lỗi: kết quả chưa xác định, khóa sửa giỏ/rời luồng;
 kiểm tra lại đúng key/payload. 401 retry giữ nguyên request.
 Replay 200 trả representation hiện tại; không ép OPEN/version=0.
-SUBMIT mới CONFIRMED, lines PENDING và sentToKitchenAt=null. Replay có thể trả
+SUBMIT mới CONFIRMED, lines PENDING; backend chốt sentToKitchenAt khi gửi bếp.
+Dữ liệu cũ có timestamp null dùng createdAt làm fallback trong KDS. Replay có thể trả
 root đã CANCELLED hoặc version cao hơn; luôn dùng toàn bộ representation server.
 OrderSubmission giữ replayed=true/false, null nếu header bị thiếu (không bịa
 metadata); header sai giá trị/body malformed trả INVALID_ORDER_RESPONSE.
@@ -324,12 +333,14 @@ phạm vi byte-identical. Generated Kotlin cache mới của build được chuy
 
 ## Giới hạn
 
-- Chưa payment/refund/KDS/QR ordering/close bill/recipe/trừ kho/offline sync.
+- Chưa payment/refund/QR ordering/close bill/recipe/trừ kho/offline sync; KDS đã có
+  queue, start-cooking và mark-ready (xem kitchen-display.md).
 - Giỏ và key unresolved chỉ trong bộ nhớ luồng hiện tại, chưa khôi phục
   sau process kill. Restart cần kiểm tra danh sách đơn/liên hệ quản lý,
   không mặc định gửi lại ý định chưa xác minh.
-- Giỏ gọi thêm hỗ trợ 1–100 dòng/request. Không append PREPARING/READY/SERVED
-  trước khi backend có KDS/aggregate reconciliation tương ứng.
+- Giỏ gọi thêm hỗ trợ 1–100 dòng/request. UI hiện giữ policy OPEN/CONFIRMED;
+  việc mở rộng append PREPARING/READY/SERVED trên UI Order thuộc lượt riêng,
+  dù backend đã hỗ trợ SUBMIT và tổng hợp lại trạng thái khi gọi thêm.
 - IDEMPOTENCY_KEY_REUSED không có API tra ledger cho FE; giữ trạng thái cần
   đối chiếu với người quản lý, không tự bỏ request rồi sinh key khác.
 - Chưa E2E với backend thật hoặc thiết bị vật lý.

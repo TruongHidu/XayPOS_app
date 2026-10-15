@@ -3,6 +3,25 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static Object? kitchenScope(AppSession? session) => menuScope(session);
+
+  static bool canKitchen(AppSession? session, String permission) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('KITCHEN_DISPLAY') &&
+      const {
+        'KITCHEN_VIEW',
+        'KITCHEN_START_COOKING',
+        'KITCHEN_MARK_READY',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
   static Object? orderScope(AppSession? session) => menuScope(session);
 
   static bool canOrders(AppSession? session, String permission) =>
@@ -217,6 +236,9 @@ abstract final class AccessPolicy {
   static bool canOpenRoute(AppSession session, String location) {
     final uri = Uri.tryParse(location);
     final path = uri?.path ?? location;
+    if (path == '/app/kitchen' || path == '/app/dish-status') {
+      return canKitchen(session, 'KITCHEN_VIEW');
+    }
     if (path == '/app/orders' || path.startsWith('/app/orders/')) {
       return canOrders(session, 'ORDER_VIEW');
     }
@@ -298,7 +320,6 @@ abstract final class AccessPolicy {
           (permission: 'REPORT_VIEW', feature: 'REPORTING'),
           (permission: 'REPORT_DAILY_VIEW', feature: 'DAILY_REVENUE'),
           (permission: 'KITCHEN_VIEW', feature: 'KITCHEN_DISPLAY'),
-          (permission: 'KITCHEN_UPDATE', feature: 'KITCHEN_DISPLAY'),
           (permission: 'INVENTORY_VIEW', feature: 'INVENTORY_MANAGEMENT'),
           (permission: 'DASHBOARD_VIEW', feature: 'REPORTING'),
           (
