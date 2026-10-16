@@ -240,6 +240,37 @@ abstract final class ApiErrorMapper {
         fieldErrors: apiError.fieldErrors,
       );
     }
+    final reportError = switch (apiError.code) {
+      'INVALID_REPORT_DATE_RANGE' => (
+        FailureType.validation,
+        'Khoảng ngày báo cáo không hợp lệ.',
+      ),
+      'REPORT_RANGE_TOO_LARGE' => (
+        FailureType.validation,
+        'Khoảng ngày báo cáo vượt quá giới hạn cho phép (tối đa 366 ngày).',
+      ),
+      'INVALID_REPORT_CURRENCY' => (
+        FailureType.validation,
+        'Mã tiền tệ báo cáo không hợp lệ.',
+      ),
+      'INVALID_REPORT_SORT' => (
+        FailureType.validation,
+        'Tiêu chí sắp xếp báo cáo không hợp lệ.',
+      ),
+      'INVALID_REPORT_TIMEZONE' => (
+        FailureType.conflict,
+        'Cấu hình múi giờ của nhà hàng không hợp lệ. Vui lòng liên hệ quản lý.',
+      ),
+      _ => null,
+    };
+    if (reportError != null) {
+      return Failure(
+        type: reportError.$1,
+        message: reportError.$2,
+        code: apiError.code,
+        fieldErrors: apiError.fieldErrors,
+      );
+    }
     final mapped = switch (apiError.code) {
       'UNAUTHORIZED' || 'ACCOUNT_INACTIVE' => FailureType.unauthorized,
       'TENANT_ACCESS_DENIED' ||

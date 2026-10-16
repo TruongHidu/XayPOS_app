@@ -133,8 +133,8 @@ abstract final class AppSidebarRegistry {
           label: 'Báo cáo',
           icon: Icons.assessment_outlined,
           routePath: '/app/reports',
-          requiredPermissions: ['REPORT_VIEW'],
-          requiredFeatures: ['REPORTING'],
+          requiredPermissions: ['REPORT_DETAIL_VIEW'],
+          requiredFeatures: ['DETAIL_REPORT'],
         ),
         SidebarMenuItem(
           id: 'inventory',

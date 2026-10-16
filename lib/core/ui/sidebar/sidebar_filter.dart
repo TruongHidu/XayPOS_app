@@ -32,6 +32,12 @@ List<SidebarMenuItem> filterMenuItems(
     }
     if (item.id == 'menu') return AccessPolicy.canMenu(session, 'MENU_VIEW');
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
+    if (item.id == 'daily-revenue') {
+      return AccessPolicy.canDailyReport(session);
+    }
+    if (item.id == 'reports') {
+      return AccessPolicy.canDetailReport(session);
+    }
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),
     );

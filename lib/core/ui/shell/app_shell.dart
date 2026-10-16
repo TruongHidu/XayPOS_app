@@ -16,6 +16,8 @@ import '../sidebar/sidebar_menu_item.dart';
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
 import '../../../features/menu/presentation/screens/menu_management_screen.dart';
 import '../../../features/tables/presentation/screens/tables_management_screen.dart';
+import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
+import '../../../features/reports/presentation/screens/reports_screen.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -86,6 +88,8 @@ class _AppShellState extends ConsumerState<AppShell>
       'staff',
       'kitchen-display',
       'dish-status',
+      'daily-revenue',
+      'reports',
     }.contains(item.id)) {
       final router = GoRouter.maybeOf(context);
       if (router != null) {
@@ -259,6 +263,14 @@ class _AppShellState extends ConsumerState<AppShell>
       return TablesManagementScreen(
         key: ValueKey(AccessPolicy.tableScope(session)),
       );
+    }
+    if (selected.id == 'daily-revenue') {
+      return DailyRevenueScreen(
+        key: ValueKey(AccessPolicy.reportScope(session)),
+      );
+    }
+    if (selected.id == 'reports') {
+      return ReportsScreen(key: ValueKey(AccessPolicy.reportScope(session)));
     }
 
     // Placeholder content for each section.

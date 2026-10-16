@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/legacy.dart';
 export '../features/menu/presentation/providers/menu_providers.dart';
 export '../features/tables/presentation/providers/tables_providers.dart';
 export '../features/order/presentation/providers/order_providers.dart';
+export '../features/reports/presentation/providers/report_providers.dart';
 
 import '../core/auth/session_events.dart';
 import '../core/auth/access_policy.dart';

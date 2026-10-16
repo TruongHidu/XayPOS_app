@@ -94,6 +94,32 @@ abstract final class AccessPolicy {
     );
   }
 
+  static Object? reportScope(AppSession? session) => menuScope(session);
+
+  static bool canDailyReport(AppSession? session) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('DAILY_REVENUE') &&
+      session.permissions.contains('REPORT_DAILY_VIEW');
+
+  static bool canDetailReport(AppSession? session) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('DETAIL_REPORT') &&
+      session.permissions.contains('REPORT_DETAIL_VIEW');
+
   static bool canMenu(AppSession? session, String permission) =>
       session != null &&
       const {
@@ -268,6 +294,8 @@ abstract final class AccessPolicy {
       }
       return canOrderWorkspace(session);
     }
+    if (path == '/app/daily-revenue') return canDailyReport(session);
+    if (path == '/app/reports') return canDetailReport(session);
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (location == '/app/menu') return canMenu(session, 'MENU_VIEW');
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
@@ -313,12 +341,12 @@ abstract final class AccessPolicy {
     return canStaff(session, 'STAFF_VIEW') ||
         canTables(session, 'TABLE_VIEW') ||
         canMenu(session, 'MENU_VIEW') ||
+        canDailyReport(session) ||
+        canDetailReport(session) ||
         canAccessAny(session, const [
           (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),
           (permission: 'ORDER_CREATE', feature: 'ORDER_MANAGEMENT'),
           (permission: 'PAYMENT_VIEW', feature: 'PAYMENT_MANAGEMENT'),
-          (permission: 'REPORT_VIEW', feature: 'REPORTING'),
-          (permission: 'REPORT_DAILY_VIEW', feature: 'DAILY_REVENUE'),
           (permission: 'KITCHEN_VIEW', feature: 'KITCHEN_DISPLAY'),
           (permission: 'INVENTORY_VIEW', feature: 'INVENTORY_MANAGEMENT'),
           (permission: 'DASHBOARD_VIEW', feature: 'REPORTING'),

@@ -8,6 +8,8 @@ abstract final class AppRoutes {
   static const orders = '/app/orders';
   static const orderCreate = '/app/order-create';
   static const orderCreateBill = '/app/order-create/bill';
+  static const dailyRevenue = '/app/daily-revenue';
+  static const reports = '/app/reports';
   static const subscriptionRequired = '/subscription-required';
   static const subscriptionUnavailable = '/subscription-unavailable';
   static const featureUnavailable = '/feature-unavailable';
