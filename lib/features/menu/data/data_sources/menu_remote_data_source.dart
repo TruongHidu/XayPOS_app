@@ -1,8 +1,13 @@
 import 'package:dio/dio.dart';
+import '../../domain/entities/ingredient.dart';
+import '../../domain/entities/ingredient_inputs.dart';
+import '../../domain/entities/ingredient_query.dart';
 import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/menu_inputs.dart';
 import '../../domain/entities/menu_query.dart';
+import '../dto/ingredient_dto.dart';
+import '../dto/ingredient_requests.dart';
 import '../dto/menu_dto.dart';
 import '../dto/menu_requests.dart';
 
@@ -144,5 +149,62 @@ class MenuRemoteDataSource {
       data: {'groupId': groupId, 'expectedVersion': expectedVersion},
     );
     return MenuItemDto.fromJson(response.data);
+  }
+
+  // ── INGREDIENTS ──
+  Future<MenuPageDto<Ingredient>> listIngredients(IngredientQuery query) async {
+    final response = await _dio.get<Object>(
+      '/api/v1/menu/ingredients',
+      queryParameters: IngredientRequests.query(query),
+    );
+    return MenuPageDto.fromJson(
+      response.data,
+      (json) => IngredientDto.fromJson(json).toEntity(),
+    );
+  }
+
+  Future<IngredientDto> getIngredient(String id) async {
+    final response = await _dio.get<Object>(
+      '/api/v1/menu/ingredients/${Uri.encodeComponent(id)}',
+    );
+    return IngredientDto.fromJson(response.data);
+  }
+
+  Future<IngredientDto> createIngredient(CreateIngredientInput input) async {
+    final response = await _dio.post<Object>(
+      '/api/v1/menu/ingredients',
+      data: IngredientRequests.create(input),
+    );
+    return IngredientDto.fromJson(response.data);
+  }
+
+  Future<IngredientDto> updateIngredient(
+    String id,
+    UpdateIngredientInput input,
+  ) async {
+    final response = await _dio.patch<Object>(
+      '/api/v1/menu/ingredients/${Uri.encodeComponent(id)}',
+      data: IngredientRequests.update(input),
+    );
+    return IngredientDto.fromJson(response.data);
+  }
+
+  Future<IngredientDto> setIngredientStatus(
+    String id,
+    bool active,
+    int expectedVersion,
+  ) async {
+    final response = await _dio.patch<Object>(
+      '/api/v1/menu/ingredients/${Uri.encodeComponent(id)}/status',
+      data: {'active': active, 'expectedVersion': expectedVersion},
+    );
+    return IngredientDto.fromJson(response.data);
+  }
+
+  Future<void> deleteIngredient(String id, int expectedVersion) async {
+    await _dio.delete<void>(
+      '/api/v1/menu/ingredients/${Uri.encodeComponent(id)}',
+      queryParameters: {'expectedVersion': expectedVersion},
+    );
   }
 }

@@ -13,8 +13,19 @@ import 'menu_dialogs.dart';
 import 'menu_group_picker.dart';
 
 class MenuItemForm extends ConsumerStatefulWidget {
-  const MenuItemForm({super.key, this.initial});
+  const MenuItemForm({
+    super.key,
+    this.initial,
+    this.typeSelector,
+    this.onBusyChanged,
+    this.onSuccess,
+  });
+
   final MenuItem? initial;
+  final Widget? typeSelector;
+  final ValueChanged<bool>? onBusyChanged;
+  final VoidCallback? onSuccess;
+
   @override
   ConsumerState<MenuItemForm> createState() => _MenuItemFormState();
 }
@@ -68,6 +79,12 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
     super.dispose();
   }
 
+  void _setBusy(bool value) {
+    if (_busy == value) return;
+    setState(() => _busy = value);
+    widget.onBusyChanged?.call(value);
+  }
+
   String _text(String key) => _fields[key]!.text;
   void _edited(String key) => setState(() {
     if (key == 'costPrice') _costPriceEdited = true;
@@ -76,9 +93,10 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
       _failure = null;
     }
   });
+
   Future<void> _save() async {
     if (_busy || !_form.currentState!.validate()) return;
-    setState(() => _busy = true);
+    _setBusy(true);
     final controller = ref.read(menuItemControllerProvider);
     final baseline = _baseline;
     final price = MenuPrice.parse(_text('salePrice'));
@@ -116,10 +134,15 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
           );
     if (!mounted) return;
     if (result is Success<MenuItem>) {
-      Navigator.of(context).pop(true);
+      _setBusy(false);
+      if (widget.onSuccess != null) {
+        widget.onSuccess!();
+      } else {
+        Navigator.of(context).pop(true);
+      }
     } else if (result case Error(failure: final failure)) {
+      _setBusy(false);
       setState(() {
-        _busy = false;
         _failure = failure;
         _errors.addAll(failure.fieldErrors);
       });
@@ -133,13 +156,13 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
         !mounted) {
       return;
     }
-    setState(() => _busy = true);
+    _setBusy(true);
     final result = await ref
         .read(menuItemControllerProvider)
         .detail(baseline.id);
     if (!mounted) return;
+    _setBusy(false);
     setState(() {
-      _busy = false;
       switch (result) {
         case Success(value: final item):
           _baseline = item;
@@ -178,6 +201,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
       key: _form,
       child: MenuFormLayout(
         title: creating ? 'Thêm món' : 'Sửa thông tin món',
+        header: widget.typeSelector,
         busy: _busy,
         submitLabel: creating ? 'Tạo món' : 'Lưu thay đổi',
         onSubmit:

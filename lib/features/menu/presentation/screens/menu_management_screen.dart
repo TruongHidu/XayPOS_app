@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../domain/entities/ingredient.dart';
+import '../../domain/entities/item_type.dart';
 import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/menu_query.dart';
 import '../controllers/menu_list_controller.dart';
+import '../widgets/catalog_create_dialog.dart';
+import '../widgets/ingredient_details.dart';
+import '../widgets/ingredient_dialogs.dart';
+import '../widgets/ingredient_form.dart';
+import '../widgets/ingredient_list.dart';
 import '../widgets/menu_actions.dart';
 import '../widgets/menu_details.dart';
 import '../widgets/menu_dialogs.dart';
 import '../widgets/menu_group_form.dart';
 import '../widgets/menu_group_picker.dart';
 import '../widgets/menu_item_form.dart';
+
+enum MenuWorkspaceTab { menuItems, menuGroups, ingredients }
 
 class MenuManagementScreen extends ConsumerStatefulWidget {
   const MenuManagementScreen({super.key});
@@ -23,13 +34,21 @@ class MenuManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
-  bool _groups = false;
+  MenuWorkspaceTab _tab = MenuWorkspaceTab.menuItems;
+  bool get _groups => _tab == MenuWorkspaceTab.menuGroups;
   MenuItemGroupSummary? get _filterGroup => ref.read(menuGroupFilterProvider);
   set _filterGroup(MenuItemGroupSummary? value) =>
       ref.read(menuGroupFilterProvider.notifier).state = value;
   final _opening = <String>{};
+  int _searchReset = 0;
 
   Future<void> _itemAction(MenuItem row, String action) async {
+    if (action == 'recipe') {
+      final session = ref.read(authControllerProvider).state.session;
+      if (!AccessPolicy.canRecipe(session, 'RECIPE_VIEW')) return;
+      await context.push(AppRoutes.recipeFor(row.id));
+      return;
+    }
     final controller = ref.read(menuItemControllerProvider);
     final permission = action == 'view'
         ? 'MENU_VIEW'
@@ -156,24 +175,126 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     );
   }
 
+  Future<void> _ingredientAction(Ingredient row, String action) async {
+    final controller = ref.read(ingredientControllerProvider);
+    final permission = action == 'view'
+        ? 'INGREDIENT_VIEW'
+        : action == 'delete'
+        ? 'INGREDIENT_DELETE'
+        : 'INGREDIENT_UPDATE';
+    if (!controller.can(permission) ||
+        controller.isPending(row.id) ||
+        !_opening.add(row.id)) {
+      return;
+    }
+    setState(() {});
+    final result = await controller.detail(row.id);
+    if (!mounted) return;
+    setState(() => _opening.remove(row.id));
+    if (!controller.can(permission)) return;
+    if (result case Error(failure: final failure)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failure.message)));
+      return;
+    }
+    final item = (result as Success<Ingredient>).value;
+    final targetActive = !item.active;
+    final Widget dialog = switch (action) {
+      'view' => IngredientDetailsDialog(initial: item),
+      'edit' => IngredientForm(initial: item),
+      'delete' => IngredientConfirmDialog(
+        initial: item,
+        title: 'Xóa nguyên liệu?',
+        label: 'Xóa nguyên liệu',
+        permission: permission,
+        reload: () => controller.detail(item.id),
+        describe: (value) =>
+            'Xóa nguyên liệu "${value.name}"? SKU vẫn được giữ chỗ sau xóa mềm. Hiện chưa hỗ trợ khôi phục nguyên liệu đã xóa.',
+        submit: (value) => ingredientDeleteResult(controller.delete(value)),
+      ),
+      _ => IngredientConfirmDialog(
+        initial: item,
+        title: targetActive
+            ? 'Bật sử dụng nguyên liệu?'
+            : 'Ngừng sử dụng nguyên liệu?',
+        permission: permission,
+        reload: () => controller.detail(item.id),
+        describe: (value) =>
+            '${targetActive ? "Bật" : "Ngừng"} sử dụng "${value.name}"?',
+        submit: (value) => controller.setStatus(value, targetActive),
+      ),
+    };
+    await showIngredientDialog<void>(
+      context,
+      ref,
+      permission: permission,
+      child: dialog,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(authControllerProvider).state.session;
-    if (!AccessPolicy.canMenu(session, 'MENU_VIEW')) {
-      return const Center(child: Text('Bạn chưa có quyền truy cập thực đơn.'));
+    final canMenuView = AccessPolicy.canMenu(session, 'MENU_VIEW');
+    final canIngredientView = AccessPolicy.canIngredient(
+      session,
+      'INGREDIENT_VIEW',
+    );
+
+    if (!canMenuView && !canIngredientView) {
+      return const Center(
+        child: Text('Bạn chưa có quyền truy cập thực đơn hoặc nguyên liệu.'),
+      );
     }
+
+    if (!canMenuView &&
+        (_tab == MenuWorkspaceTab.menuItems ||
+            _tab == MenuWorkspaceTab.menuGroups)) {
+      _tab = MenuWorkspaceTab.ingredients;
+    } else if (!canIngredientView && _tab == MenuWorkspaceTab.ingredients) {
+      _tab = MenuWorkspaceTab.menuItems;
+    }
+
     final scope = ref.watch(menuScopeProvider);
+    final ingredientScope = ref.watch(ingredientScopeProvider);
     ref.watch(menuGroupFilterProvider);
-    final canCreate = AccessPolicy.canMenu(session, 'MENU_CREATE');
-    final canUpdate = AccessPolicy.canMenu(session, 'MENU_UPDATE');
-    final canDelete = AccessPolicy.canMenu(session, 'MENU_DELETE');
-    final itemController = ref.watch(menuItemControllerProvider);
-    final groupController = ref.watch(menuGroupControllerProvider);
-    final MenuListController controller = _groups
-        ? groupController
-        : itemController;
-    final state = controller.state;
-    final query = state.query;
+
+    final canMenuCreate = AccessPolicy.canMenu(session, 'MENU_CREATE');
+    final canMenuUpdate = AccessPolicy.canMenu(session, 'MENU_UPDATE');
+    final canMenuDelete = AccessPolicy.canMenu(session, 'MENU_DELETE');
+
+    final canIngredientCreate = AccessPolicy.canIngredient(
+      session,
+      'INGREDIENT_CREATE',
+    );
+    final canIngredientUpdate = AccessPolicy.canIngredient(
+      session,
+      'INGREDIENT_UPDATE',
+    );
+    final canIngredientDelete = AccessPolicy.canIngredient(
+      session,
+      'INGREDIENT_DELETE',
+    );
+
+    final itemController = canMenuView && _tab == MenuWorkspaceTab.menuItems
+        ? ref.watch(menuItemControllerProvider)
+        : null;
+    final groupController = canMenuView && _groups
+        ? ref.watch(menuGroupControllerProvider)
+        : null;
+    final ingredientController =
+        canIngredientView && _tab == MenuWorkspaceTab.ingredients
+        ? ref.watch(ingredientControllerProvider)
+        : null;
+
+    final isIngredientTab = _tab == MenuWorkspaceTab.ingredients;
+    final MenuListController? menuController = isIngredientTab
+        ? null
+        : (_groups ? groupController : itemController);
+    final menuState = menuController?.state;
+    final menuQuery = menuState?.query;
+
     ref.listen(menuScopeProvider, (previous, next) {
       if (previous != next) {
         setState(() {
@@ -181,163 +302,263 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
         });
       }
     });
-    ref.listen(
-      menuCatalogEventsProvider.select((events) => events.groupRevision),
-      (_, next) async {
-        final selected = _filterGroup;
-        if (selected == null) return;
-        final result = await groupController.detail(selected.id);
-        if (!mounted ||
-            !groupController.isCurrent ||
-            _filterGroup?.id != selected.id) {
-          return;
-        }
+
+    ref.listen(ingredientScopeProvider, (previous, next) {
+      if (previous != next) {
         setState(() {
-          if (result case Success(value: final group)) {
-            _filterGroup = MenuItemGroupSummary(
-              id: group.id,
-              name: group.name,
-              active: group.active,
-            );
-          } else if (itemController.state.query.groupId == null) {
-            _filterGroup = null;
-          }
+          _opening.clear();
         });
-      },
-    );
+      }
+    });
+
+    if (canMenuView && !isIngredientTab) {
+      ref.listen(
+        menuCatalogEventsProvider.select((events) => events.groupRevision),
+        (_, next) async {
+          final selected = _filterGroup;
+          if (selected == null) return;
+          final groupController = ref.read(menuGroupControllerProvider);
+          final result = await groupController.detail(selected.id);
+          if (!mounted ||
+              !groupController.isCurrent ||
+              _filterGroup?.id != selected.id) {
+            return;
+          }
+          setState(() {
+            if (result case Success(value: final group)) {
+              _filterGroup = MenuItemGroupSummary(
+                id: group.id,
+                name: group.name,
+                active: group.active,
+              );
+            } else if (itemController?.state.query.groupId == null) {
+              _filterGroup = null;
+            }
+          });
+        },
+      );
+    }
 
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth < 600;
-    final horizontalPadding = isCompact ? 12.0 : 20.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final isCompact = screenWidth < 600;
+        final horizontalPadding = isCompact ? 12.0 : 20.0;
 
-    // Count active filters for display
-    int activeFilterCount = 0;
-    if (query.active != null) activeFilterCount++;
-    if (query.groupId != null) activeFilterCount++;
-    if (query.availabilityStatus != null) activeFilterCount++;
-    if (query.sellable != null) activeFilterCount++;
-    if (query.q.trim().isNotEmpty) activeFilterCount++;
+        int activeFilterCount = 0;
+        if (!isIngredientTab && menuQuery != null) {
+          if (menuQuery.active != null) activeFilterCount++;
+          if (menuQuery.groupId != null) activeFilterCount++;
+          if (menuQuery.availabilityStatus != null) activeFilterCount++;
+          if (menuQuery.sellable != null) activeFilterCount++;
+          if (menuQuery.q.trim().isNotEmpty) activeFilterCount++;
+        }
 
-    return ListView(
-      key: ValueKey(('menu', scope, _groups)),
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: 16,
-      ),
-      children: [
-        // ── Header ──
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 16,
-          runSpacing: 12,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Quản lý thực đơn',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Quản lý món ăn, giá bán và nhóm món.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            if (canCreate)
-              FilledButton.icon(
-                onPressed: () => showMenuDialog<void>(
-                  context,
-                  ref,
-                  permission: 'MENU_CREATE',
-                  child: _groups ? const MenuGroupForm() : const MenuItemForm(),
-                ),
-                icon: const Icon(Icons.add),
-                label: Text(_groups ? 'Thêm nhóm' : 'Thêm món'),
+        final String title = switch (_tab) {
+          MenuWorkspaceTab.ingredients => 'Quản lý nguyên liệu',
+          MenuWorkspaceTab.menuGroups => 'Quản lý nhóm món',
+          MenuWorkspaceTab.menuItems => 'Quản lý thực đơn',
+        };
+        final String subtitle = switch (_tab) {
+          MenuWorkspaceTab.ingredients =>
+            'Quản lý nguyên liệu, giá vốn và cấu hình theo dõi tồn kho.',
+          MenuWorkspaceTab.menuGroups => 'Quản lý các nhóm phân loại món ăn.',
+          MenuWorkspaceTab.menuItems =>
+            'Quản lý món ăn, giá bán và tình trạng kinh doanh.',
+        };
+
+        Widget? headerActionButton;
+        if (_tab == MenuWorkspaceTab.menuGroups) {
+          if (canMenuCreate) {
+            headerActionButton = FilledButton.icon(
+              onPressed: () => showMenuDialog<void>(
+                context,
+                ref,
+                permission: 'MENU_CREATE',
+                child: const MenuGroupForm(),
               ),
-          ],
-        ),
-        const SizedBox(height: 20),
+              icon: const Icon(Icons.add),
+              label: const Text('Thêm nhóm'),
+            );
+          }
+        } else if (_tab == MenuWorkspaceTab.menuItems) {
+          if (canMenuCreate || canIngredientCreate) {
+            headerActionButton = FilledButton.icon(
+              onPressed: () => showCatalogCreateDialog(
+                context,
+                ref,
+                defaultType: ItemType.menuItem,
+              ),
+              icon: const Icon(Icons.add),
+              label: Text(canMenuCreate ? 'Thêm món' : 'Thêm nguyên liệu'),
+            );
+          }
+        } else {
+          if (canMenuCreate || canIngredientCreate) {
+            headerActionButton = FilledButton.icon(
+              onPressed: () => showCatalogCreateDialog(
+                context,
+                ref,
+                defaultType: ItemType.ingredient,
+              ),
+              icon: const Icon(Icons.add),
+              label: Text(
+                canIngredientCreate ? 'Thêm nguyên liệu' : 'Thêm món',
+              ),
+            );
+          }
+        }
 
-        // ── Segment Tabs ──
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: false,
-              label: Text('Món ăn'),
+        final availableTabs = [
+          if (canMenuView) ...[
+            const ButtonSegment(
+              value: MenuWorkspaceTab.menuItems,
+              label: Text('Món bán'),
               icon: Icon(Icons.restaurant_outlined),
             ),
-            ButtonSegment(
-              value: true,
+            const ButtonSegment(
+              value: MenuWorkspaceTab.menuGroups,
               label: Text('Nhóm món'),
               icon: Icon(Icons.folder_outlined),
             ),
           ],
-          selected: {_groups},
-          onSelectionChanged: (value) => setState(() => _groups = value.first),
-        ),
-        const SizedBox(height: 16),
+          if (canIngredientView)
+            const ButtonSegment(
+              value: MenuWorkspaceTab.ingredients,
+              label: Text('Nguyên liệu'),
+              icon: Icon(Icons.kitchen_outlined),
+            ),
+        ];
 
-        // ── Search & Filters ──
-        _buildSearchAndFilters(
-          theme: theme,
-          colors: colors,
-          controller: controller,
-          query: query,
-          state: state,
-          isCompact: isCompact,
-          activeFilterCount: activeFilterCount,
-        ),
-        const SizedBox(height: 16),
-
-        // ── Loading indicator ──
-        if (state.loading) const LinearProgressIndicator(),
-
-        // ── Error panel ──
-        MenuFailurePanel(
-          failure: state.failure,
-          onReload: controller.load,
-          reloadLabel: 'Thử lại',
-        ),
-
-        // ── Empty state ──
-        if (state.hasLoaded &&
-            state.rows.isEmpty &&
-            state.failure == null &&
-            !state.loading)
-          _buildEmptyState(theme, colors, query, canCreate),
-
-        // ── Content Grid ──
-        if (_groups)
-          ResponsiveColumns(
-            minColumnWidth: 320,
-            maxColumns: 3,
-            children: [
-              for (final group in groupController.state.rows)
-                _groupCard(
-                  group,
-                  canUpdate,
-                  canDelete,
-                  groupController.isPending(group.id) ||
-                      _opening.contains(group.id),
+        return ListView(
+          key: ValueKey(('menu', scope, ingredientScope, _tab)),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: 16,
+          ),
+          children: [
+            // ── Header ──
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          )
-        else
-          _buildItemGrid(itemController, canUpdate, canDelete),
-        const SizedBox(height: 16),
+                if (headerActionButton != null) headerActionButton,
+              ],
+            ),
+            const SizedBox(height: 20),
 
-        // ── Pagination ──
-        _buildPagination(theme, colors, state, query, controller),
-      ],
+            // ── Segment Tabs ──
+            if (availableTabs.length > 1) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final tab in availableTabs)
+                    ChoiceChip(
+                      key: ValueKey('menu-tab-${tab.value.name}'),
+                      avatar: tab.icon,
+                      label: tab.label!,
+                      selected: _tab == tab.value,
+                      onSelected: (_) => setState(() => _tab = tab.value),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            if (isIngredientTab) ...[
+              IngredientList(
+                controller: ingredientController!,
+                canUpdate: canIngredientUpdate,
+                canDelete: canIngredientDelete,
+                canCreate: canIngredientCreate,
+                opening: _opening,
+                onAction: _ingredientAction,
+              ),
+            ] else ...[
+              // ── Search & Filters ──
+              _buildSearchAndFilters(
+                theme: theme,
+                colors: colors,
+                controller: menuController!,
+                query: menuQuery!,
+                state: menuState!,
+                isCompact: isCompact,
+                activeFilterCount: activeFilterCount,
+              ),
+              const SizedBox(height: 16),
+
+              // ── Loading indicator ──
+              if (menuState.loading) const LinearProgressIndicator(),
+
+              // ── Error panel ──
+              MenuFailurePanel(
+                failure: menuState.failure,
+                onReload: menuController.load,
+                reloadLabel: 'Thử lại',
+              ),
+
+              // ── Empty state ──
+              if (menuState.hasLoaded &&
+                  menuState.rows.isEmpty &&
+                  menuState.failure == null &&
+                  !menuState.loading)
+                _buildEmptyState(theme, colors, menuQuery, canMenuCreate),
+
+              // ── Content Grid ──
+              if (_groups)
+                ResponsiveColumns(
+                  minColumnWidth: 320,
+                  maxColumns: 3,
+                  children: [
+                    for (final group in groupController!.state.rows)
+                      _groupCard(
+                        group,
+                        canMenuUpdate,
+                        canMenuDelete,
+                        groupController.isPending(group.id) ||
+                            _opening.contains(group.id),
+                      ),
+                  ],
+                )
+              else
+                _buildItemGrid(itemController!, canMenuUpdate, canMenuDelete),
+              const SizedBox(height: 16),
+
+              // ── Pagination ──
+              _buildPagination(
+                theme,
+                colors,
+                menuState,
+                menuQuery,
+                menuController,
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -568,7 +789,6 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
             onPressed: () {
               setState(() => _filterGroup = null);
               controller.setQuery(const MenuQuery());
-              // Recreate only the search field when explicitly clearing filters.
               setState(() => _searchReset++);
             },
             icon: const Icon(Icons.filter_alt_off, size: 18),
@@ -713,7 +933,6 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     );
   }
 
-  int _searchReset = 0;
   bool? _bool(String value) => value == 'all' ? null : value == 'true';
   Widget _select(
     String label,
@@ -721,7 +940,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     Map<String, String> choices,
     ValueChanged<String> changed,
   ) => DropdownButtonFormField<String>(
-    key: ValueKey((label, value, _groups, _searchReset)),
+    key: ValueKey((label, value, _tab, _searchReset)),
     value: value,
     isExpanded: true,
     decoration: menuField(label),
@@ -788,6 +1007,14 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                         ),
                       ),
                       _actions(busy, (action) => _itemAction(item, action), [
+                        if (AccessPolicy.canRecipe(
+                          ref.read(authControllerProvider).state.session,
+                          'RECIPE_VIEW',
+                        ))
+                          const PopupMenuItem(
+                            value: 'recipe',
+                            child: Text('Công thức'),
+                          ),
                         if (update) ...[
                           const PopupMenuItem(
                             value: 'edit',

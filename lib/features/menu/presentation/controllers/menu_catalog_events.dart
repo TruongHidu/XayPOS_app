@@ -4,8 +4,13 @@ import 'package:flutter/foundation.dart';
 class MenuCatalogEvents extends ChangeNotifier {
   int groupRevision = 0;
   int itemRevision = 0;
+  int ingredientRevision = 0;
+  int recipeRevision = 0;
   String? deletedGroupId;
   String? changedItemId;
+  String? changedIngredientId;
+  String? changedRecipeMenuItemId;
+
   void groupsChanged({String? deletedId}) {
     groupRevision++;
     deletedGroupId = deletedId;
@@ -15,6 +20,18 @@ class MenuCatalogEvents extends ChangeNotifier {
   void itemChanged(String? id) {
     itemRevision++;
     changedItemId = id;
+    notifyListeners();
+  }
+
+  void ingredientChanged([String? id]) {
+    ingredientRevision++;
+    changedIngredientId = id;
+    notifyListeners();
+  }
+
+  void recipeChanged(String menuItemId) {
+    recipeRevision++;
+    changedRecipeMenuItemId = menuItemId;
     notifyListeners();
   }
 }

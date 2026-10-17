@@ -30,7 +30,7 @@ List<SidebarMenuItem> filterMenuItems(
     if (item.id == 'tables') {
       return AccessPolicy.canTables(session, 'TABLE_VIEW');
     }
-    if (item.id == 'menu') return AccessPolicy.canMenu(session, 'MENU_VIEW');
+    if (item.id == 'menu') return AccessPolicy.canMenuWorkspace(session);
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
     if (item.id == 'daily-revenue') {
       return AccessPolicy.canDailyReport(session);

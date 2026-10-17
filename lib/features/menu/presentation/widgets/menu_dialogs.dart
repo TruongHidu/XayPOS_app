@@ -58,8 +58,10 @@ class MenuFormLayout extends StatelessWidget {
     required this.busy,
     required this.onSubmit,
     this.submitLabel = 'Lưu thay đổi',
+    this.header,
   });
   final String title;
+  final Widget? header;
   final List<Widget> children;
   final bool busy;
   final VoidCallback? onSubmit;
@@ -88,6 +90,7 @@ class MenuFormLayout extends StatelessWidget {
                 ),
               ],
             ),
+            if (header != null) ...[const SizedBox(height: 12), header!],
             const SizedBox(height: 16),
             AbsorbPointer(
               absorbing: busy,

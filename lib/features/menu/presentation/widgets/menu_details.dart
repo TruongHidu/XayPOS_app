@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/router/app_routes.dart';
+import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
@@ -289,6 +293,25 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
               const SizedBox(height: 16),
               // Name
               Text(_item.name, style: theme.textTheme.headlineSmall),
+              if (AccessPolicy.canRecipe(
+                ref.watch(authControllerProvider).state.session,
+                'RECIPE_VIEW',
+              )) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: const Text('Công thức'),
+                    onPressed: () {
+                      final router = GoRouter.of(context);
+                      final item = _item;
+                      Navigator.of(context).pop();
+                      router.push(AppRoutes.recipeFor(item.id));
+                    },
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               // Price section
               Container(

@@ -2,7 +2,7 @@
 
 ## Phạm vi và kiến trúc
 
-Module `lib/features/menu/` kết nối 14 API nhóm món/món ăn, dùng Dio authenticated client, Riverpod ChangeNotifier, GoRouter và shell hiện có. Không thay đổi backend; không thêm dependency. Đã đối chiếu DTO, controller và chính sách menu trong repository `pos-saas-be`.
+Module `lib/features/menu/` kết nối 14 API nhóm món/món ăn và 6 API nguyên liệu, dùng Dio authenticated client, Riverpod ChangeNotifier, GoRouter và shell hiện có. Không thay đổi backend; không thêm dependency. Phần món/nhóm giữ nguyên contract hiện tại; phần nguyên liệu theo contract được cung cấp ngày 16/10/2026. Xem [bàn giao nguyên liệu](ingredients-management.md).
 
 | Thư mục/file | Trách nhiệm |
 | --- | --- |
@@ -15,7 +15,7 @@ Module `lib/features/menu/` kết nối 14 API nhóm món/món ăn, dùng Dio au
 | `data/repositories/` | Repository implementation; chuyển lỗi sang Result/Failure |
 | `presentation/controllers/` | State nhóm/món/selector riêng; chống response cũ, mutation trùng và invalidation liên quan |
 | `presentation/providers/menu_providers.dart` | Inject repository/use case, scope phiên, sự kiện và phục hồi quyền |
-| `presentation/screens/menu_management_screen.dart` | Hai tab, tìm kiếm, lọc, sort, phân trang và thao tác theo quyền |
+| `presentation/screens/menu_management_screen.dart` | Ba tab Món bán/Nhóm món/Nguyên liệu theo quyền; tìm kiếm, lọc, sort, phân trang |
 | `presentation/widgets/` | Form, chi tiết, ảnh, badge, selector và dialog xác nhận |
 | `test/features/menu/` | Contract, controller, session/policy và widget tests với dữ liệu giả |
 
@@ -24,6 +24,8 @@ Các điểm tích hợp đã sửa: `lib/app/providers.dart`, `lib/app/app.dart
 ## Route và quyền
 
 Route `/app/menu` mở `AppShell(initialSection: 'menu')`. Sidebar “Thực đơn” hiện có mở màn thực đơn thật. Layout dùng toàn chiều rộng khả dụng: một cột trên điện thoại, nhiều cột trên tablet/desktop, form cuộn khi bàn phím mở.
+
+Workspace truy cập được khi có quyền xem món hoặc nguyên liệu. `AccessPolicy.canMenuWorkspace` được dùng cho route/sidebar; `canMenu` tiếp tục kiểm tra riêng `MENU_*`. Nguyên liệu dùng `INGREDIENT_*` với feature `RECIPE_MANAGEMENT` **hoặc** `INVENTORY_MANAGEMENT`, không phụ thuộc `MENU_VIEW`/`MENU_MANAGEMENT`. Chỉ khởi tạo danh sách của tab được mở; form tạo cho chọn loại theo quyền và giữ bản nháp riêng khi chuyển loại.
 
 Mọi quyền menu đều yêu cầu restaurantId hợp lệ, subscription ACTIVE và feature `MENU_MANAGEMENT`. OWNER không có quyền tương ứng sẽ không được bypass. OWNER, MANAGER, WAITER và KITCHEN dùng cùng chính sách permission; CASHIER/SUPER_ADMIN giữ luồng web riêng.
 
@@ -35,6 +37,10 @@ Mọi quyền menu đều yêu cầu restaurantId hợp lệ, subscription ACTIV
 | `MENU_DELETE` | Xóa nhóm/món có xác nhận |
 
 UI ẩn các nút ghi khi thiếu quyền. Controller kiểm tra lại scope và permission trước request, sau response; quyền backend vẫn là quyết định cuối cùng.
+
+## Công thức theo món
+
+Từ menu thao tác của món hoặc chi tiết món, chọn **Công thức** để xem công thức đang áp dụng và lịch sử. Tính năng dùng `RECIPE_MANAGEMENT` cùng quyền `RECIPE_*` riêng; quyền xem món không tự cấp quyền công thức. Không tải công thức cho từng card món. Xem [bàn giao module công thức](recipe-management.md) để biết API, định lượng, phiên bản, phân quyền và kết quả kiểm tra mới nhất.
 
 ## API đã kết nối
 

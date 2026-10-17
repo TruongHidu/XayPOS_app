@@ -214,6 +214,13 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   Widget _buildContent(AppSession session, List<SidebarMenuItem> items) {
+    // Contextual routes can be authorized without a visible catalog sidebar item.
+    if (widget.child != null) {
+      return KeyedSubtree(
+        key: ValueKey(AccessPolicy.menuScope(session)),
+        child: widget.child!,
+      );
+    }
     if (items.isEmpty) {
       return const Center(
         child: Padding(
@@ -236,12 +243,6 @@ class _AppShellState extends ConsumerState<AppShell>
     final selected = items.where((i) => i.id == _selectedId).firstOrNull;
     if (selected == null) {
       return const Center(child: Text('Chọn chức năng từ menu.'));
-    }
-    if (widget.child != null) {
-      return KeyedSubtree(
-        key: ValueKey(AccessPolicy.orderScope(session)),
-        child: widget.child!,
-      );
     }
     if (selected.id == 'orders') return const OrderListScreen();
     if (selected.id == 'order-create') return const OrderServiceContextScreen();

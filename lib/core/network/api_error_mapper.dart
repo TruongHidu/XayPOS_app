@@ -200,7 +200,7 @@ abstract final class ApiErrorMapper {
       ),
       'SKU_EXISTS' => (
         FailureType.conflict,
-        'SKU đã được sử dụng hoặc đang được giữ bởi món đã xóa.',
+        'SKU đã được sử dụng hoặc đang được giữ bởi món bán, nguyên liệu hoặc bản ghi đã xóa.',
       ),
       'MENU_GROUP_INACTIVE' => (
         FailureType.conflict,
@@ -214,6 +214,10 @@ abstract final class ApiErrorMapper {
         FailureType.notFound,
         'Món không còn tồn tại hoặc bạn không còn quyền truy cập.',
       ),
+      'INGREDIENT_NOT_FOUND' => (
+        FailureType.notFound,
+        'Nguyên liệu không còn tồn tại hoặc bạn không còn quyền truy cập.',
+      ),
       'MENU_GROUP_NOT_FOUND' => (
         FailureType.notFound,
         'Nhóm không còn tồn tại hoặc bạn không còn quyền truy cập.',
@@ -222,9 +226,65 @@ abstract final class ApiErrorMapper {
         FailureType.conflict,
         'Trạng thái món không cho phép thao tác này. Vui lòng tải lại chi tiết.',
       ),
+      'INVALID_INGREDIENT_TRANSITION' => (
+        FailureType.conflict,
+        'Trạng thái nguyên liệu không cho phép thao tác này. Vui lòng tải lại chi tiết.',
+      ),
       'CONCURRENT_MENU_UPDATE' => (
         FailureType.conflict,
         'Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để kiểm tra.',
+      ),
+      'CONCURRENT_INGREDIENT_UPDATE' => (
+        FailureType.conflict,
+        'Dữ liệu đã được người khác cập nhật. Vui lòng tải lại để kiểm tra.',
+      ),
+      'RECIPE_NOT_FOUND' => (
+        FailureType.notFound,
+        'Phiên bản công thức không còn tồn tại hoặc bạn không có quyền truy cập.',
+      ),
+      'ACTIVE_RECIPE_NOT_FOUND' => (
+        FailureType.notFound,
+        'Món chưa có công thức đang áp dụng.',
+      ),
+      'ACTIVE_RECIPE_ALREADY_EXISTS' => (
+        FailureType.conflict,
+        'Món đã có công thức đang áp dụng. Bản đang sửa được giữ; hãy tải lại để đối chiếu.',
+      ),
+      'RECIPE_NOT_ACTIVE' => (
+        FailureType.conflict,
+        'Công thức này đã ngừng áp dụng. Hãy tải lại công thức hiện tại trước khi tiếp tục.',
+      ),
+      'DUPLICATE_RECIPE_INGREDIENT' => (
+        FailureType.conflict,
+        'Nguyên liệu đã có trong công thức. Mỗi nguyên liệu chỉ được xuất hiện một lần.',
+      ),
+      'INGREDIENT_INACTIVE' => (
+        FailureType.conflict,
+        'Nguyên liệu đã ngừng sử dụng. Hãy chọn nguyên liệu đang sử dụng để thay thế.',
+      ),
+      'SAME_RECIPE_VERSION_NOT_ALLOWED' => (
+        FailureType.conflict,
+        'Công thức chưa có thay đổi thực tế.',
+      ),
+      'CONCURRENT_RECIPE_UPDATE' => (
+        FailureType.conflict,
+        'Công thức đã được người khác cập nhật. Bản đang sửa được giữ; hãy tải lại để đối chiếu.',
+      ),
+      'MENU_ITEM_UNIT_IN_USE' => (
+        FailureType.conflict,
+        'Đơn vị món đang được công thức áp dụng sử dụng. Hãy kiểm tra công thức trước khi đổi đơn vị.',
+      ),
+      'MENU_ITEM_HAS_ACTIVE_RECIPE' => (
+        FailureType.conflict,
+        'Món đang có công thức áp dụng nên chưa thể xóa. Hãy kiểm tra công thức trước.',
+      ),
+      'INGREDIENT_USED_BY_ACTIVE_RECIPE' => (
+        FailureType.conflict,
+        'Nguyên liệu đang được công thức áp dụng sử dụng nên chưa thể ngừng sử dụng hoặc xóa.',
+      ),
+      'INGREDIENT_UNIT_IN_USE' => (
+        FailureType.conflict,
+        'Đơn vị nguyên liệu đang được công thức áp dụng sử dụng. Hãy kiểm tra công thức trước khi đổi đơn vị.',
       ),
       'INTERNAL_ERROR' => (
         FailureType.internal,
@@ -237,7 +297,15 @@ abstract final class ApiErrorMapper {
         type: menuError.$1,
         message: menuError.$2,
         code: apiError.code,
-        fieldErrors: apiError.fieldErrors,
+        fieldErrors: {
+          ...apiError.fieldErrors,
+          if (const {
+                'MENU_ITEM_UNIT_IN_USE',
+                'INGREDIENT_UNIT_IN_USE',
+              }.contains(apiError.code) &&
+              !apiError.fieldErrors.containsKey('baseUnit'))
+            'baseUnit': menuError.$2,
+        },
       );
     }
     final reportError = switch (apiError.code) {

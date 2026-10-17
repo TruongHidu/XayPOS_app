@@ -139,6 +139,53 @@ abstract final class AccessPolicy {
       }.contains(permission) &&
       session.permissions.contains(permission);
 
+  static Object? ingredientScope(AppSession? session) => menuScope(session);
+
+  static Object? recipeScope(AppSession? session) => menuScope(session);
+
+  static bool canRecipe(AppSession? session, String permission) =>
+      session != null &&
+      const {
+        UserRole.owner,
+        UserRole.manager,
+        UserRole.waiter,
+        UserRole.kitchen,
+      }.contains(session.authenticatedUser.role) &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('RECIPE_MANAGEMENT') &&
+      const {
+        'RECIPE_VIEW',
+        'RECIPE_CREATE',
+        'RECIPE_UPDATE',
+        'RECIPE_DELETE',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
+  static bool canIngredient(AppSession? session, String permission) =>
+      session != null &&
+      const {
+        UserRole.owner,
+        UserRole.manager,
+        UserRole.waiter,
+        UserRole.kitchen,
+      }.contains(session.authenticatedUser.role) &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      (session.features.contains('RECIPE_MANAGEMENT') ||
+          session.features.contains('INVENTORY_MANAGEMENT')) &&
+      const {
+        'INGREDIENT_VIEW',
+        'INGREDIENT_CREATE',
+        'INGREDIENT_UPDATE',
+        'INGREDIENT_DELETE',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
+  static bool canMenuWorkspace(AppSession? session) =>
+      canMenu(session, 'MENU_VIEW') ||
+      canIngredient(session, 'INGREDIENT_VIEW');
+
   /// Session boundary for staff data. Routine token rotation keeps open forms
   /// and filters; identity, tenant, authority or entitlement changes reset them.
   static Object? staffScope(AppSession? session) {
@@ -262,6 +309,9 @@ abstract final class AccessPolicy {
   static bool canOpenRoute(AppSession session, String location) {
     final uri = Uri.tryParse(location);
     final path = uri?.path ?? location;
+    if (RegExp(r'^/app/menu/items/[^/]+/recipes$').hasMatch(path)) {
+      return canRecipe(session, 'RECIPE_VIEW');
+    }
     if (path == '/app/kitchen' || path == '/app/dish-status') {
       return canKitchen(session, 'KITCHEN_VIEW');
     }
@@ -297,7 +347,7 @@ abstract final class AccessPolicy {
     if (path == '/app/daily-revenue') return canDailyReport(session);
     if (path == '/app/reports') return canDetailReport(session);
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
-    if (location == '/app/menu') return canMenu(session, 'MENU_VIEW');
+    if (path == '/app/menu') return canMenuWorkspace(session);
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
     // Unified app shell — allowed if subscribed and has features.
     if (location == '/app/home') {
@@ -336,11 +386,13 @@ abstract final class AccessPolicy {
   }
 
   /// Returns `true` when the user has at least one permission+feature
-  /// combination that would produce a visible sidebar item.
+  /// combination or a contextual recipe route they can open.
   static bool _hasAnyAccessibleFeature(AppSession session) {
     return canStaff(session, 'STAFF_VIEW') ||
         canTables(session, 'TABLE_VIEW') ||
         canMenu(session, 'MENU_VIEW') ||
+        canIngredient(session, 'INGREDIENT_VIEW') ||
+        canRecipe(session, 'RECIPE_VIEW') ||
         canDailyReport(session) ||
         canDetailReport(session) ||
         canAccessAny(session, const [

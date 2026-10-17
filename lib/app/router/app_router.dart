@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/ui/shell/app_shell.dart';
 import '../../features/kitchen/presentation/providers/kitchen_providers.dart';
 import '../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
+import '../../features/menu/presentation/screens/recipe_management_screen.dart';
 import '../../features/order/presentation/screens/order_append_screen.dart';
 import '../../features/order/presentation/screens/order_create_screen.dart';
 import '../../features/order/presentation/screens/order_detail_screen.dart';
@@ -128,6 +129,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.menu,
         builder: (context, state) => const AppShell(initialSection: 'menu'),
+      ),
+      GoRoute(
+        path: AppRoutes.recipe,
+        builder: (context, state) => AppShell(
+          initialSection: 'menu',
+          child: RecipeManagementScreen(
+            menuItemId: state.pathParameters['menuItemId']!,
+          ),
+        ),
       ),
       GoRoute(
         path: '/app/staff',
