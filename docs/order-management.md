@@ -1,5 +1,9 @@
 # ORDER trên app Flutter
 
+Ngày 18/10/2026 bổ sung nhãn QR chờ duyệt trên thẻ bàn và inbox duyệt/từ chối yêu cầu QR TABLE. Xem [bàn giao yêu cầu QR tại bàn](qr-order-management.md) để biết luồng, API, quyền và cách xử lý mất mạng/xung đột.
+
+Ngày 17/10/2026 bổ sung thanh toán thủ công và hoàn tất đơn từ màn chi tiết. Xem [bàn giao thanh toán và hoàn tất đơn](order-settlement.md) để biết API, quyền, retry và kết quả kiểm tra. Khi hoàn tất DINE_IN, backend đóng phiên bàn trong cùng transaction.
+
 ## Phạm vi và kiến trúc
 
 App tích hợp 10 endpoint trong pos-saas-be/docs/order-api.md và OpenAPI ORDER, gồm active-order theo phiên.

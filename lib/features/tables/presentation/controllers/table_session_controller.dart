@@ -49,12 +49,14 @@ class TableSessionController extends TableListController<TableSession> {
     if (_eventRevision == events.revision) return;
     _eventRevision = events.revision;
     final change = events.change;
-    if (tableId.isNotEmpty &&
+    if (change?.kind != TableChangeKind.refresh &&
+        tableId.isNotEmpty &&
         change?.id != tableId &&
         change?.relatedTableIds.contains(tableId) != true) {
       return;
     }
-    if (change?.kind == TableChangeKind.session) {
+    if (change?.kind == TableChangeKind.session ||
+        change?.kind == TableChangeKind.refresh) {
       if (_watchCurrent) unawaited(loadCurrent());
       if (_watchHistory) unawaited(load());
     }

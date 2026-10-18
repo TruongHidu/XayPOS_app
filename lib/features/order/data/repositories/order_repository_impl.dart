@@ -2,7 +2,9 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_error_mapper.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
+import '../../domain/entities/order_item_action.dart';
 import '../../domain/entities/order_inputs.dart';
+import '../../domain/entities/order_payment.dart';
 import '../../domain/entities/order_submission.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../data_sources/order_remote_data_source.dart';
@@ -11,16 +13,20 @@ import '../dto/order_requests.dart';
 class OrderRepositoryImpl implements OrderRepository {
   const OrderRepositoryImpl(this.remote);
   final OrderRemoteDataSource remote;
-  Future<Result<T>> _result<T>(Future<T> Function() operation) async {
+  Future<Result<T>> _result<T>(
+    Future<T> Function() operation, {
+    bool payment = false,
+  }) async {
     try {
       return Success(await operation());
     } on FormatException {
-      return const Error(
+      return Error(
         Failure(
           type: FailureType.internal,
-          code: 'INVALID_ORDER_RESPONSE',
-          message:
-              'Dữ liệu đơn hàng trả về không hợp lệ. Vui lòng tải lại để xác minh.',
+          code: payment ? 'INVALID_PAYMENT_RESPONSE' : 'INVALID_ORDER_RESPONSE',
+          message: payment
+              ? 'Kết quả thanh toán chưa xác minh được. Vui lòng kiểm tra lại trước khi thanh toán tiếp.'
+              : 'Dữ liệu đơn hàng trả về không hợp lệ. Vui lòng tải lại để xác minh.',
         ),
       );
     } on Object catch (e) {
@@ -95,4 +101,26 @@ class OrderRepositoryImpl implements OrderRepository {
           'reason': reason.trim(),
         }),
       );
+  @override
+  Future<Result<OrderPayment>> recordPayment(
+    String id,
+    RecordOrderPaymentInput input,
+    String idempotencyKey,
+  ) => _result(
+    () => remote.recordPayment(id, input, idempotencyKey),
+    payment: true,
+  );
+  @override
+  Future<Result<OrderDetail>> complete(String id, int expectedVersion) =>
+      _result(() => remote.complete(id, expectedVersion));
+  @override
+  Future<Result<OrderDetail>> transitionItem(
+    String id,
+    String lineId,
+    int version,
+    OrderItemAction action,
+  ) => _result(() => remote.transitionItem(id, lineId, version, action));
+  @override
+  Future<Result<OrderDetail>> markAllServed(String id, int version) =>
+      _result(() => remote.markAllServed(id, version));
 }

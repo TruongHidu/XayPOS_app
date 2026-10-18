@@ -1,7 +1,15 @@
 import '../../domain/entities/order_inputs.dart';
+import '../../domain/entities/order_payment.dart';
 import '../../domain/entities/order_submission.dart';
 
 abstract final class OrderRequests {
+  static Map<String, dynamic> payment(RecordOrderPaymentInput input) => {
+    'expectedOrderVersion': input.expectedOrderVersion,
+    'paymentMethod': input.paymentMethod.code,
+    'amount': input.amount.toNumber(),
+    if (input.normalizedReferenceNo != null)
+      'referenceNo': input.normalizedReferenceNo,
+  };
   static Map<String, dynamic> line(CreateOrderLine input) => {
     'itemId': input.itemId,
     'quantity': input.quantity.toNumber(),

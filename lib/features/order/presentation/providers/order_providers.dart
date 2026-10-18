@@ -11,7 +11,9 @@ import '../../../tables/domain/use_cases/restaurant_table_use_cases.dart';
 import '../../../tables/domain/use_cases/table_area_use_cases.dart';
 import '../../../tables/domain/use_cases/table_session_use_cases.dart';
 import '../../../tables/presentation/controllers/table_transfer_controller.dart';
+import '../../../tables/presentation/controllers/table_events.dart';
 import '../../domain/entities/order_inputs.dart';
+import '../../domain/entities/order_entities.dart';
 import '../../domain/repositories/order_repository.dart';
 import '../../domain/use_cases/order_use_cases.dart';
 import '../../domain/use_cases/order_workspace_use_cases.dart';
@@ -22,6 +24,7 @@ import '../controllers/order_events.dart';
 import '../controllers/order_list_controller.dart';
 import '../controllers/order_detail_controller.dart';
 import '../controllers/order_append_controller.dart';
+import '../controllers/order_settlement_controller.dart';
 import '../controllers/order_draft_controller.dart';
 import '../controllers/order_menu_picker_controller.dart';
 import '../controllers/order_service_context_controller.dart';
@@ -115,6 +118,7 @@ final orderDetailProvider = ChangeNotifierProvider.autoDispose
         confirmOrder: ConfirmOrder(repo),
         cancelLine: CancelOrderItem(repo),
         cancelOrder: CancelOrder(repo),
+        transitionOrderItem: TransitionOrderItem(repo),
         externalBlocked: () => tableEvents.sessionTransferBlocked(
           controller.order?.summary.tableSessionId,
         ),
@@ -131,7 +135,12 @@ final orderDetailProvider = ChangeNotifierProvider.autoDispose
       controller.addListener(syncTableBlock);
       ref.onDispose(() {
         controller.removeListener(syncTableBlock);
-        tableEvents.markExternalSessionBlocked(controller, null, false);
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          null,
+          false,
+          notify: false,
+        );
       });
       Future.microtask(controller.load);
       return controller;
@@ -172,7 +181,12 @@ final orderDraftProvider = ChangeNotifierProvider.autoDispose
       ref.onDispose(() {
         controller.removeListener(retainIntent);
         controller.removeListener(syncTableBlock);
-        tableEvents.markExternalSessionBlocked(controller, null, false);
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          null,
+          false,
+          notify: false,
+        );
       });
       return controller;
     });
@@ -235,8 +249,93 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
       ref.onDispose(() {
         controller.removeListener(retainIntent);
         controller.removeListener(syncTableBlock);
-        tableEvents.markExternalSessionBlocked(controller, null, false);
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          null,
+          false,
+          notify: false,
+        );
         exit.unregisterAppend(controller);
+      });
+      return controller;
+    });
+
+final orderSettlementProvider = ChangeNotifierProvider.autoDispose
+    .family<OrderSettlementController, String>((ref, id) {
+      ref.watch(orderScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final repository = ref.watch(orderRepositoryProvider);
+      final events = ref.read(orderEventsProvider);
+      final tableEvents = ref.read(tableEventsProvider);
+      final controller = OrderSettlementController(
+        id: id,
+        session: () => auth.state.session,
+        events: events,
+        onAccessDenied: ref.read(orderRecoveryProvider).handle,
+        root: () => ref.read(orderDetailProvider(id)).order,
+        beforeSend: () => ref.read(orderDetailProvider(id)).beginSubmission(),
+        onApplied: (order) =>
+            ref.read(orderDetailProvider(id)).applySubmission(order),
+        appliedSource: () => ref.read(orderDetailProvider(id)),
+        getOrder: GetOrderDetail(repository),
+        recordPayment: RecordOrderPayment(repository),
+        completeOrder: CompleteOrder(repository),
+        markAllServed: MarkAllOrderItemsServed(repository),
+        keys: ref.watch(orderKeyGeneratorProvider),
+        externalBlocked: () {
+          final detail = ref.read(orderDetailProvider(id));
+          return detail.needsLocalVerification ||
+              tableEvents.sessionTransferBlocked(
+                detail.order?.summary.tableSessionId,
+              );
+        },
+        onCompleted: (order) {
+          if (order.summary.serviceType == ServiceType.dineIn &&
+              order.summary.tableSessionId != null) {
+            tableEvents.emit(
+              TableChange(
+                TableChangeKind.refresh,
+                '',
+                sessionId: order.summary.tableSessionId,
+              ),
+            );
+          }
+        },
+      );
+      ref.listen(orderDetailProvider(id), (_, _) => controller.changed());
+      ref.listen(tableEventsProvider, (_, _) => controller.changed());
+      void Function()? release;
+      void retainIntent() {
+        if (controller.ownsMutationBlock) {
+          release ??= ref.keepAlive().close;
+        } else {
+          release?.call();
+          release = null;
+        }
+      }
+
+      void syncTableBlock() {
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          ref.read(orderDetailProvider(id)).order?.summary.tableSessionId,
+          controller.ownsMutationBlock,
+        );
+      }
+
+      controller.addListener(retainIntent);
+      controller.addListener(syncTableBlock);
+      final exit = ref.read(orderExitGuardProvider);
+      exit.registerSettlement(controller);
+      ref.onDispose(() {
+        controller.removeListener(retainIntent);
+        controller.removeListener(syncTableBlock);
+        tableEvents.markExternalSessionBlocked(
+          controller,
+          null,
+          false,
+          notify: false,
+        );
+        exit.unregisterSettlement(controller);
       });
       return controller;
     });

@@ -82,7 +82,11 @@ class TableTransferController extends TableController {
     if (_eventRevision == events.revision) return;
     _eventRevision = events.revision;
     final change = events.change;
-    if (frozen || change?.kind != TableChangeKind.session) return;
+    if (frozen ||
+        (change?.kind != TableChangeKind.session &&
+            change?.kind != TableChangeKind.refresh)) {
+      return;
+    }
     if (change?.sessionId == sessionId) {
       unawaited(loadSession());
       unawaited(loadTargets());

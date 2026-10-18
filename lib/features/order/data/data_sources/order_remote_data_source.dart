@@ -1,8 +1,11 @@
 import 'package:dio/dio.dart';
 import '../../domain/entities/order_entities.dart';
+import '../../domain/entities/order_item_action.dart';
 import '../../domain/entities/order_inputs.dart';
+import '../../domain/entities/order_payment.dart';
 import '../../domain/entities/order_submission.dart';
 import '../dto/order_dto.dart';
+import '../dto/order_payment_dto.dart';
 import '../dto/order_requests.dart';
 
 class OrderRemoteDataSource {
@@ -103,6 +106,96 @@ class OrderRemoteDataSource {
       OrderDto.detail(response.data),
       replayed: header == null ? null : header == 'true',
     );
+  }
+
+  Future<OrderPayment> recordPayment(
+    String id,
+    RecordOrderPaymentInput input,
+    String idempotencyKey,
+  ) async {
+    final response = await dio.post<Object?>(
+      '$path/${Uri.encodeComponent(id)}/payments',
+      data: OrderRequests.payment(input),
+      options: Options(
+        contentType: Headers.jsonContentType,
+        headers: {
+          'Accept': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+      ),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw const FormatException('Invalid payment response status');
+    }
+    final payment = OrderPaymentDto.parse(response.data);
+    if (!payment.successful ||
+        payment.orderId != id ||
+        payment.amount != input.amount ||
+        payment.paymentMethod != input.paymentMethod ||
+        payment.referenceNo != input.normalizedReferenceNo ||
+        payment.confirmationSource != PaymentConfirmationSource.staffManual) {
+      throw const FormatException('Payment response does not match request');
+    }
+    return payment;
+  }
+
+  Future<OrderDetail> complete(String id, int expectedVersion) async {
+    final response = await dio.post<Object?>(
+      '$path/${Uri.encodeComponent(id)}/complete',
+      data: {'expectedVersion': expectedVersion},
+      options: Options(
+        contentType: Headers.jsonContentType,
+        headers: {'Accept': 'application/json'},
+      ),
+    );
+    if (response.statusCode != 200) {
+      throw const FormatException('Invalid completion response status');
+    }
+    final order = OrderDto.detail(response.data);
+    if (order.id != id ||
+        order.summary.status != OrderStatus.completed ||
+        order.completedAt == null) {
+      throw const FormatException('Invalid completed order response');
+    }
+    return order;
+  }
+
+  Future<OrderDetail> transitionItem(
+    String id,
+    String lineId,
+    int version,
+    OrderItemAction action,
+  ) async {
+    final order = await mutation(
+      'POST',
+      '${Uri.encodeComponent(id)}/items/${Uri.encodeComponent(lineId)}/${action.endpoint}',
+      {'expectedOrderVersion': version},
+    );
+    final line = order.items.where((row) => row.id == lineId).firstOrNull;
+    if (order.id != id ||
+        order.version < version ||
+        line?.status != action.target) {
+      throw const FormatException('Invalid item transition response');
+    }
+    return order;
+  }
+
+  Future<OrderDetail> markAllServed(String id, int version) async {
+    final order = await mutation(
+      'POST',
+      '${Uri.encodeComponent(id)}/mark-served',
+      {'expectedOrderVersion': version},
+    );
+    final live = order.items.where(
+      (row) => row.status != OrderItemStatus.cancelled,
+    );
+    if (order.id != id ||
+        order.version < version ||
+        live.isEmpty ||
+        live.any((row) => row.status != OrderItemStatus.served)) {
+      throw const FormatException('Invalid served order response');
+    }
+    return order;
   }
 
   Future<OrderDetail> mutation(

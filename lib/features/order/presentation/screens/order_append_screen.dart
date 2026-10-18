@@ -150,100 +150,105 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
             return Column(
               children: [
                 // ── In-page Header ──────────────────────────────────────
-                Container(
-                  color: Colors.white,
-                  padding: compact
-                      ? const EdgeInsets.symmetric(horizontal: 12, vertical: 4)
-                      : const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_left, size: 22),
-                          tooltip: 'Quay lại',
-                          onPressed: () => _back(cart),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 38,
-                            minHeight: 38,
+                SafeArea(
+                  child: Container(
+                    color: Colors.white,
+                    padding: compact
+                        ? const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          )
+                        : const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade200),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF111827),
-                              ),
+                          child: IconButton(
+                            icon: const Icon(Icons.chevron_left, size: 22),
+                            tooltip: 'Quay lại',
+                            onPressed: () => _back(cart),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 38,
+                              minHeight: 38,
                             ),
-                            if (!compact)
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 2,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF0EB),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      'Gọi thêm món',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: OrderPalette.orange,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  if (order != null)
-                                    Text(
-                                      '#${order.summary.orderCode}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.search, size: 18),
-                          tooltip: 'Tìm kiếm',
-                          onPressed: () => _tabController.animateTo(0),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 38,
-                            minHeight: 38,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF111827),
+                                ),
+                              ),
+                              if (!compact)
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 2,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF0EB),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Gọi thêm món',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: OrderPalette.orange,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    // if (order != null)
+                                    //   Text(
+                                    //     '#${order.summary.orderCode}',
+                                    //     style: TextStyle(
+                                    //       fontSize: 12,
+                                    //       color: Colors.grey.shade600,
+                                    //     ),
+                                    //   ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.search, size: 18),
+                            tooltip: 'Tìm kiếm',
+                            onPressed: () => _tabController.animateTo(0),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 38,
+                              minHeight: 38,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 

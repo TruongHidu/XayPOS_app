@@ -26,7 +26,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: AppRoutes.splash,
     refreshListenable: authController,
-    observers: [ref.read(kitchenRouteObserverProvider)],
+    observers: [
+      ref.read(kitchenRouteObserverProvider),
+      ref.read(qrRequestsRouteObserverProvider),
+    ],
     redirect: (context, state) => guard.redirect(state),
     routes: [
       GoRoute(

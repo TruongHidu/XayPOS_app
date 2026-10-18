@@ -47,8 +47,8 @@ class OrderMenuItemCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onEdit ??
-            (canInteract ? (isSelected ? onIncrement : onAdd) : null),
+        onTap:
+            onEdit ?? (canInteract ? (isSelected ? onIncrement : onAdd) : null),
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
@@ -156,7 +156,7 @@ class OrderMenuItemCard extends StatelessWidget {
                                 vertical: 1.5,
                               ),
                               decoration: BoxDecoration(
-                                color: OrderPalette.pink,
+                                color: OrderPalette.white,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
@@ -204,7 +204,8 @@ class OrderMenuItemCard extends StatelessWidget {
                               IconButton(
                                 tooltip: 'Bớt ${item.name}',
                                 onPressed: isSelected && canInteract
-                                    ? (hasMultipleConfigurations && onEdit != null
+                                    ? (hasMultipleConfigurations &&
+                                              onEdit != null
                                           ? onEdit
                                           : onDecrement)
                                     : null,
@@ -213,7 +214,8 @@ class OrderMenuItemCard extends StatelessWidget {
                                   minHeight: 32,
                                 ),
                                 style: IconButton.styleFrom(
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                   backgroundColor: isSelected && canInteract
                                       ? const Color(0xFFFFF2EB)
@@ -221,8 +223,9 @@ class OrderMenuItemCard extends StatelessWidget {
                                   foregroundColor: isSelected && canInteract
                                       ? OrderPalette.orange
                                       : Colors.grey.shade300,
-                                  disabledBackgroundColor:
-                                      const Color(0xFFF9FAFB),
+                                  disabledBackgroundColor: const Color(
+                                    0xFFF9FAFB,
+                                  ),
                                   disabledForegroundColor: Colors.grey.shade300,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -243,8 +246,9 @@ class OrderMenuItemCard extends StatelessWidget {
                               Container(
                                 constraints: const BoxConstraints(minWidth: 26),
                                 alignment: Alignment.center,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
                                 child: Text(
                                   cartQuantity.milliUnits == 0
                                       ? '0'
@@ -263,7 +267,8 @@ class OrderMenuItemCard extends StatelessWidget {
                               IconButton(
                                 tooltip: 'Thêm ${item.name}',
                                 onPressed: canInteract
-                                    ? (hasMultipleConfigurations && onEdit != null
+                                    ? (hasMultipleConfigurations &&
+                                              onEdit != null
                                           ? onEdit
                                           : (isSelected ? onIncrement : onAdd))
                                     : null,
@@ -272,7 +277,8 @@ class OrderMenuItemCard extends StatelessWidget {
                                   minHeight: 32,
                                 ),
                                 style: IconButton.styleFrom(
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   visualDensity: VisualDensity.compact,
                                   backgroundColor: canInteract
                                       ? OrderPalette.orange
@@ -309,10 +315,6 @@ class OrderMenuItemCard extends StatelessWidget {
   Widget _placeholder() => Container(
     color: const Color(0xFFFFF7F2),
     alignment: Alignment.center,
-    child: const Icon(
-      Icons.restaurant,
-      color: OrderPalette.orange,
-      size: 28,
-    ),
+    child: const Icon(Icons.restaurant, color: OrderPalette.orange, size: 28),
   );
 }

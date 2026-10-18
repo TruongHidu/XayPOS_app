@@ -169,12 +169,6 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Màn hình bếp',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
                                 display.lastUpdated == null
                                     ? 'Đang tải hàng đợi'
                                     : (display.loading

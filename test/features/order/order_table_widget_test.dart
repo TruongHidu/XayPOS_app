@@ -246,14 +246,20 @@ void main() {
     'COMPLETED',
     'CANCELLED',
   ]) {
-    testWidgets('$state detail has no fresh append FAB', (tester) async {
+    final servingState = const {'PREPARING', 'READY', 'SERVED'}.contains(state);
+    testWidgets('$state detail respects serving-state append policy', (
+      tester,
+    ) async {
       final orders = FakeOrders()..current = serving(status: state);
       await pumpOrder(
         tester,
         orders: orders,
         child: const OrderDetailScreen(id: 'o1'),
       );
-      expect(find.byType(FloatingActionButton), findsNothing);
+      expect(
+        find.byType(FloatingActionButton),
+        servingState ? findsOneWidget : findsNothing,
+      );
       expect(
         find.text('Tạo đơn mới'),
         state == 'COMPLETED' || state == 'CANCELLED'

@@ -33,6 +33,42 @@ abstract final class ApiErrorMapper {
         FailureType.conflict,
         'Đơn đã được cập nhật. Bản đang sửa được giữ; hãy tải lại để đối chiếu.',
       ),
+      'PAYMENT_NOT_FOUND' => (
+        FailureType.notFound,
+        'Không tìm thấy giao dịch thanh toán hoặc bạn không có quyền truy cập.',
+      ),
+      'ORDER_ALREADY_PAID' => (
+        FailureType.conflict,
+        'Đơn đã được thanh toán. Hãy tải lại đơn để đối chiếu.',
+      ),
+      'ORDER_NOT_PAYABLE' => (
+        FailureType.conflict,
+        'Đơn hiện không đủ điều kiện thanh toán. Hãy kiểm tra trạng thái và số tiền.',
+      ),
+      'PAYMENT_AMOUNT_MISMATCH' => (
+        FailureType.conflict,
+        'Số tiền thanh toán phải bằng tổng tiền mới nhất của đơn. Hãy tải lại và đối chiếu.',
+      ),
+      'CONCURRENT_PAYMENT_UPDATE' => (
+        FailureType.conflict,
+        'Thanh toán đã được cập nhật. Hãy kiểm tra lại trước khi tiếp tục.',
+      ),
+      'PAYMENT_IDEMPOTENCY_KEY_REUSED' => (
+        FailureType.conflict,
+        'Yêu cầu thanh toán có key xung đột. Giữ yêu cầu hiện tại và đối chiếu giao dịch trước khi tiếp tục.',
+      ),
+      'ORDER_NOT_PAID' => (
+        FailureType.conflict,
+        'Đơn chưa được thanh toán đủ tiền nên chưa thể hoàn tất.',
+      ),
+      'ORDER_NOT_READY_FOR_COMPLETION' => (
+        FailureType.conflict,
+        'Đơn chưa thể hoàn tất. Tất cả món chưa hủy phải được phục vụ.',
+      ),
+      'TABLE_SESSION_NOT_READY_TO_CLOSE' => (
+        FailureType.conflict,
+        'Phiên bàn còn đơn hoặc nghĩa vụ thanh toán chưa xử lý nên chưa thể đóng.',
+      ),
       'IDEMPOTENCY_KEY_REUSED' => (
         FailureType.conflict,
         'Yêu cầu có key xung đột. Không tự tạo key mới; hãy đối chiếu trước khi gửi lại.',

@@ -27,7 +27,8 @@ class TableDetailController extends TableController {
   void _event() {
     if (_eventRevision == events.revision) return;
     _eventRevision = events.revision;
-    if (events.change?.kind == TableChangeKind.area ||
+    if (events.change?.kind == TableChangeKind.refresh ||
+        events.change?.kind == TableChangeKind.area ||
         events.change?.id == id ||
         events.change?.relatedTableIds.contains(id) == true) {
       unawaited(load());

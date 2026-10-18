@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/order_draft_controller.dart';
 import '../controllers/order_append_controller.dart';
+import '../controllers/order_settlement_controller.dart';
 import '../../../tables/presentation/controllers/table_transfer_controller.dart';
 import '../../../tables/presentation/widgets/table_dialogs.dart';
 import 'order_widgets.dart';
@@ -9,6 +10,11 @@ class OrderExitGuard {
   OrderDraftController? draft;
   final Set<OrderAppendController> _appends = {};
   final Set<TableTransferController> _transfers = {};
+  final Set<OrderSettlementController> _settlements = {};
+  void registerSettlement(OrderSettlementController controller) =>
+      _settlements.add(controller);
+  void unregisterSettlement(OrderSettlementController controller) =>
+      _settlements.remove(controller);
   void registerAppend(OrderAppendController controller) =>
       _appends.add(controller);
   void unregisterAppend(OrderAppendController controller) =>
@@ -18,6 +24,35 @@ class OrderExitGuard {
   void unregisterTransfer(TableTransferController controller) =>
       _transfers.remove(controller);
   Future<bool> allow(BuildContext context) async {
+    for (final settlement in _settlements) {
+      if (settlement.current &&
+          (settlement.busy ||
+              settlement.uncertain ||
+              settlement.paymentRecordedAwaitingRefresh)) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => OrderScopeGuard(
+            scope: settlement.scope,
+            permission: 'ORDER_VIEW',
+            child: AlertDialog(
+              title: const Text('Cần kiểm tra thanh toán hoặc hoàn tất đơn'),
+              content: Text(
+                settlement.paymentRecordedAwaitingRefresh
+                    ? 'Đã ghi nhận tiền. Hãy tải lại đơn để xác minh trạng thái trước khi rời màn hình.'
+                    : 'Thao tác đang xử lý hoặc chưa xác định kết quả. Hãy mở lại phần thanh toán để kiểm tra đúng yêu cầu ban đầu.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Quay lại kiểm tra'),
+                ),
+              ],
+            ),
+          ),
+        );
+        return false;
+      }
+    }
     for (final transfer in _transfers) {
       if (transfer.isCurrent && (transfer.busy || transfer.uncertain)) {
         await showDialog<void>(

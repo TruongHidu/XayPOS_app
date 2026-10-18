@@ -3,7 +3,9 @@ import 'package:pos_saas_app/core/auth/app_session.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/order/data/dto/order_dto.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_entities.dart';
+import 'package:pos_saas_app/features/order/domain/entities/order_item_action.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_inputs.dart';
+import 'package:pos_saas_app/features/order/domain/entities/order_payment.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_submission.dart';
 import 'package:pos_saas_app/features/order/domain/repositories/order_repository.dart';
 import 'package:pos_saas_app/features/order/domain/use_cases/order_use_cases.dart';
@@ -98,10 +100,32 @@ class TestKeys implements OrderKeyGenerator {
 }
 
 class FakeOrders implements OrderRepository {
+  final itemTransitions = <(String, String, int, OrderItemAction)>[];
+  final servedBatches = <(String, int)>[];
+  Future<Result<OrderDetail>> Function()? onTransition, onMarkAllServed;
+  @override
+  Future<Result<OrderDetail>> transitionItem(
+    String id,
+    String lineId,
+    int version,
+    OrderItemAction action,
+  ) async {
+    itemTransitions.add((id, lineId, version, action));
+    return onTransition != null ? onTransition!() : Success(current);
+  }
+
+  @override
+  Future<Result<OrderDetail>> markAllServed(String id, int version) async {
+    servedBatches.add((id, version));
+    return onMarkAllServed != null ? onMarkAllServed!() : Success(current);
+  }
+
   OrderDetail current = OrderDto.detail(orderJson());
   final creates = <(CreateOrderInput, String)>[];
   final writes = <(String, int)>[];
   final submissions = <(String, AddOrderItemsInput, String)>[];
+  final paymentCalls = <(String, RecordOrderPaymentInput, String)>[];
+  final completes = <(String, int)>[];
   final _appliedKeys = <String>{};
   final queries = <OrderQuery>[];
   int detailCalls = 0;
@@ -110,6 +134,8 @@ class FakeOrders implements OrderRepository {
   Future<Result<OrderDetail>> Function()? onCreate, onWrite, onDetail;
   Future<Result<OrderSubmission>> Function()? onSubmitItems;
   Future<Result<OrderPage>> Function(OrderQuery)? onList;
+  Future<Result<OrderPayment>> Function()? onRecordPayment;
+  Future<Result<OrderDetail>> Function()? onComplete;
   @override
   Future<Result<OrderPage>> list(OrderQuery q) async {
     queries.add(q);
@@ -278,6 +304,41 @@ class FakeOrders implements OrderRepository {
   @override
   Future<Result<OrderDetail>> cancel(String id, int version, String reason) =>
       _write('cancel', version);
+
+  @override
+  Future<Result<OrderPayment>> recordPayment(
+    String id,
+    RecordOrderPaymentInput input,
+    String idempotencyKey,
+  ) async {
+    paymentCalls.add((id, input, idempotencyKey));
+    if (onRecordPayment != null) return onRecordPayment!();
+    return Success(
+      OrderPayment(
+        id: 'payment1',
+        orderId: id,
+        paymentCode: 'PAY-TEST',
+        amount: input.amount,
+        currencyCode: current.summary.currencyCode,
+        paymentMethod: input.paymentMethod,
+        confirmationSource: PaymentConfirmationSource.staffManual,
+        provider: null,
+        status: PaymentRecordStatus.success,
+        referenceNo: input.normalizedReferenceNo,
+        requestedAt: DateTime.utc(2026, 10, 17),
+        paidAt: DateTime.utc(2026, 10, 17),
+        createdBy: 'u1',
+      ),
+    );
+  }
+
+  @override
+  Future<Result<OrderDetail>> complete(String id, int expectedVersion) async {
+    completes.add((id, expectedVersion));
+    return onComplete != null
+        ? onComplete!()
+        : _write('complete', expectedVersion);
+  }
 }
 
 OrderDraftController draft(
@@ -307,6 +368,7 @@ OrderDetailController detail(
   confirmOrder: ConfirmOrder(repo),
   cancelLine: CancelOrderItem(repo),
   cancelOrder: CancelOrder(repo),
+  transitionOrderItem: TransitionOrderItem(repo),
 )..seed(repo.current);
 OrderServiceContextController hub(
   TableServer server,

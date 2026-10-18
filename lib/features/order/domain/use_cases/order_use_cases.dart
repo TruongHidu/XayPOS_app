@@ -1,6 +1,8 @@
 import '../../../../core/result/result.dart';
 import '../entities/order_entities.dart';
+import '../entities/order_item_action.dart';
 import '../entities/order_inputs.dart';
+import '../entities/order_payment.dart';
 import '../entities/order_submission.dart';
 import '../repositories/order_repository.dart';
 
@@ -90,4 +92,39 @@ class CancelOrder {
   final OrderRepository repository;
   Future<Result<OrderDetail>> call(String id, int version, String reason) =>
       repository.cancel(id, version, reason);
+}
+
+class RecordOrderPayment {
+  const RecordOrderPayment(this.repository);
+  final OrderRepository repository;
+  Future<Result<OrderPayment>> call(
+    String id,
+    RecordOrderPaymentInput input,
+    String idempotencyKey,
+  ) => repository.recordPayment(id, input, idempotencyKey);
+}
+
+class CompleteOrder {
+  const CompleteOrder(this.repository);
+  final OrderRepository repository;
+  Future<Result<OrderDetail>> call(String id, int expectedVersion) =>
+      repository.complete(id, expectedVersion);
+}
+
+class TransitionOrderItem {
+  const TransitionOrderItem(this.repository);
+  final OrderRepository repository;
+  Future<Result<OrderDetail>> call(
+    String id,
+    String lineId,
+    int version,
+    OrderItemAction action,
+  ) => repository.transitionItem(id, lineId, version, action);
+}
+
+class MarkAllOrderItemsServed {
+  const MarkAllOrderItemsServed(this.repository);
+  final OrderRepository repository;
+  Future<Result<OrderDetail>> call(String id, int version) =>
+      repository.markAllServed(id, version);
 }

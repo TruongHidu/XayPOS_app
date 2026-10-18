@@ -8,8 +8,8 @@ import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/order_quantity.dart';
 
 abstract final class OrderPalette {
-  static const pink = Color(0xFFF5D4D6);
-  static const orange = Color(0xFFFF9F1C);
+  static const white = Color(0x000063E2);
+  static const orange = Color(0xFF0063E2);
   static const grey = Color(0xFFD0D0D0);
 }
 

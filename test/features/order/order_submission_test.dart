@@ -287,7 +287,13 @@ void main() {
       final o = OrderDto.detail(orderJson(status: status.code));
       expect(
         OrderAccessPolicy.canAppend(o, true),
-        [OrderStatus.open, OrderStatus.confirmed].contains(status),
+        [
+          OrderStatus.open,
+          OrderStatus.confirmed,
+          OrderStatus.preparing,
+          OrderStatus.ready,
+          OrderStatus.served,
+        ].contains(status),
       );
     }
     for (final payment in OrderPaymentStatus.values.where(

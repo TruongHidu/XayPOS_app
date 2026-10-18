@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/table_entities.dart';
 
-enum TableChangeKind { area, table, session, qr }
+enum TableChangeKind { area, table, session, qr, refresh }
 
 class TableChange {
   const TableChange(
@@ -14,7 +14,8 @@ class TableChange {
   });
   final TableChangeKind kind;
 
-  /// Area ID for area changes, table ID for all other changes.
+  /// Area ID for area changes, table ID otherwise. Empty for a broad refresh
+  /// after an order closes a session whose current table was not returned.
   final String id;
   final bool deleted;
   final TableAreaSummary? area;
@@ -46,8 +47,9 @@ class TableEvents extends ChangeNotifier {
   void markExternalSessionBlocked(
     Object source,
     String? sessionId,
-    bool value,
-  ) {
+    bool value, {
+    bool notify = true,
+  }) {
     final previous = _externalSessionBlocks[source];
     if (value && sessionId != null) {
       if (previous == sessionId) return;
@@ -55,7 +57,7 @@ class TableEvents extends ChangeNotifier {
     } else {
       if (_externalSessionBlocks.remove(source) == null) return;
     }
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
   bool lockTransfer(String sessionId) {

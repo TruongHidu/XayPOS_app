@@ -10,7 +10,9 @@ import '../../domain/policies/order_table_policy.dart';
 import '../../../tables/domain/entities/table_entities.dart';
 import '../../../tables/presentation/widgets/table_transfer_dialog.dart';
 import '../widgets/order_append_dialog.dart';
+import '../widgets/order_line_actions.dart';
 import '../widgets/order_mutation_forms.dart';
+import '../widgets/order_payment_dialog.dart';
 import '../widgets/order_widgets.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
@@ -218,6 +220,7 @@ class OrderDetailScreen extends ConsumerWidget {
     }
     final s = order.summary;
     final append = ref.watch(orderAppendProvider(id));
+    final settlement = ref.watch(orderSettlementProvider(id));
     final tableSessionId = s.serviceType == ServiceType.dineIn
         ? s.tableSessionId
         : null;
@@ -242,6 +245,8 @@ class OrderDetailScreen extends ConsumerWidget {
         !c.loading &&
         !c.busy &&
         !append.busy &&
+        !settlement.busy &&
+        !settlement.ownsMutationBlock &&
         !transferBlocked &&
         !c.requiresVerification &&
         !append.uncertain &&
@@ -258,16 +263,21 @@ class OrderDetailScreen extends ConsumerWidget {
         (s.serviceType == ServiceType.takeaway ? 'Mang đi' : s.orderCode);
 
     return PopScope(
-      canPop: !append.busy && !append.uncertain && !transferBlocked,
+      canPop:
+          !append.busy &&
+          !append.uncertain &&
+          !transferBlocked &&
+          !settlement.busy &&
+          !settlement.uncertain &&
+          !settlement.paymentRecordedAwaitingRefresh,
       child: Material(
         color: Colors.grey.shade50,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Column(
-              children: [
-                // ── In-page Header matching Photo 2 ─────────────────
-                Container(
+        child: LayoutBuilder(
+          builder: (context, screenConstraints) => Column(
+            children: [
+              // ── In-page Header matching Photo 2 ─────────────────
+              SafeArea(
+                child: Container(
                   color: Colors.white,
                   padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
                   child: Row(
@@ -296,13 +306,16 @@ class OrderDetailScreen extends ConsumerWidget {
                               runSpacing: 4,
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
-                                Text(
-                                  s.orderCode,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade700,
+                                if (displayTitle != s.orderCode)
+                                  Text(
+                                    s.orderCode,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade700,
+                                    ),
                                   ),
-                                ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -417,6 +430,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                     !c.requiresVerification &&
                                     !append.busy &&
                                     !append.uncertain &&
+                                    !settlement.ownsMutationBlock &&
+                                    !settlement.busy &&
                                     transfer?.busy != true,
                                 child: Text(
                                   transfer?.uncertain == true
@@ -429,168 +444,171 @@ class OrderDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+              ),
 
-                if (c.loading || c.busy) const LinearProgressIndicator(),
+              if (c.loading || c.busy || settlement.busy)
+                const LinearProgressIndicator(),
 
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
-                    children: [
-                      OrderFailurePanel(
-                        failure: c.failure,
-                        retry: c.can('ORDER_VIEW') && !c.busy ? c.load : null,
-                      ),
-                      if (append.uncertain) ...[
-                        const Text(
-                          'Lần gọi thêm chưa rõ kết quả. Không gửi một yêu cầu mới.',
-                        ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+                      children: [
                         OrderFailurePanel(
-                          failure: append.failure,
-                          retry: append.canRetry ? append.retry : null,
-                          label: 'Kiểm tra lại lần gọi thêm',
+                          failure: c.failure,
+                          retry: c.can('ORDER_VIEW') && !c.busy ? c.load : null,
                         ),
-                      ],
-                      if (transfer?.uncertain == true) ...[
-                        const Text(
-                          'Lần chuyển bàn chưa rõ kết quả. Không tạo yêu cầu mới.',
-                        ),
-                        OrderFailurePanel(
-                          failure: transfer!.failure,
-                          retry: () => showTableTransferDialog(
-                            context,
-                            ref,
-                            sessionId: tableSessionId!,
+                        if (append.uncertain) ...[
+                          const Text(
+                            'Lần gọi thêm chưa rõ kết quả. Không gửi một yêu cầu mới.',
                           ),
-                          label: 'Mở lại yêu cầu chuyển bàn',
-                        ),
-                      ],
-
-                      // ── Order metadata card ───────────────────────────
-                      Card(
-                        color: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    size: 16,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Thông tin đơn',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: Colors.grey.shade800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 4,
-                                children: [
-                                  Text(
-                                    'Loại: ${s.serviceType.label}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  Text(
-                                    'Số khách: ${s.guestCount}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  Text(
-                                    'Tạo: ${formatLocalDate(s.createdAt)}',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  if (s.customerName != null)
-                                    Text(
-                                      'Khách: ${s.customerName}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  if (order.customerPhone != null)
-                                    Text(
-                                      'SĐT: ${order.customerPhone}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  if (s.tableSessionId != null)
-                                    Text(
-                                      'Phiên: ${s.tableSessionId}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                              if (order.note != null &&
-                                  order.note!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Ghi chú: ${order.note}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.brown.shade800,
-                                  ),
-                                ),
-                              ],
-                              if (order.cancelReason != null) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Lý do hủy: ${order.cancelReason}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.red,
-                                  ),
-                                ),
-                              ],
-                            ],
+                          OrderFailurePanel(
+                            failure: append.failure,
+                            retry: append.canRetry ? append.retry : null,
+                            label: 'Kiểm tra lại lần gọi thêm',
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // ── Section Title: Saved Order Lines ─────────────
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          'Danh sách món (${order.items.length})',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                        ],
+                        if (transfer?.uncertain == true) ...[
+                          const Text(
+                            'Lần chuyển bàn chưa rõ kết quả. Không tạo yêu cầu mới.',
                           ),
-                        ),
-                      ),
+                          OrderFailurePanel(
+                            failure: transfer!.failure,
+                            retry: () => showTableTransferDialog(
+                              context,
+                              ref,
+                              sessionId: tableSessionId!,
+                            ),
+                            label: 'Mở lại yêu cầu chuyển bàn',
+                          ),
+                        ],
 
-                      // ── Saved lines cards ────────────────────────────
-                      for (final line in order.items)
+                        // ── Order metadata card ───────────────────────────
                         Card(
                           color: Colors.white,
                           elevation: 0,
-                          margin: const EdgeInsets.only(bottom: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(color: Colors.grey.shade200),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
-                            child: Row(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _lineThumbnail(line.itemId),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      size: 16,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Thông tin đơn',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: Colors.grey.shade800,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text(
+                                      'Loại: ${s.serviceType.label}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    Text(
+                                      'Số khách: ${s.guestCount}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    Text(
+                                      'Tạo: ${formatLocalDate(s.createdAt)}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    if (s.customerName != null)
+                                      Text(
+                                        'Khách: ${s.customerName}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    if (order.customerPhone != null)
+                                      Text(
+                                        'SĐT: ${order.customerPhone}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    if (s.tableSessionId != null)
+                                      Text(
+                                        'Phiên: ${s.tableSessionId}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                  ],
+                                ),
+                                if (order.note != null &&
+                                    order.note!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Ghi chú: ${order.note}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.brown.shade800,
+                                    ),
+                                  ),
+                                ],
+                                if (order.cancelReason != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Lý do hủy: ${order.cancelReason}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        // ── Section Title: Saved Order Lines ─────────────
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          child: Text(
+                            'Danh sách món (${order.items.length})',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+
+                        // ── Saved lines cards ────────────────────────────
+                        for (final line in order.items)
+                          Card(
+                            color: Colors.white,
+                            elevation: 0,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: OrderLineActions(
+                              order: order,
+                              line: line,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: OrderLineLayout(
+                                  thumbnail: _lineThumbnail(line.itemId),
+                                  details: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
@@ -660,66 +678,133 @@ class OrderDetailScreen extends ConsumerWidget {
                                       ),
                                     ],
                                   ),
+                                  actions: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        orderMoney(
+                                          BigInt.from(
+                                            line.lineTotal.minorUnits,
+                                          ),
+                                          currency: s.currencyCode,
+                                        ),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          decoration:
+                                              line.status ==
+                                                  OrderItemStatus.cancelled
+                                              ? TextDecoration.lineThrough
+                                              : null,
+                                          color:
+                                              line.status ==
+                                                  OrderItemStatus.cancelled
+                                              ? Colors.grey
+                                              : OrderPalette.orange,
+                                        ),
+                                      ),
+                                      if (c.editable &&
+                                          line.status ==
+                                              OrderItemStatus.pending)
+                                        TextButton(
+                                          onPressed: c.busy
+                                              ? null
+                                              : () => _form(
+                                                  context,
+                                                  ref,
+                                                  order,
+                                                  OrderFormAction.line,
+                                                  line: line,
+                                                ),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            minimumSize: const Size(40, 28),
+                                          ),
+                                          child: const Text('Sửa'),
+                                        ),
+                                      if (c.lineCancellable(line))
+                                        TextButton(
+                                          onPressed: c.busy
+                                              ? null
+                                              : () => _form(
+                                                  context,
+                                                  ref,
+                                                  order,
+                                                  OrderFormAction.cancelLine,
+                                                  line: line,
+                                                ),
+                                          style: TextButton.styleFrom(
+                                            padding: EdgeInsets.zero,
+                                            minimumSize: const Size(40, 28),
+                                            foregroundColor:
+                                                Colors.red.shade700,
+                                          ),
+                                          child: const Text('Hủy món'),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 8),
+
+                        // ── Financial breakdown card ─────────────────────
+                        Card(
+                          color: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tiền hàng: ${orderMoney(BigInt.from(order.subtotalAmount.minorUnits), currency: s.currencyCode)}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Giảm giá: ${orderMoney(BigInt.from(order.discountAmount.minorUnits), currency: s.currencyCode)}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Thuế: ${orderMoney(BigInt.from(order.taxAmount.minorUnits), currency: s.currencyCode)}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Phí phục vụ: ${orderMoney(BigInt.from(order.serviceChargeAmount.minorUnits), currency: s.currencyCode)}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const Divider(height: 16),
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  spacing: 8,
+                                  runSpacing: 4,
                                   children: [
                                     Text(
-                                      orderMoney(
-                                        BigInt.from(line.lineTotal.minorUnits),
-                                        currency: s.currencyCode,
-                                      ),
+                                      'Tổng: ${orderMoney(BigInt.from(s.totalAmount.minorUnits), currency: s.currencyCode)}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: OrderPalette.orange,
+                                          ),
+                                    ),
+                                    Text(
+                                      'Đã trả: ${orderMoney(BigInt.from(s.paidAmount.minorUnits), currency: s.currencyCode)}',
                                       style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        decoration:
-                                            line.status ==
-                                                OrderItemStatus.cancelled
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                        color:
-                                            line.status ==
-                                                OrderItemStatus.cancelled
-                                            ? Colors.grey
-                                            : OrderPalette.orange,
+                                        fontSize: 13,
+                                        color: Colors.grey.shade700,
                                       ),
                                     ),
-                                    if (c.editable &&
-                                        line.status == OrderItemStatus.pending)
-                                      TextButton(
-                                        onPressed: c.busy
-                                            ? null
-                                            : () => _form(
-                                                context,
-                                                ref,
-                                                order,
-                                                OrderFormAction.line,
-                                                line: line,
-                                              ),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          minimumSize: const Size(40, 28),
-                                        ),
-                                        child: const Text('Sửa'),
-                                      ),
-                                    if (c.lineCancellable(line))
-                                      TextButton(
-                                        onPressed: c.busy
-                                            ? null
-                                            : () => _form(
-                                                context,
-                                                ref,
-                                                order,
-                                                OrderFormAction.cancelLine,
-                                                line: line,
-                                              ),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          minimumSize: const Size(40, 28),
-                                          foregroundColor: Colors.red.shade700,
-                                        ),
-                                        child: const Text('Hủy món'),
-                                      ),
                                   ],
                                 ),
                               ],
@@ -727,177 +812,136 @@ class OrderDetailScreen extends ConsumerWidget {
                           ),
                         ),
 
-                      const SizedBox(height: 8),
+                        const SizedBox(height: 12),
 
-                      // ── Financial breakdown card ─────────────────────
-                      Card(
-                        color: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade200),
+                        // ── Actions row (preserved for regression compatibility) ──
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (c.editable)
+                              OutlinedButton(
+                                onPressed: c.busy
+                                    ? null
+                                    : () => _form(
+                                        context,
+                                        ref,
+                                        order,
+                                        OrderFormAction.metadata,
+                                      ),
+                                child: const Text('Sửa thông tin'),
+                              ),
+                            if (append.uncertain)
+                              OutlinedButton(
+                                onPressed: c.busy
+                                    ? null
+                                    : () => showOrderDialog<void>(
+                                        context,
+                                        ref,
+                                        permission: 'ORDER_UPDATE',
+                                        child: OrderAppendDialog(order: order),
+                                      ),
+                                child: const Text('Mở giỏ gọi thêm'),
+                              ),
+                            if (c.confirmable)
+                              FilledButton(
+                                onPressed: c.busy
+                                    ? null
+                                    : () => _form(
+                                        context,
+                                        ref,
+                                        order,
+                                        OrderFormAction.confirm,
+                                      ),
+                                child: const Text('Xác nhận đơn'),
+                              ),
+                            if (c.cancellable)
+                              OutlinedButton(
+                                onPressed: c.busy
+                                    ? null
+                                    : () => _form(
+                                        context,
+                                        ref,
+                                        order,
+                                        OrderFormAction.cancel,
+                                      ),
+                                child: const Text('Hủy đơn'),
+                              ),
+                            if (!append.uncertain &&
+                                AccessPolicy.canCreateOrder(
+                                  session,
+                                  takeaway:
+                                      s.serviceType == ServiceType.takeaway,
+                                ) &&
+                                AccessPolicy.canMenu(session, 'MENU_VIEW') &&
+                                (s.serviceType == ServiceType.takeaway ||
+                                    !OrderTablePolicy.servingStatuses.contains(
+                                          s.status,
+                                        ) &&
+                                        AccessPolicy.canTables(
+                                          session,
+                                          'TABLE_VIEW',
+                                        )))
+                              TextButton(
+                                onPressed: () => context.push(
+                                  s.serviceType == ServiceType.takeaway
+                                      ? '/app/order-create?serviceType=TAKEAWAY'
+                                      : '/app/order-create?tableSessionId=${Uri.encodeQueryComponent(s.tableSessionId!)}',
+                                ),
+                                child: const Text('Tạo đơn mới'),
+                              ),
+                          ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tiền hàng: ${orderMoney(BigInt.from(order.subtotalAmount.minorUnits), currency: s.currencyCode)}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Giảm giá: ${orderMoney(BigInt.from(order.discountAmount.minorUnits), currency: s.currencyCode)}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Thuế: ${orderMoney(BigInt.from(order.taxAmount.minorUnits), currency: s.currencyCode)}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Phí phục vụ: ${orderMoney(BigInt.from(order.serviceChargeAmount.minorUnits), currency: s.currencyCode)}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              const Divider(height: 16),
-                              Wrap(
-                                alignment: WrapAlignment.spaceBetween,
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: [
-                                  Text(
-                                    'Tổng: ${orderMoney(BigInt.from(s.totalAmount.minorUnits), currency: s.currencyCode)}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: OrderPalette.orange,
-                                        ),
-                                  ),
-                                  Text(
-                                    'Đã trả: ${orderMoney(BigInt.from(s.paidAmount.minorUnits), currency: s.currencyCode)}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                    if (canAppend && AccessPolicy.canMenu(session, 'MENU_VIEW'))
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton(
+                          heroTag: 'order-append-$id',
+                          tooltip: 'Gọi thêm món',
+                          backgroundColor: OrderPalette.orange,
+                          foregroundColor: Colors.white,
+                          onPressed: () => _openAppend(
+                            context,
+                            ref,
+                            order,
+                            currentTableName,
                           ),
+                          child: const Icon(Icons.add),
                         ),
                       ),
-
-                      const SizedBox(height: 12),
-
-                      // ── Actions row (preserved for regression compatibility) ──
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (c.editable)
-                            OutlinedButton(
-                              onPressed: c.busy
-                                  ? null
-                                  : () => _form(
-                                      context,
-                                      ref,
-                                      order,
-                                      OrderFormAction.metadata,
-                                    ),
-                              child: const Text('Sửa thông tin'),
-                            ),
-                          if (append.uncertain)
-                            OutlinedButton(
-                              onPressed: c.busy
-                                  ? null
-                                  : () => showOrderDialog<void>(
-                                      context,
-                                      ref,
-                                      permission: 'ORDER_UPDATE',
-                                      child: OrderAppendDialog(order: order),
-                                    ),
-                              child: const Text('Mở giỏ gọi thêm'),
-                            ),
-                          if (c.confirmable)
-                            FilledButton(
-                              onPressed: c.busy
-                                  ? null
-                                  : () => _form(
-                                      context,
-                                      ref,
-                                      order,
-                                      OrderFormAction.confirm,
-                                    ),
-                              child: const Text('Xác nhận đơn'),
-                            ),
-                          if (c.cancellable)
-                            OutlinedButton(
-                              onPressed: c.busy
-                                  ? null
-                                  : () => _form(
-                                      context,
-                                      ref,
-                                      order,
-                                      OrderFormAction.cancel,
-                                    ),
-                              child: const Text('Hủy đơn'),
-                            ),
-                          if (!append.uncertain &&
-                              AccessPolicy.canCreateOrder(
-                                session,
-                                takeaway: s.serviceType == ServiceType.takeaway,
-                              ) &&
-                              AccessPolicy.canMenu(session, 'MENU_VIEW') &&
-                              (s.serviceType == ServiceType.takeaway ||
-                                  !OrderTablePolicy.servingStatuses.contains(
-                                        s.status,
-                                      ) &&
-                                      AccessPolicy.canTables(
-                                        session,
-                                        'TABLE_VIEW',
-                                      )))
-                            TextButton(
-                              onPressed: () => context.push(
-                                s.serviceType == ServiceType.takeaway
-                                    ? '/app/order-create?serviceType=TAKEAWAY'
-                                    : '/app/order-create?tableSessionId=${Uri.encodeQueryComponent(s.tableSessionId!)}',
-                              ),
-                              child: const Text('Tạo đơn mới'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Chưa hỗ trợ gửi bếp, thanh toán hoặc đóng bill.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
+              ),
 
-                // ── Sticky bottom bar matching Photo 2 ───────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                  child: SafeArea(
-                    top: false,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
+              // ── Sticky bottom bar matching Photo 2 ───────────────
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: screenConstraints.maxHeight * .45,
+                ),
+                child: SingleChildScrollView(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
                             'Tổng: ${orderMoney(BigInt.from(s.totalAmount.minorUnits), currency: s.currencyCode)}',
                             style: const TextStyle(
                               fontSize: 16,
@@ -905,44 +949,46 @@ class OrderDetailScreen extends ConsumerWidget {
                               color: OrderPalette.orange,
                             ),
                           ),
-                        ),
-                        OutlinedButton(
-                          onPressed: () => _showProvisionalBill(
-                            context,
-                            order,
-                            currentTableName,
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.end,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () => _showProvisionalBill(
+                                  context,
+                                  order,
+                                  currentTableName,
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: OrderPalette.orange,
+                                  side: const BorderSide(
+                                    color: OrderPalette.orange,
+                                  ),
+                                ),
+                                child: const Text('Tạm tính'),
+                              ),
+                              OrderSettlementActions(
+                                order: order,
+                                blocked:
+                                    c.loading ||
+                                    append.busy ||
+                                    append.uncertain ||
+                                    transferBlocked ||
+                                    c.requiresVerification,
+                              ),
+                            ],
                           ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: OrderPalette.orange,
-                            side: const BorderSide(color: OrderPalette.orange),
-                          ),
-                          child: const Text('Tạm tính'),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ],
-            ),
-
-            // ── FAB (+) "Gọi thêm món" ──────────────────────────────
-            if (canAppend && AccessPolicy.canMenu(session, 'MENU_VIEW'))
-              Positioned(
-                right: 16,
-                bottom: 76,
-                child: SafeArea(
-                  child: FloatingActionButton(
-                    heroTag: 'order-append-$id',
-                    tooltip: 'Gọi thêm món',
-                    backgroundColor: OrderPalette.orange,
-                    foregroundColor: Colors.white,
-                    onPressed: () =>
-                        _openAppend(context, ref, order, currentTableName),
-                    child: const Icon(Icons.add),
-                  ),
-                ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

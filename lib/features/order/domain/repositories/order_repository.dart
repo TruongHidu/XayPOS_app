@@ -1,6 +1,8 @@
 import '../../../../core/result/result.dart';
 import '../entities/order_entities.dart';
+import '../entities/order_item_action.dart';
 import '../entities/order_inputs.dart';
+import '../entities/order_payment.dart';
 import '../entities/order_submission.dart';
 
 abstract interface class OrderRepository {
@@ -32,4 +34,20 @@ abstract interface class OrderRepository {
     String reason,
   );
   Future<Result<OrderDetail>> cancel(String id, int version, String reason);
+  Future<Result<OrderPayment>> recordPayment(
+    String id,
+    RecordOrderPaymentInput input,
+    String idempotencyKey,
+  );
+  Future<Result<OrderDetail>> complete(String id, int expectedVersion);
+  Future<Result<OrderDetail>> transitionItem(
+    String id,
+    String lineId,
+    int expectedOrderVersion,
+    OrderItemAction action,
+  );
+  Future<Result<OrderDetail>> markAllServed(
+    String id,
+    int expectedOrderVersion,
+  );
 }

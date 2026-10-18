@@ -1,7 +1,9 @@
 import 'dart:async';
+import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
+import '../../domain/entities/order_item_action.dart';
 import '../../domain/entities/order_inputs.dart';
 import '../../domain/policies/order_access_policy.dart';
 import '../../domain/policies/order_validation.dart';
@@ -21,6 +23,7 @@ class OrderDetailController extends OrderController {
     required this.confirmOrder,
     required this.cancelLine,
     required this.cancelOrder,
+    this.transitionOrderItem,
     this.externalBlocked,
   }) {
     events.addListener(_event);
@@ -33,6 +36,7 @@ class OrderDetailController extends OrderController {
   final ConfirmOrder confirmOrder;
   final CancelOrderItem cancelLine;
   final CancelOrder cancelOrder;
+  final TransitionOrderItem? transitionOrderItem;
   final bool Function()? externalBlocked;
   OrderDetail? order;
   Failure? failure;
@@ -42,6 +46,7 @@ class OrderDetailController extends OrderController {
   bool get ownsMutationBlock => _mutating || _requiresVerification;
   bool get requiresVerification =>
       _requiresVerification || events.unresolved(id);
+  bool get needsLocalVerification => _requiresVerification;
   set requiresVerification(bool value) => _requiresVerification = value;
   int _generation = 0;
   int _eventRevision = 0;
@@ -71,6 +76,44 @@ class OrderDetailController extends OrderController {
         line,
         can(OrderAccessPolicy.lineCancelPermission(order!)),
       );
+
+  bool _canTransition(OrderItemAction action) =>
+      current &&
+      (action.kitchen
+          ? AccessPolicy.canKitchen(session(), action.permission)
+          : can(action.permission));
+
+  bool lineTransitionable(OrderLine line, OrderItemAction action) =>
+      transitionOrderItem != null &&
+      order != null &&
+      !loading &&
+      !busy &&
+      !blocked &&
+      !requiresVerification &&
+      OrderAccessPolicy.canTransitionLine(
+        order!,
+        line,
+        action,
+        _canTransition(action),
+      );
+
+  Future<Result<OrderDetail>> transitionLine(
+    OrderLine baseline,
+    OrderItemAction action,
+    int version,
+  ) {
+    final line = order?.items.where((row) => row.id == baseline.id).firstOrNull;
+    if (line == null || !lineTransitionable(line, action)) {
+      return Future.value(const Error(OrderController.denied));
+    }
+    return _mutate(
+      action.permission,
+      version,
+      () => transitionOrderItem!(id, baseline.id, version, action),
+      allowed: () => _canTransition(action),
+    );
+  }
+
   void seed(OrderDetail value) {
     if (!current ||
         value.id != id ||
@@ -144,8 +187,10 @@ class OrderDetailController extends OrderController {
     int version,
     Future<Result<OrderDetail>> Function() call, {
     Map<String, String> errors = const {},
+    bool Function()? allowed,
   }) async {
-    if (!can(permission) || order == null) {
+    bool authorized() => current && (allowed?.call() ?? can(permission));
+    if (!authorized() || order == null) {
       return const Error(OrderController.denied);
     }
     if (busy || blocked || requiresVerification) {
@@ -172,10 +217,22 @@ class OrderDetailController extends OrderController {
     loading = false;
     changed();
     try {
-      final response = await invoke(permission, call);
-      if (!current) return const Error(OrderController.denied);
+      final response = await call();
+      if (!authorized()) return const Error(OrderController.denied);
+      if (response case Error(failure: final error)) await report(error);
+      if (!authorized()) return const Error(OrderController.denied);
       switch (response) {
         case Success(value: final value):
+          if (value.id != id || value.version < order!.version) {
+            failure = const Failure(
+              type: FailureType.internal,
+              code: 'INVALID_ORDER_RESPONSE',
+              message:
+                  'Chưa xác minh được trạng thái đơn. Hãy tải lại để kiểm tra.',
+            );
+            requiresVerification = true;
+            return Error(failure!);
+          }
           order = value;
           failure = null;
           events.emit(value.id, value.summary.tableSessionId, source: this);
@@ -190,7 +247,7 @@ class OrderDetailController extends OrderController {
       return response;
     } finally {
       _mutating = false;
-      events.unlock(id);
+      if (current) events.unlock(id);
       changed();
     }
   }

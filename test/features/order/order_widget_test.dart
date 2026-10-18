@@ -22,13 +22,17 @@ import '../../helpers/auth_fakes.dart';
 import '../menu/menu_fakes.dart';
 import '../tables/table_fakes.dart';
 import 'order_fakes.dart';
+import '../qr_order/qr_fakes.dart';
+import 'package:pos_saas_app/features/qr_order/domain/repositories/qr_request_repository.dart';
 
 Future<ProviderContainer> pumpOrder(
   WidgetTester tester, {
   Widget child = const OrderServiceContextScreen(),
   Set<String> permissions = orderPermissions,
+  Set<String> features = orderFeatures,
   TableServer? tables,
   FakeOrders? orders,
+  QrRequestRepository? qrRequests,
   SessionEvents? events,
   double scale = 1,
   bool useRouter = false,
@@ -39,7 +43,7 @@ Future<ProviderContainer> pumpOrder(
     authRepository: FakeAuthRepository()
       ..loginResult = Success(makeAuthSession(permissions: permissions)),
     entitlementRepository: FakeEntitlementRepository()
-      ..result = Success(makeEntitlement(features: orderFeatures)),
+      ..result = Success(makeEntitlement(features: features)),
   );
   await auth.login(
     const LoginCredentials(email: 'a@b.com', password: 'password'),
@@ -48,6 +52,9 @@ Future<ProviderContainer> pumpOrder(
     overrides: [
       authControllerProvider.overrideWith((ref) => auth),
       orderRepositoryProvider.overrideWithValue(orders ?? FakeOrders()),
+      qrRequestRepositoryProvider.overrideWithValue(
+        qrRequests ?? FakeQrRequests(),
+      ),
       restaurantTableRepositoryProvider.overrideWithValue(server.tables),
       tableAreaRepositoryProvider.overrideWithValue(server.areas),
       tableSessionRepositoryProvider.overrideWithValue(server.sessions),
@@ -677,8 +684,10 @@ void main() {
     expect(find.text('Phở bò'), findsOneWidget);
     expect(find.text('Sửa thông tin'), findsNothing);
     expect(find.text('Hủy đơn'), findsNothing);
-    expect(find.text('Thanh toán'), findsNothing);
-    expect(find.textContaining('Chưa hỗ trợ'), findsOneWidget);
+    expect(find.text('Thanh toán hóa đơn'), findsNothing);
+    expect(find.text('Hoàn tất đơn'), findsNothing);
+    expect(orders.paymentCalls, isEmpty);
+    expect(orders.completes, isEmpty);
   });
   testWidgets(
     'mutation popup 320px keyboard, validation preserves form on refusal',

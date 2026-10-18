@@ -308,21 +308,23 @@ void main() {
     },
   );
 
-  testWidgets('25. No fake payment, kitchen or close actions implemented', (
-    tester,
-  ) async {
-    final orders = FakeOrders()..current = serving(id: 'o1');
-    await pumpOrder(
-      tester,
-      orders: orders,
-      child: const OrderDetailScreen(id: 'o1'),
-    );
+  testWidgets(
+    '25. Staff without payment rights cannot record money or complete',
+    (tester) async {
+      final orders = FakeOrders()..current = serving(id: 'o1');
+      await pumpOrder(
+        tester,
+        orders: orders,
+        child: const OrderDetailScreen(id: 'o1'),
+      );
 
-    expect(find.text('Thanh toán'), findsNothing);
-    expect(find.text('Thông báo'), findsNothing);
-    await tester.scrollUntilVisible(find.textContaining('Chưa hỗ trợ'), 200);
-    expect(find.textContaining('Chưa hỗ trợ'), findsOneWidget);
-  });
+      expect(find.text('Thanh toán hóa đơn'), findsNothing);
+      expect(find.text('Hoàn tất đơn'), findsNothing);
+      expect(find.text('Thông báo'), findsNothing);
+      expect(orders.paymentCalls, isEmpty);
+      expect(orders.completes, isEmpty);
+    },
+  );
 
   testWidgets(
     '26. 320px screen does not overflow on bill screen or append screen',

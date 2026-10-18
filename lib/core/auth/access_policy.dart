@@ -39,6 +39,8 @@ abstract final class AccessPolicy {
         'ORDER_CREATE',
         'ORDER_UPDATE',
         'ORDER_CANCEL',
+        'ORDER_COMPLETE',
+        'ORDER_MARK_SERVED',
       }.contains(permission) &&
       session.permissions.contains(permission);
 
@@ -60,6 +62,38 @@ abstract final class AccessPolicy {
       session!.features.contains(
         takeaway ? 'POS_QUICK_ORDER' : 'TABLE_MANAGEMENT',
       );
+
+  static bool canRecordOrderPayment(AppSession? session) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('PAYMENT_MANAGEMENT') &&
+      session.permissions.contains('PAYMENT_CREATE') &&
+      session.permissions.contains('PAYMENT_CONFIRM');
+
+  static bool canCompleteOrder(AppSession? session, {required bool takeaway}) =>
+      canOrders(session, 'ORDER_COMPLETE') &&
+      (takeaway || canTables(session, 'TABLE_CLOSE'));
+
+  // Reading/rejecting the QR backlog remains possible after QR grants expire.
+  static bool canApproveQrRequest(
+    AppSession? session, {
+    required bool takeaway,
+    required bool opensSession,
+  }) =>
+      canOrders(session, 'ORDER_CREATE') &&
+      canOrders(session, 'ORDER_UPDATE') &&
+      session!.features.contains('QR_MENU_VIEW') &&
+      session.features.contains(
+        takeaway ? 'QR_STATIC_ORDER' : 'QR_TABLE_ORDER',
+      ) &&
+      (takeaway || session.features.contains('TABLE_MANAGEMENT')) &&
+      (!opensSession || canTables(session, 'TABLE_OPEN'));
 
   static bool canTables(AppSession? session, String permission) =>
       session != null &&
