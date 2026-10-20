@@ -16,6 +16,10 @@ import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../../features/inventory/presentation/screens/stock_document_create_screen.dart';
+import '../../features/inventory/presentation/screens/stock_document_detail_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_transaction_screen.dart';
 import '../providers.dart';
 import 'app_routes.dart';
 import 'route_guard.dart';
@@ -157,6 +161,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.reports,
         builder: (context, state) =>
             const AppShell(initialSection: 'reports', child: ReportsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.inventory,
+        builder: (context, state) => AppShell(
+          initialSection: 'inventory',
+          child: InventoryManagementScreen(
+            initialTab: state.uri.queryParameters['tab'],
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stockCreate,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory',
+          child: StockDocumentCreateScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stockDocument,
+        builder: (context, state) => AppShell(
+          initialSection: 'inventory',
+          child: StockDocumentDetailScreen(
+            id: state.pathParameters['documentId']!,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryTransactions,
+        builder: (context, state) => AppShell(
+          initialSection: 'inventory',
+          child: InventoryTransactionScreen(
+            target: (
+              warehouseId: state.uri.queryParameters['warehouseId'],
+              ingredientId: state.uri.queryParameters['ingredientId'],
+              documentId: state.uri.queryParameters['documentId'],
+            ),
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.splash,

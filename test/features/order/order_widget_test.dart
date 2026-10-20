@@ -92,6 +92,94 @@ Future<ProviderContainer> pumpOrder(
 
 void main() {
   testWidgets(
+    'opening order list after an inactive scope changes does not notify during build',
+    (tester) async {
+      final events = SessionEvents();
+      final orders = FakeOrders();
+      final container = await pumpOrder(
+        tester,
+        events: events,
+        orders: orders,
+        child: const SizedBox(),
+      );
+      // These providers stay cached when their screens are no longer visible.
+      container.read(orderExitGuardProvider);
+      final oldEvents = container.read(orderEventsProvider);
+      events.refreshed(
+        makeAuthSession(permissions: {...orderPermissions, 'ORDER_COMPLETE'}),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: Scaffold(body: OrderListScreen())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('OD-TEST'), findsOneWidget);
+      expect(
+        identical(container.read(orderEventsProvider), oldEvents),
+        isFalse,
+      );
+      expect(orders.queries, hasLength(1));
+    },
+  );
+
+  testWidgets(
+    'order list survives token rotation and drops data when view permission is revoked',
+    (tester) async {
+      final events = SessionEvents();
+      final orders = FakeOrders();
+      final container = await pumpOrder(
+        tester,
+        events: events,
+        orders: orders,
+        child: const OrderListScreen(),
+      );
+      final controller = container.read(orderListProvider(null));
+      final orderEvents = container.read(orderEventsProvider);
+      controller.search('OD');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      final readCount = orders.queries.length;
+
+      events.refreshed(
+        makeAuthSession(
+          permissions: orderPermissions,
+          tokens: makeTokens(accessToken: 'rotated-token'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        identical(container.read(orderListProvider(null)), controller),
+        isTrue,
+      );
+      expect(
+        identical(container.read(orderEventsProvider), orderEvents),
+        isTrue,
+      );
+      expect(controller.query.q, 'OD');
+      expect(orders.queries, hasLength(readCount));
+      expect(find.text('OD-TEST'), findsOneWidget);
+
+      events.refreshed(
+        makeAuthSession(
+          permissions: {...orderPermissions}..remove('ORDER_VIEW'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(controller.current, isFalse);
+      expect(find.text('OD-TEST'), findsNothing);
+      expect(find.text('Bạn không có quyền xem đơn.'), findsOneWidget);
+      expect(orders.queries, hasLength(readCount));
+    },
+  );
+
+  testWidgets(
     'read-side provider invalidation keeps frozen append and applies replay to new detail controller',
     (tester) async {
       final orders = FakeOrders()

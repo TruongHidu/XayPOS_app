@@ -7,6 +7,8 @@ import 'package:pos_saas_app/features/menu/domain/entities/recipe_inputs.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/recipe_query.dart';
 import 'package:pos_saas_app/features/menu/domain/repositories/recipe_repository.dart';
 import 'menu_fakes.dart' show page;
+import 'recipe_cost_fakes.dart' show estimateForRecipe;
+import 'package:pos_saas_app/features/menu/domain/entities/recipe_cost_estimate.dart';
 
 const recipeUiPermissions = {
   'RECIPE_VIEW',
@@ -60,6 +62,13 @@ RecipeSummary uiSummary(Recipe recipe) => RecipeSummary(
 );
 
 class UiRecipes implements RecipeRepository {
+  @override
+  Future<Result<RecipeCostEstimate>> costEstimate(
+    String menuItemId,
+    String recipeId,
+  ) async => Success(
+    estimateForRecipe(recipeId == historical.id ? historical : current!),
+  );
   Recipe? current = uiRecipe();
   Recipe historical = uiRecipe(id: 'r2', business: 2, lock: 90, active: false);
   final historyQueries = <RecipeQuery>[];

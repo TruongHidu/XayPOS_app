@@ -13,6 +13,10 @@ abstract final class AppRoutes {
   static const orderCreateBill = '/app/order-create/bill';
   static const dailyRevenue = '/app/daily-revenue';
   static const reports = '/app/reports';
+  static const inventory = '/app/inventory';
+  static const stockCreate = '/app/inventory/stock-documents/new';
+  static const stockDocument = '/app/inventory/stock-documents/:documentId';
+  static const inventoryTransactions = '/app/inventory/transactions';
   static const subscriptionRequired = '/subscription-required';
   static const subscriptionUnavailable = '/subscription-unavailable';
   static const featureUnavailable = '/feature-unavailable';

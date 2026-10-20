@@ -219,7 +219,10 @@ void main() {
       );
       expect(find.text('Snapshot nguyên liệu 0'), findsOneWidget);
       expect(find.text('Phiên bản 7'), findsOneWidget);
-      expect(find.textContaining('10 tô'), findsOneWidget);
+      expect(
+        find.text('Định lượng bên dưới dùng để tạo ra 10 tô'),
+        findsOneWidget,
+      );
       expect(items.detailCalls, 0);
       expect(items.queries, isEmpty);
       expect(ingredients.detailCalls, 0);

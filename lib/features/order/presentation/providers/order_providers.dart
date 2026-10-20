@@ -35,12 +35,11 @@ final orderExitGuardProvider = Provider((ref) {
   return OrderExitGuard();
 });
 
-final orderScopeProvider = Provider<Object?>(
-  (ref) => ref.watch(
-    authControllerProvider.select(
-      (auth) => AccessPolicy.orderScope(auth.state.session),
-    ),
-  ),
+// Select directly so cached, inactive consumers are invalidated when auth
+// changes, rather than lazily when another screen reads the scope in build.
+// The scope excludes tokens, so a token refresh keeps drafts and pending writes.
+final orderScopeProvider = authControllerProvider.select(
+  (auth) => AccessPolicy.orderScope(auth.state.session),
 );
 final orderNoticeProvider = StateProvider<String?>((ref) => null);
 final orderEventsProvider = ChangeNotifierProvider((ref) {

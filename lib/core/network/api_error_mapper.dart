@@ -278,6 +278,22 @@ abstract final class ApiErrorMapper {
         FailureType.notFound,
         'Phiên bản công thức không còn tồn tại hoặc bạn không có quyền truy cập.',
       ),
+      'INGREDIENT_COST_UNIT_MISMATCH' => (
+        FailureType.conflict,
+        'Đơn vị trong công thức khác đơn vị hiện tại của nguyên liệu. Không thể ước tính.',
+      ),
+      'INGREDIENT_COST_UNAVAILABLE' => (
+        FailureType.conflict,
+        'Thiếu nguồn giá tham chiếu của nguyên liệu.',
+      ),
+      'INVALID_INGREDIENT_REFERENCE_COST' => (
+        FailureType.conflict,
+        'Giá tham chiếu của nguyên liệu không hợp lệ.',
+      ),
+      'INVALID_RECIPE_COST_DATA' => (
+        FailureType.conflict,
+        'Dữ liệu công thức chưa đủ hợp lệ để ước tính.',
+      ),
       'ACTIVE_RECIPE_NOT_FOUND' => (
         FailureType.notFound,
         'Món chưa có công thức đang áp dụng.',

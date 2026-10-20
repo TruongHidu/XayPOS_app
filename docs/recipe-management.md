@@ -4,7 +4,7 @@
 
 Trong Thực đơn → Món bán, mở menu thao tác **Công thức**, hoặc nút cùng tên ở chi tiết món. Route `/app/menu/items/{menuItemId}/recipes` mở màn riêng gồm Đang áp dụng và Lịch sử. Công thức chỉ thuộc món đã có ID, không phải ItemType, không nằm trong metadata hoặc payload tạo/sửa món.
 
-Recipe là aggregate riêng trong feature menu: món bán → phiên bản công thức → dòng định lượng → nguyên liệu. Không đưa recipe/ingredient vào danh sách chọn món POS/public/QR. Không bổ sung trừ kho, định lượng thực xuất, quy đổi đơn vị, tự tính giá vốn, backend draft/approval, combo/topping hoặc snapshot vào order.
+Recipe là aggregate riêng trong feature menu: món bán → phiên bản công thức → dòng định lượng → nguyên liệu. Không đưa recipe/ingredient vào danh sách chọn món POS/public/QR. Không bổ sung trừ kho, định lượng thực xuất, quy đổi đơn vị, backend draft/approval, combo/topping hoặc snapshot vào order. Từ 19/10/2026 hỗ trợ đọc ước tính giá vốn từ backend cho từng phiên bản; FE không thay kết quả server hoặc ghi vào costPrice. Xem [bàn giao ước tính giá vốn](recipe-cost-estimate.md).
 
 ## Kiến trúc
 

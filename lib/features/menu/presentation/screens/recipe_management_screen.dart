@@ -11,7 +11,6 @@ import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/recipe.dart';
-import '../../domain/use_cases/menu_item_use_cases.dart';
 import '../controllers/recipe_controller.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_details.dart';
@@ -68,8 +67,10 @@ class _RecipeWorkspace extends ConsumerStatefulWidget {
 class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
   bool _history = false;
   bool _opening = false;
-  MenuItem? _menu;
-  Failure? _menuFailure;
+  MenuItem? get _menu =>
+      ref.read(recipeMenuPriceProvider(widget.menuItemId)).menu;
+  Failure? get _menuFailure =>
+      ref.read(recipeMenuPriceProvider(widget.menuItemId)).failure;
   late final Object? _scope;
   RecipeController get _controller =>
       ref.read(recipeControllerProvider(widget.menuItemId));
@@ -80,8 +81,6 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
     _scope = AccessPolicy.recipeScope(
       ref.read(authControllerProvider).state.session,
     );
-    _menu = widget.initialMenuItem;
-    if (_menu == null) Future.microtask(_loadMenu);
   }
 
   bool get _current =>
@@ -92,26 +91,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
           );
 
   Future<void> _loadMenu() async {
-    if (!AccessPolicy.canMenu(
-      ref.read(authControllerProvider).state.session,
-      'MENU_VIEW',
-    )) {
-      return;
-    }
-    final result = await GetMenuItemDetail(
-      ref.read(menuItemRepositoryProvider),
-    )(widget.menuItemId);
-    if (!mounted || !_current) return;
-    setState(() {
-      switch (result) {
-        case Success(value: final item):
-          _menu = item;
-          _menuFailure = null;
-        case Error(failure: final failure):
-          _menu = null;
-          _menuFailure = failure;
-      }
-    });
+    await ref.read(recipeMenuPriceProvider(widget.menuItemId)).load();
   }
 
   void _message(String text) {
@@ -146,7 +126,6 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
     }
     if (baseline == null) {
       // An inactive history does not protect the current menu unit from edits.
-      _menu = null;
       await _loadMenu();
       if (!mounted || !_current) return;
     }
@@ -451,6 +430,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(recipeControllerProvider(widget.menuItemId));
+    ref.watch(recipeMenuPriceProvider(widget.menuItemId));
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

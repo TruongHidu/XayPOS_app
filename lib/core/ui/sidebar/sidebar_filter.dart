@@ -32,6 +32,9 @@ List<SidebarMenuItem> filterMenuItems(
     }
     if (item.id == 'menu') return AccessPolicy.canMenuWorkspace(session);
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
+    if (item.id == 'inventory') {
+      return AccessPolicy.canInventory(session, 'INVENTORY_VIEW');
+    }
     if (item.id == 'daily-revenue') {
       return AccessPolicy.canDailyReport(session);
     }

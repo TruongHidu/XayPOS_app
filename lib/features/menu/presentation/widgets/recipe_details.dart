@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../domain/entities/recipe.dart';
+import 'recipe_cost_panel.dart';
 
 /// Read-only recipe data always uses the server's historical snapshots.
 class RecipeDetails extends StatelessWidget {
@@ -24,6 +25,11 @@ class RecipeDetails extends StatelessWidget {
         style: Theme.of(context).textTheme.titleMedium,
       ),
       const SizedBox(height: 12),
+      RecipeCostPanel(
+        key: ValueKey(('cost', recipe.menuItemId, recipe.id)),
+        menuItemId: recipe.menuItemId,
+        recipeId: recipe.id,
+      ),
       for (final line in recipe.ingredients)
         Card(
           key: ValueKey('recipe-snapshot-${line.id}'),

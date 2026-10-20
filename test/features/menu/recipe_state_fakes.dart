@@ -5,6 +5,8 @@ import 'package:pos_saas_app/features/menu/domain/entities/recipe_amount.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/recipe_inputs.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/recipe_query.dart';
 import 'package:pos_saas_app/features/menu/domain/repositories/recipe_repository.dart';
+import 'package:pos_saas_app/features/menu/domain/entities/recipe_cost_estimate.dart';
+import 'recipe_cost_fakes.dart' show estimateForRecipe;
 
 const recipePermissions = {
   'RECIPE_VIEW',
@@ -87,6 +89,11 @@ MenuPage<RecipeSummary> recipeStatePage({
 );
 
 class FakeRecipeStateRepository implements RecipeRepository {
+  @override
+  Future<Result<RecipeCostEstimate>> costEstimate(
+    String menuItemId,
+    String recipeId,
+  ) async => Success(estimateForRecipe(current));
   Recipe current = stateRecipe();
   final activeIds = <String>[];
   final detailIds = <(String, String)>[];

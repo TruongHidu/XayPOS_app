@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
+import '../../../../core/network/exact_json.dart';
+import '../../domain/entities/recipe_cost_estimate.dart';
+import '../dto/recipe_cost_estimate_dto.dart';
 
 import '../../domain/entities/recipe.dart';
 import '../../domain/entities/recipe_inputs.dart';
@@ -17,6 +21,48 @@ class RecipeRemoteDataSource {
 
   Options get _readOptions =>
       Options(headers: {'Accept': Headers.jsonContentType});
+
+  Future<RecipeCostEstimate> costEstimate(
+    String menuItemId,
+    String recipeId,
+  ) async {
+    try {
+      // dynamic keeps Dio from forcing its JSON transformer over ResponseType.plain.
+      final response = await _dio.get<dynamic>(
+        '${_prefix(menuItemId)}/${Uri.encodeComponent(recipeId)}/cost-estimate',
+        options: Options(
+          responseType: ResponseType.plain,
+          headers: {
+            'Accept': Headers.jsonContentType,
+            'Cache-Control': 'no-store',
+          },
+        ),
+      );
+      if (response.statusCode != 200) {
+        throw const FormatException('Invalid estimate status');
+      }
+      final result = RecipeCostEstimateDto.fromJson(
+        response.data is String
+            ? decodeExactJson(response.data as String)
+            : response.data,
+      );
+      if (result.menuItemId != menuItemId || result.recipeId != recipeId) {
+        throw const FormatException('Wrong estimate identity');
+      }
+      return result;
+    } on DioException catch (error) {
+      final data = error.response?.data;
+      if (data is String) {
+        try {
+          error.response!.data = jsonDecode(data);
+        } on FormatException {
+          /* Keep unknown error. */
+        }
+      }
+      rethrow;
+    }
+  }
+
   Options get _writeOptions => Options(
     contentType: Headers.jsonContentType,
     headers: {'Accept': Headers.jsonContentType},

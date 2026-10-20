@@ -18,6 +18,7 @@ import '../../../features/menu/presentation/screens/menu_management_screen.dart'
 import '../../../features/tables/presentation/screens/tables_management_screen.dart';
 import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../../features/reports/presentation/screens/reports_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_management_screen.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -272,6 +273,9 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (selected.id == 'reports') {
       return ReportsScreen(key: ValueKey(AccessPolicy.reportScope(session)));
+    }
+    if (selected.id == 'inventory') {
+      return const InventoryManagementScreen();
     }
 
     // Placeholder content for each section.

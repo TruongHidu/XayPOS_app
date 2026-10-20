@@ -27,6 +27,8 @@ import 'package:pos_saas_app/features/menu/presentation/widgets/menu_item_form.d
 import '../../helpers/auth_fakes.dart';
 import 'ingredient_fakes.dart';
 import 'menu_fakes.dart';
+import 'package:pos_saas_app/features/menu/domain/entities/recipe_cost_estimate.dart';
+import 'recipe_cost_fakes.dart' show estimateForRecipe;
 
 Recipe _recipe() => Recipe(
   id: 'recipe-1',
@@ -52,6 +54,11 @@ Recipe _recipe() => Recipe(
 );
 
 class _RecipeRepository implements RecipeRepository {
+  @override
+  Future<Result<RecipeCostEstimate>> costEstimate(
+    String menuItemId,
+    String recipeId,
+  ) async => Success(estimateForRecipe(_recipe()));
   int activeCalls = 0, historyCalls = 0, detailCalls = 0, writes = 0;
   @override
   Future<Result<Recipe>> active(String menuItemId) async {

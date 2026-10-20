@@ -3,6 +3,7 @@ import '../../../../core/network/api_error_mapper.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/menu_page.dart';
 import '../../domain/entities/recipe.dart';
+import '../../domain/entities/recipe_cost_estimate.dart';
 import '../../domain/entities/recipe_inputs.dart';
 import '../../domain/entities/recipe_query.dart';
 import '../../domain/repositories/recipe_repository.dart';
@@ -12,6 +13,12 @@ import '../data_sources/recipe_remote_data_source.dart';
 class RecipeRepositoryImpl implements RecipeRepository {
   const RecipeRepositoryImpl(this._remote);
   final RecipeRemoteDataSource _remote;
+
+  @override
+  Future<Result<RecipeCostEstimate>> costEstimate(
+    String menuItemId,
+    String recipeId,
+  ) => _result(() => _remote.costEstimate(menuItemId, recipeId));
 
   Future<Result<T>> _result<T>(Future<T> Function() operation) async {
     try {

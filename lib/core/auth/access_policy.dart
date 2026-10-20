@@ -3,6 +3,29 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static Object? inventoryScope(AppSession? session) => menuScope(session);
+  static bool canInventory(AppSession? session, String permission) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('INVENTORY_MANAGEMENT') &&
+      const {
+        'INVENTORY_VIEW',
+        'WAREHOUSE_CREATE',
+        'WAREHOUSE_UPDATE',
+        'WAREHOUSE_DELETE',
+        'INVENTORY_THRESHOLD_UPDATE',
+        'INVENTORY_RECEIVE',
+        'INVENTORY_ISSUE',
+        'INVENTORY_ADJUST',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
   static Object? kitchenScope(AppSession? session) => menuScope(session);
 
   static bool canKitchen(AppSession? session, String permission) =>
@@ -379,6 +402,21 @@ abstract final class AccessPolicy {
       return canOrderWorkspace(session);
     }
     if (path == '/app/daily-revenue') return canDailyReport(session);
+    if (path == '/app/inventory') {
+      return canInventory(session, 'INVENTORY_VIEW');
+    }
+    if (path == '/app/inventory/stock-documents/new') {
+      return canInventory(session, 'INVENTORY_VIEW') &&
+          const {
+            'INVENTORY_RECEIVE',
+            'INVENTORY_ISSUE',
+            'INVENTORY_ADJUST',
+          }.any((p) => canInventory(session, p));
+    }
+    if (path == '/app/inventory/transactions' ||
+        RegExp(r'^/app/inventory/stock-documents/[^/]+$').hasMatch(path)) {
+      return canInventory(session, 'INVENTORY_VIEW');
+    }
     if (path == '/app/reports') return canDetailReport(session);
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (path == '/app/menu') return canMenuWorkspace(session);

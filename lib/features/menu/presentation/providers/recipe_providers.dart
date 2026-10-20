@@ -11,15 +11,45 @@ import '../../domain/repositories/recipe_repository.dart';
 import '../../domain/use_cases/ingredient_use_cases.dart';
 import '../../domain/use_cases/recipe_use_cases.dart';
 import '../controllers/recipe_controller.dart';
+import '../controllers/recipe_cost_controller.dart';
+import '../../domain/use_cases/menu_item_use_cases.dart';
 import '../controllers/recipe_ingredient_selector_controller.dart';
 
-final recipeScopeProvider = Provider<Object?>(
-  (ref) => ref.watch(
-    authControllerProvider.select(
-      (auth) => AccessPolicy.recipeScope(auth.state.session),
-    ),
-  ),
+final recipeScopeProvider = authControllerProvider.select(
+  (auth) => AccessPolicy.recipeScope(auth.state.session),
 );
+
+typedef RecipeCostTarget = ({String menuItemId, String recipeId});
+
+final recipeCostProvider = ChangeNotifierProvider.autoDispose
+    .family<RecipeCostController, RecipeCostTarget>((ref, target) {
+      ref.watch(recipeScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final controller = RecipeCostController(
+        menuItemId: target.menuItemId,
+        recipeId: target.recipeId,
+        session: () => auth.state.session,
+        get: GetRecipeCostEstimate(ref.watch(recipeRepositoryProvider)),
+        events: ref.read(menuCatalogEventsProvider),
+        onAccessDenied: ref.read(recipeAccessRecoveryProvider).handle,
+      );
+      Future.microtask(controller.load);
+      return controller;
+    });
+
+final recipeMenuPriceProvider = ChangeNotifierProvider.autoDispose
+    .family<RecipeMenuPriceController, String>((ref, menuItemId) {
+      ref.watch(recipeScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final controller = RecipeMenuPriceController(
+        menuItemId: menuItemId,
+        session: () => auth.state.session,
+        get: GetMenuItemDetail(ref.watch(menuItemRepositoryProvider)),
+        events: ref.read(menuCatalogEventsProvider),
+      );
+      Future.microtask(controller.load);
+      return controller;
+    });
 
 final recipeRemoteDataSourceProvider = Provider(
   (ref) => RecipeRemoteDataSource(ref.watch(apiClientsProvider).authenticated),
