@@ -1,5 +1,9 @@
 # Inventory — giai đoạn 1
 
+Ngày 22/10/2026 mở rộng [cảnh báo có lịch sử](inventory-phase-6.md) và
+[kiểm kê kho](inventory-phase-7.md). Tab “Tồn thấp hiện tại” tiếp tục dùng balance,
+độc lập với các đợt cảnh báo đã lưu.
+
 Cập nhật 21/10/2026: balance hiển thị tồn vật lý, đang giữ và khả dụng.
 Xem [tích hợp nguyên liệu theo món](order-ingredient-inspection.md) cho contract và refresh mới.
 

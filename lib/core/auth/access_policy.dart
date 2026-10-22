@@ -13,6 +13,21 @@ abstract final class AccessPolicy {
       session!.permissions.contains('INVENTORY_VIEW') &&
       session.features.contains('INVENTORY_MANAGEMENT');
   static Object? inventoryScope(AppSession? session) => menuScope(session);
+  static bool canViewInventoryAlerts(AppSession? session) =>
+      canInventory(session, 'INVENTORY_VIEW') &&
+      session!.features.contains('LOW_STOCK_ALERT');
+  static bool canAcknowledgeInventoryAlert(AppSession? session) =>
+      canViewInventoryAlerts(session) &&
+      canInventory(session, 'INVENTORY_ALERT_ACKNOWLEDGE');
+  static bool canViewStockAudits(AppSession? session) =>
+      canInventory(session, 'INVENTORY_VIEW') &&
+      session!.features.contains('STOCK_AUDIT');
+  static bool canManageStockAudits(AppSession? session) =>
+      canViewStockAudits(session) &&
+      canInventory(session, 'STOCK_AUDIT_MANAGE');
+  static bool canConfirmStockAudits(AppSession? session) =>
+      canViewStockAudits(session) &&
+      canInventory(session, 'STOCK_AUDIT_CONFIRM');
   static bool canInventory(AppSession? session, String permission) =>
       session != null &&
       session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
@@ -32,8 +47,24 @@ abstract final class AccessPolicy {
         'INVENTORY_RECEIVE',
         'INVENTORY_ISSUE',
         'INVENTORY_ADJUST',
+        'INVENTORY_ALERT_ACKNOWLEDGE',
+        'STOCK_AUDIT_MANAGE',
+        'STOCK_AUDIT_CONFIRM',
       }.contains(permission) &&
-      session.permissions.contains(permission);
+      session.permissions.contains(permission) &&
+      (!const {
+            'INVENTORY_ALERT_ACKNOWLEDGE',
+            'STOCK_AUDIT_MANAGE',
+            'STOCK_AUDIT_CONFIRM',
+          }.contains(permission) ||
+          session.permissions.contains('INVENTORY_VIEW')) &&
+      (permission != 'INVENTORY_ALERT_ACKNOWLEDGE' ||
+          session.features.contains('LOW_STOCK_ALERT')) &&
+      (!const {
+            'STOCK_AUDIT_MANAGE',
+            'STOCK_AUDIT_CONFIRM',
+          }.contains(permission) ||
+          session.features.contains('STOCK_AUDIT'));
 
   static Object? kitchenScope(AppSession? session) => menuScope(session);
 
@@ -412,7 +443,20 @@ abstract final class AccessPolicy {
     }
     if (path == '/app/daily-revenue') return canDailyReport(session);
     if (path == '/app/inventory') {
-      return canInventory(session, 'INVENTORY_VIEW');
+      return switch (uri?.queryParameters['tab']) {
+        'alerts' => canViewInventoryAlerts(session),
+        'audits' => canViewStockAudits(session),
+        _ => canInventory(session, 'INVENTORY_VIEW'),
+      };
+    }
+    if (path == '/app/inventory/audits/new') {
+      return canManageStockAudits(session);
+    }
+    if (RegExp(r'^/app/inventory/audits/[^/]+$').hasMatch(path)) {
+      return canViewStockAudits(session);
+    }
+    if (RegExp(r'^/app/inventory/alerts/[^/]+$').hasMatch(path)) {
+      return canViewInventoryAlerts(session);
     }
     if (path == '/app/inventory/stock-documents/new') {
       return canInventory(session, 'INVENTORY_VIEW') &&

@@ -24,6 +24,60 @@ abstract final class ApiErrorMapper {
         ? ApiErrorDto.fromJson(data)
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
+    const inventoryExtensionMessages = {
+      'LOW_STOCK_ALERT_NOT_FOUND':
+          'Không tìm thấy cảnh báo hoặc bạn không có quyền truy cập.',
+      'INVALID_LOW_STOCK_ALERT_TRANSITION':
+          'Đợt cảnh báo đã kết thúc hoặc không còn cho phép xác nhận đã xem.',
+      'CONCURRENT_LOW_STOCK_ALERT_UPDATE':
+          'Cảnh báo vừa thay đổi. Hãy tải lại chi tiết trước khi xác nhận.',
+      'STOCK_AUDIT_NOT_FOUND':
+          'Không tìm thấy phiên kiểm kê hoặc bạn không có quyền truy cập.',
+      'STOCK_AUDIT_ITEM_NOT_FOUND':
+          'Dòng kiểm kê không thuộc phiên này hoặc không còn truy cập được. Cả batch chưa được lưu.',
+      'INVALID_STOCK_AUDIT_TRANSITION':
+          'Trạng thái phiên kiểm kê không cho phép thao tác này. Hãy tải lại để đối chiếu.',
+      'CONCURRENT_STOCK_AUDIT_UPDATE':
+          'Phiên kiểm kê vừa được cập nhật. Bản nhập được giữ; hãy tải lại và đối chiếu trước khi lưu tiếp.',
+      'WAREHOUSE_STOCK_AUDIT_IN_PROGRESS':
+          'Kho đã có một phiên đang kiểm kê. Hãy mở danh sách phiên của kho để kiểm tra.',
+      'STOCK_AUDIT_EMPTY': 'Không có nguyên liệu phù hợp để bắt đầu kiểm kê.',
+      'STOCK_AUDIT_INCOMPLETE':
+          'Phiên còn nguyên liệu chưa đếm. Hãy mở bộ lọc Chưa đếm và lưu đủ số đếm.',
+      'STOCK_AUDIT_SNAPSHOT_STALE':
+          'Tồn vật lý đã biến động sau khi bắt đầu. Giữ số đếm để tham khảo; cần hủy phiên và kiểm kê lại.',
+      'STOCK_DOCUMENT_MANAGED_BY_AUDIT':
+          'Chứng từ được sinh từ kiểm kê và chỉ có thể xem. Không sửa hoặc xác nhận qua luồng chứng từ.',
+      'STOCK_AUDIT_ADJUSTMENT_OUT_OF_RANGE':
+          'Chênh lệch hoặc tổng giá trị điều chỉnh vượt giới hạn. Hãy kiểm tra dữ liệu kiểm kê.',
+      'INVALID_INVENTORY_COST_DATA':
+          'Giá tham chiếu kiểm kê không hợp lệ. Hãy đối chiếu dữ liệu trước khi chốt.',
+      'IDEMPOTENCY_KEY_REQUIRED':
+          'Thiếu mã xác định yêu cầu tạo. Hãy giữ ngữ cảnh và thử lại đúng yêu cầu.',
+      'RESERVED_IDEMPOTENCY_NAMESPACE':
+          'Mã yêu cầu thuộc vùng dành riêng của hệ thống, không dùng để tạo chứng từ thủ công.',
+    };
+    final inventoryExtensionMessage = inventoryExtensionMessages[apiError.code];
+    if (inventoryExtensionMessage != null) {
+      return Failure(
+        type:
+            const {
+              'LOW_STOCK_ALERT_NOT_FOUND',
+              'STOCK_AUDIT_NOT_FOUND',
+              'STOCK_AUDIT_ITEM_NOT_FOUND',
+            }.contains(apiError.code)
+            ? FailureType.notFound
+            : const {
+                'IDEMPOTENCY_KEY_REQUIRED',
+                'RESERVED_IDEMPOTENCY_NAMESPACE',
+              }.contains(apiError.code)
+            ? FailureType.validation
+            : FailureType.conflict,
+        code: apiError.code,
+        message: inventoryExtensionMessage,
+        fieldErrors: apiError.fieldErrors,
+      );
+    }
     final orderError = switch (apiError.code) {
       'ORDER_NOT_FOUND' || 'ORDER_ITEM_NOT_FOUND' => (
         FailureType.notFound,
@@ -309,7 +363,7 @@ abstract final class ApiErrorMapper {
       ),
       'INSUFFICIENT_AVAILABLE_STOCK' => (
         FailureType.conflict,
-        'Không đủ tồn khả dụng để gửi/chấp nhận món. Toàn bộ yêu cầu chưa được ghi nhận; hãy kiểm tra và thử lại.',
+        'Tồn khả dụng không đáp ứng thao tác hoặc số đếm thấp hơn lượng đang giữ. Yêu cầu chưa được ghi nhận; hãy đối chiếu trước khi thử lại.',
       ),
       'INVENTORY_ALLOCATION_NOT_FOUND' => (
         FailureType.conflict,

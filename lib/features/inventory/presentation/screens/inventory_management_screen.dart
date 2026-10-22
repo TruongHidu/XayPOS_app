@@ -10,6 +10,8 @@ import '../widgets/warehouse_list.dart';
 import '../widgets/inventory_balance_list.dart';
 import '../widgets/stock_document_list.dart';
 import '../widgets/inventory_transaction_list.dart';
+import '../widgets/inventory_alert_list.dart';
+import '../widgets/stock_audit_list.dart';
 
 class InventoryManagementScreen extends ConsumerWidget {
   const InventoryManagementScreen({super.key, this.initialTab});
@@ -30,6 +32,21 @@ class InventoryManagementScreen extends ConsumerWidget {
         ),
       );
     }
+    if (initialTab == 'alerts' &&
+            !AccessPolicy.canViewInventoryAlerts(
+              ref.watch(authControllerProvider).state.session,
+            ) ||
+        initialTab == 'audits' &&
+            !AccessPolicy.canViewStockAudits(
+              ref.watch(authControllerProvider).state.session,
+            )) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text('Bạn chưa có quyền hoặc tính năng cho mục kho này.'),
+        ),
+      );
+    }
     return _InventoryWorkspace(
       key: ValueKey((scope, initialTab)),
       initialTab: initialTab,
@@ -37,7 +54,15 @@ class InventoryManagementScreen extends ConsumerWidget {
   }
 }
 
-enum _InventoryTab { balances, warehouses, lowStock, documents, transactions }
+enum _InventoryTab {
+  balances,
+  warehouses,
+  lowStock,
+  documents,
+  transactions,
+  alerts,
+  audits,
+}
 
 class _InventoryWorkspace extends ConsumerStatefulWidget {
   const _InventoryWorkspace({super.key, this.initialTab});
@@ -55,12 +80,22 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
     _tab = switch (widget.initialTab) {
       'documents' => _InventoryTab.documents,
       'transactions' => _InventoryTab.transactions,
+      'alerts' => _InventoryTab.alerts,
+      'audits' => _InventoryTab.audits,
       _ => _InventoryTab.balances,
     };
   }
 
   bool _allWarehouses = true;
   Future<void> _refresh() async {
+    if (_tab == _InventoryTab.alerts) {
+      await ref.read(inventoryAlertListProvider).load();
+      return;
+    }
+    if (_tab == _InventoryTab.audits) {
+      await ref.read(stockAuditListProvider).load();
+      return;
+    }
     if (_tab == _InventoryTab.documents) {
       await ref.read(stockDocumentListProvider).load();
       return;
@@ -95,9 +130,14 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final selector = ref.watch(warehouseSelectorProvider),
-        session = ref.watch(authControllerProvider).state.session;
-    final warehouse = selector.selected;
+    final warehouseTab = const {
+      _InventoryTab.balances,
+      _InventoryTab.warehouses,
+      _InventoryTab.lowStock,
+    }.contains(_tab);
+    final selector = warehouseTab ? ref.watch(warehouseSelectorProvider) : null;
+    final session = ref.watch(authControllerProvider).state.session;
+    final warehouse = selector?.selected;
     final lowAllowed = session?.features.contains('LOW_STOCK_ALERT') == true;
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -127,7 +167,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                           ),
                           const SizedBox(height: 4),
                           const Text(
-                            'Xem số dư tồn và quản lý ngưỡng cảnh báo.',
+                            'Theo dõi tồn, cảnh báo và kiểm kê nguyên liệu.',
                           ),
                         ],
                       ),
@@ -181,7 +221,11 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                         _InventoryTab.documents: 'Chứng từ',
                         _InventoryTab.transactions: 'Biến động',
                         if (lowAllowed)
-                          _InventoryTab.lowStock: 'Cảnh báo tồn thấp',
+                          _InventoryTab.lowStock: 'Tồn thấp hiện tại',
+                        if (AccessPolicy.canViewInventoryAlerts(session))
+                          _InventoryTab.alerts: 'Cảnh báo',
+                        if (AccessPolicy.canViewStockAudits(session))
+                          _InventoryTab.audits: 'Kiểm kê',
                       }.entries)
                         ChoiceChip(
                           label: Text(entry.value),
@@ -218,17 +262,17 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                           ),
                       ],
                     ),
-                    if (selector.loading && warehouse == null)
+                    if (selector?.loading == true && warehouse == null)
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: LinearProgressIndicator(),
                       ),
                     InventoryFailurePanel(
-                      failure: selector.failure ?? selector.selectionFailure,
-                      retry: selector.loading
+                      failure: selector?.failure ?? selector?.selectionFailure,
+                      retry: selector?.loading == true
                           ? null
                           : () => Future.wait([
-                              selector.load(),
+                              selector!.load(),
                               selector.refreshSelection(),
                             ]),
                     ),
@@ -240,7 +284,11 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             sliver: SliverToBoxAdapter(
-              child: _tab == _InventoryTab.documents
+              child: _tab == _InventoryTab.alerts
+                  ? const InventoryAlertList()
+                  : _tab == _InventoryTab.audits
+                  ? const StockAuditList()
+                  : _tab == _InventoryTab.documents
                   ? const StockDocumentList()
                   : _tab == _InventoryTab.transactions
                   ? const InventoryTransactionList()
@@ -267,7 +315,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                   : Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Text(
-                        selector.loading
+                        selector?.loading == true
                             ? 'Đang tải danh sách kho…'
                             : 'Chọn một kho để xem tồn. Nếu chưa có kho, hãy thêm kho đầu tiên.',
                       ),

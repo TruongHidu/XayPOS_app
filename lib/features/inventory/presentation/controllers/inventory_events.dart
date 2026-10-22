@@ -2,7 +2,14 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/inventory_entities.dart';
 
-enum InventoryChangeKind { warehouse, balance, document, orderStock }
+enum InventoryChangeKind {
+  warehouse,
+  balance,
+  document,
+  orderStock,
+  alert,
+  audit,
+}
 
 class InventoryChange {
   const InventoryChange(
@@ -14,10 +21,13 @@ class InventoryChange {
     this.documentId,
     this.orderId,
     this.orderItemId,
+    this.alertId,
+    this.auditId,
   });
   final InventoryChangeKind kind;
   final String? warehouseId;
   final String? orderId, orderItemId;
+  final String? alertId, auditId;
   final String? ingredientId;
   final Warehouse? warehouse;
   final bool deleted;
@@ -62,4 +72,7 @@ class InventoryEvents extends ChangeNotifier {
   static const createKey = 'warehouse:create';
   static String documentKey(String id) => 'stock-document:$id';
   static const stockCreateKey = 'stock-document:create';
+  static String alertKey(String id) => 'inventory-alert:$id';
+  static String auditKey(String id) => 'stock-audit:$id';
+  static const stockAuditCreateKey = 'stock-audit:create';
 }

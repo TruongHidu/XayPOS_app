@@ -81,6 +81,7 @@ Map<String, dynamic> stockDetailJson({
   return {
     'id': id,
     'documentCode': 'RCV-20261018-$id',
+    'stockAuditId': null,
     'documentType': type,
     'status': status,
     'warehouseId': warehouse,

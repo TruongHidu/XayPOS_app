@@ -161,6 +161,30 @@ Future<void> _see(WidgetTester tester, Finder target) async {
 }
 
 void main() {
+  for (final state in ['DRAFT', 'CONFIRMED']) {
+    testWidgets(
+      'audit generated $state document stays readable without audit feature and has no write controls',
+      (tester) async {
+        final docs = FakeStockDocuments()
+          ..value = (stockDetailJson(status: state)
+            ..['stockAuditId'] = 'audit-1');
+        await _pump(
+          tester,
+          docs: docs,
+          location: '/app/inventory/stock-documents/d1',
+        );
+        expect(find.text('Sinh từ kiểm kê — chỉ đọc'), findsOneWidget);
+        expect(find.text('Sửa ghi chú'), findsNothing);
+        expect(find.text('Thêm nguyên liệu'), findsNothing);
+        expect(find.text('Sửa dòng'), findsNothing);
+        expect(find.text('Xóa dòng'), findsNothing);
+        expect(find.text('Xác nhận chứng từ'), findsNothing);
+        expect(find.text('Hủy phiếu nháp'), findsNothing);
+        expect(find.text('Xem phiên kiểm kê'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets('inventory-only reader sees mixed sources without order reads', (
     tester,
   ) async {
@@ -421,7 +445,7 @@ void main() {
           balances = FakeBalances();
       final router = await _pump(tester, auth: auth, balances: balances);
       expect(find.textContaining('Tạo phiếu'), findsNothing);
-      expect(find.text('Cảnh báo tồn thấp'), findsNothing);
+      expect(find.text('Tồn thấp hiện tại'), findsNothing);
       router.go('/app/inventory/stock-documents/d1');
       await tester.pumpAndSettle();
       expect(find.text('Sửa ghi chú'), findsNothing);

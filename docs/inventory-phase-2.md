@@ -1,5 +1,9 @@
 # Inventory — giai đoạn 2
 
+Ngày 22/10/2026 bổ sung `stockAuditId` cho chứng từ sinh từ
+[kiểm kê](inventory-phase-7.md). Chứng từ này chỉ đọc; quyền xem chứng từ kho không
+đòi thêm feature kiểm kê. Xem [cảnh báo có lịch sử](inventory-phase-6.md) cho phần ACK.
+
 Cập nhật 21/10/2026: ledger hỗ trợ thêm nguồn ORDER_ITEM/RECIPE_USE và giá chưa định giá.
 Xem [bàn giao nguyên liệu theo món](order-ingredient-inspection.md) cho bộ lọc và luồng liên quan.
 

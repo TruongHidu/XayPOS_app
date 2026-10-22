@@ -74,9 +74,9 @@ Future<Result<T>> inventoryResult<T>(Future<T> Function() operation) async {
       'INSUFFICIENT_STOCK' =>
         'Tồn hiện tại không đủ. Toàn bộ phiếu chưa được ghi nhận; hãy kiểm tra tồn rồi đối chiếu lại.',
       'IDEMPOTENCY_KEY_REQUIRED' =>
-        'Yêu cầu tạo phiếu thiếu mã đối chiếu. Hãy kiểm tra lại yêu cầu.',
+        'Yêu cầu tạo dữ liệu kho thiếu mã đối chiếu. Hãy kiểm tra lại yêu cầu.',
       'IDEMPOTENCY_KEY_REUSED' =>
-        'Mã đối chiếu đã dùng cho nội dung khác. Hãy đối chiếu danh sách; không tự tạo phiếu mới.',
+        'Mã đối chiếu đã dùng cho nội dung khác. Hãy đối chiếu danh sách trước khi tạo yêu cầu khác.',
       'STOCK_DOCUMENT_CODE_EXISTS' =>
         'Mã chứng từ xung đột. Hãy kiểm tra lại dữ liệu.',
       _ => original.message,

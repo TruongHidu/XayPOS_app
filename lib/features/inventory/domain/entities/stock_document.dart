@@ -63,6 +63,7 @@ class StockDocumentSummary {
     required this.version,
     required this.createdAt,
     required this.updatedAt,
+    this.stockAuditId,
   });
   final String id,
       documentCode,
@@ -71,6 +72,7 @@ class StockDocumentSummary {
       warehouseName,
       createdBy;
   final String? note;
+  final String? stockAuditId;
   final StockDocumentType type;
   final StockDocumentStatus status;
   final int lineCount, version;
@@ -96,6 +98,7 @@ class StockDocumentDetail extends StockDocumentSummary {
     required super.version,
     required super.createdAt,
     required super.updatedAt,
+    super.stockAuditId,
     required List<StockDocumentItem> items,
     required this.confirmedBy,
     required this.cancelledBy,

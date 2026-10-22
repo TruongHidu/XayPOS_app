@@ -20,6 +20,10 @@ import '../../features/inventory/presentation/screens/inventory_management_scree
 import '../../features/inventory/presentation/screens/stock_document_create_screen.dart';
 import '../../features/inventory/presentation/screens/stock_document_detail_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_transaction_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_alert_detail_screen.dart';
+import '../../features/inventory/presentation/screens/stock_audit_create_screen.dart';
+import '../../features/inventory/presentation/screens/stock_audit_detail_screen.dart';
+import '../../features/inventory/presentation/widgets/stock_audit_exit_guard.dart';
 import '../providers.dart';
 import 'app_routes.dart';
 import 'route_guard.dart';
@@ -169,6 +173,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           child: InventoryManagementScreen(
             initialTab: state.uri.queryParameters['tab'],
           ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryAlert,
+        builder: (context, state) => AppShell(
+          initialSection: 'inventory',
+          child: InventoryAlertDetailScreen(
+            id: state.pathParameters['alertId']!,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stockAuditCreate,
+        onExit: (context, state) => confirmStockAuditExit(context, ref, null),
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory',
+          child: StockAuditCreateScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stockAudit,
+        onExit: (context, state) => confirmStockAuditExit(
+          context,
+          ref,
+          state.pathParameters['auditId']!,
+        ),
+        builder: (context, state) => AppShell(
+          initialSection: 'inventory',
+          child: StockAuditDetailScreen(id: state.pathParameters['auditId']!),
         ),
       ),
       GoRoute(

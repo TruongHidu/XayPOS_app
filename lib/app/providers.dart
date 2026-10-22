@@ -7,6 +7,8 @@ export '../features/order/presentation/providers/order_providers.dart';
 export '../features/qr_order/presentation/providers/qr_request_providers.dart';
 export '../features/inventory/presentation/providers/inventory_providers.dart';
 export '../features/inventory/presentation/providers/stock_document_providers.dart';
+export '../features/inventory/presentation/providers/inventory_alert_providers.dart';
+export '../features/inventory/presentation/providers/stock_audit_providers.dart';
 export '../features/reports/presentation/providers/report_providers.dart';
 
 import '../core/auth/session_events.dart';

@@ -41,6 +41,7 @@ class StockDocumentDetailController extends InventoryController {
   bool get requiresReview => needsRead || events.verification(key) != null;
   bool get editable =>
       document?.status == StockDocumentStatus.draft &&
+      document?.stockAuditId == null &&
       !loading &&
       !busy &&
       !requiresReview &&
@@ -106,6 +107,13 @@ class StockDocumentDetailController extends InventoryController {
   }
 
   Failure? _baseline(StockDocumentDetail baseline) {
+    if (baseline.stockAuditId != null || document?.stockAuditId != null) {
+      return const Failure(
+        type: FailureType.conflict,
+        code: 'STOCK_DOCUMENT_MANAGED_BY_AUDIT',
+        message: 'Chứng từ do kiểm kê quản lý, chỉ có thể xem.',
+      );
+    }
     if (!editable) return InventoryController.denied;
     if (baseline.id != id ||
         baseline.version != document!.version ||

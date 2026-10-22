@@ -219,7 +219,7 @@ void main() {
             .position
             .jumpTo(0);
         await tester.pumpAndSettle();
-        await _tap(tester, find.text('Cảnh báo tồn thấp'));
+        await _tap(tester, find.text('Tồn thấp hiện tại'));
         expect(balances.lowCalls, 1);
         expect(find.textContaining('KHO-W1'), findsWidgets);
         expect(tester.takeException(), isNull);
@@ -239,7 +239,7 @@ void main() {
         ),
         balances: balances,
       );
-      expect(find.text('Cảnh báo tồn thấp'), findsNothing);
+      expect(find.text('Tồn thấp hiện tại'), findsNothing);
       expect(find.text('Thêm kho'), findsNothing);
       expect(find.text('Sửa ngưỡng'), findsNothing);
       expect(find.text('Chi tiết'), findsWidgets);

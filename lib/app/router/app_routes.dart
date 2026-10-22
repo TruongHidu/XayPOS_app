@@ -17,6 +17,11 @@ abstract final class AppRoutes {
   static const stockCreate = '/app/inventory/stock-documents/new';
   static const stockDocument = '/app/inventory/stock-documents/:documentId';
   static const inventoryTransactions = '/app/inventory/transactions';
+  static const inventoryAlert = '/app/inventory/alerts/:alertId';
+  static const stockAuditCreate = '/app/inventory/audits/new';
+  static const stockAudit = '/app/inventory/audits/:auditId';
+  static String stockAuditFor(String id) =>
+      '/app/inventory/audits/${Uri.encodeComponent(id)}';
   static const subscriptionRequired = '/subscription-required';
   static const subscriptionUnavailable = '/subscription-unavailable';
   static const featureUnavailable = '/feature-unavailable';

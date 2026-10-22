@@ -34,6 +34,9 @@ abstract final class StockDocumentDto {
     final j = InventoryDto.object(raw);
     return StockDocumentSummary(
       id: InventoryDto.text(j, 'id'),
+      stockAuditId: j['stockAuditId'] == null
+          ? null
+          : InventoryDto.text(j, 'stockAuditId'),
       documentCode: InventoryDto.text(j, 'documentCode'),
       type: enumeration(
         j['documentType'],
@@ -103,6 +106,7 @@ abstract final class StockDocumentDto {
     }
     final value = StockDocumentDetail(
       id: s.id,
+      stockAuditId: s.stockAuditId,
       documentCode: s.documentCode,
       type: s.type,
       status: s.status,

@@ -262,12 +262,27 @@ class _StockDetailWorkspace extends ConsumerWidget {
               ),
             const SizedBox(height: 12),
             Text('Ghi chú: ${d.note ?? '—'}'),
+            if (d.stockAuditId != null) ...[
+              const SizedBox(height: 12),
+              const InventoryBadge('Sinh từ kiểm kê — chỉ đọc'),
+              if (AccessPolicy.canViewStockAudits(
+                ref.watch(authControllerProvider).state.session,
+              ))
+                TextButton.icon(
+                  onPressed: () => context.go(
+                    '/app/inventory/audits/${Uri.encodeComponent(d.stockAuditId!)}',
+                  ),
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('Xem phiên kiểm kê'),
+                ),
+            ],
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (d.status == StockDocumentStatus.draft &&
+                if (d.stockAuditId == null &&
+                    d.status == StockDocumentStatus.draft &&
                     c.can(d.type.permission)) ...[
                   OutlinedButton(
                     onPressed: c.editable
@@ -339,7 +354,8 @@ class _StockDetailWorkspace extends ConsumerWidget {
                           const DataColumn(label: Text('Đơn giá')),
                           const DataColumn(label: Text('Thành tiền')),
                           const DataColumn(label: Text('Ghi chú')),
-                          if (d.status == StockDocumentStatus.draft &&
+                          if (d.stockAuditId == null &&
+                              d.status == StockDocumentStatus.draft &&
                               c.can(d.type.permission))
                             const DataColumn(label: Text('Thao tác')),
                         ],
@@ -385,7 +401,8 @@ class _StockDetailWorkspace extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (d.status == StockDocumentStatus.draft &&
+                                if (d.stockAuditId == null &&
+                                    d.status == StockDocumentStatus.draft &&
                                     c.can(d.type.permission))
                                   DataCell(actions(row)),
                               ],
@@ -434,7 +451,8 @@ class _StockDetailWorkspace extends ConsumerWidget {
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(row.note!),
                                 ),
-                              if (d.status == StockDocumentStatus.draft &&
+                              if (d.stockAuditId == null &&
+                                  d.status == StockDocumentStatus.draft &&
                                   c.can(d.type.permission))
                                 actions(row),
                             ],
