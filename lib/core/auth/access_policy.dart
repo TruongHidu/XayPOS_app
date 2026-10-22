@@ -3,6 +3,15 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  // Historical ingredient reads have their own effective capability intersection.
+  static bool canViewOrderRecipeSnapshot(AppSession? session) =>
+      canOrders(session, 'ORDER_VIEW') &&
+      session!.permissions.contains('RECIPE_VIEW') &&
+      session.features.contains('RECIPE_MANAGEMENT');
+  static bool canViewOrderItemAllocation(AppSession? session) =>
+      canViewOrderRecipeSnapshot(session) &&
+      session!.permissions.contains('INVENTORY_VIEW') &&
+      session.features.contains('INVENTORY_MANAGEMENT');
   static Object? inventoryScope(AppSession? session) => menuScope(session);
   static bool canInventory(AppSession? session, String permission) =>
       session != null &&

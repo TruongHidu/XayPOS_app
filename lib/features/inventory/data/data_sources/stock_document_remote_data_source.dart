@@ -190,6 +190,9 @@ class StockDocumentRemoteDataSource {
           q.warehouseId != null && r.warehouseId != q.warehouseId ||
           q.ingredientId != null && r.ingredientId != q.ingredientId ||
           q.documentId != null && r.documentId != q.documentId ||
+          q.orderId != null && r.orderId != q.orderId ||
+          q.orderItemId != null && r.orderItemId != q.orderItemId ||
+          q.source != null && r.source != q.source ||
           q.type != null && r.type != q.type,
     )) {
       throw const FormatException('Wrong ledger query response');

@@ -92,6 +92,8 @@ abstract final class InventoryDto {
       baseUnit: text(j, 'baseUnit'),
       ingredientActive: boolean(j, 'ingredientActive'),
       quantity: quantity(j, 'quantity'),
+      reservedQuantity: quantity(j, 'reservedQuantity'),
+      availableQuantity: quantity(j, 'availableQuantity'),
       minQuantity: quantity(j, 'minQuantity'),
       lowStock: boolean(j, 'lowStock'),
       version: j['version'] == null ? null : integer(j, 'version'),
@@ -108,9 +110,16 @@ abstract final class InventoryDto {
               row.createdAt != null ||
               row.updatedAt != null ||
               row.quantity != InventoryQuantity.zero ||
+              row.reservedQuantity != InventoryQuantity.zero ||
+              row.availableQuantity != InventoryQuantity.zero ||
               row.minQuantity != InventoryQuantity.zero ||
               row.lowStock) {
       throw const FormatException('Invalid logical/physical balance');
+    }
+    if (row.reservedQuantity.scaled > row.quantity.scaled ||
+        row.availableQuantity.scaled !=
+            row.quantity.scaled - row.reservedQuantity.scaled) {
+      throw const FormatException('Invalid reserved/available balance');
     }
     if (row.lowStock !=
         (row.minQuantity.scaled > 0 &&

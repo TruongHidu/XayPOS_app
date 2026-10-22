@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/auth/app_session.dart';
 import 'package:pos_saas_app/core/errors/failure.dart';
+import 'package:pos_saas_app/core/network/api_error_mapper.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/order/presentation/controllers/order_events.dart';
 import 'package:pos_saas_app/features/tables/presentation/controllers/table_events.dart';
@@ -62,6 +63,45 @@ class _Harness {
 }
 
 void main() {
+  test(
+    'insufficient available stock keeps QR pending and requires a fresh review',
+    () async {
+      final h = _Harness();
+      await h.review.load();
+      final old = h.review.review!;
+      final options = RequestOptions(path: '/approve');
+      final failure = ApiErrorMapper.fromException(
+        DioException(
+          requestOptions: options,
+          response: Response(
+            requestOptions: options,
+            statusCode: 409,
+            data: {
+              'success': false,
+              'code': 'INSUFFICIENT_AVAILABLE_STOCK',
+              'message': 'Internal detail must not leak',
+              'fieldErrors': <String, String>{},
+            },
+          ),
+        ),
+      );
+      expect(failure.type, FailureType.conflict);
+      expect(failure.message, isNot(contains('Internal detail')));
+      h.repo.onApprove = () async => Error(failure);
+      expect(await h.review.approve(old, confirmed: true), false);
+      expect(h.review.needsReload, true);
+      expect(h.review.uncertain, false);
+      expect(h.applied, isEmpty);
+      expect(h.resolved, isEmpty);
+      expect(h.repo.rejections, isEmpty);
+      expect(h.review.review!.request.status, QrRequestStatus.pending);
+      expect(await h.review.approve(old, confirmed: true), false);
+      expect(h.repo.approvals, hasLength(1));
+      await h.review.load();
+      expect(h.review.canApprove, true);
+      expect(h.repo.approvals, hasLength(1));
+    },
+  );
   test(
     'TABLE queue contract and explicit null session use only authenticated private endpoints',
     () async {

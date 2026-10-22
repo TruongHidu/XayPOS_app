@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
+import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../domain/entities/stock_document.dart';
@@ -13,12 +14,51 @@ import 'warehouse_picker.dart';
 class InventoryTransactionList extends ConsumerWidget {
   const InventoryTransactionList({
     super.key,
-    this.target = (warehouseId: null, ingredientId: null, documentId: null),
+    this.target = const StockHistoryTarget(),
   });
   final StockHistoryTarget target;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(inventoryTransactionsProvider(target)), q = c.query;
+    final canOpenOrder = AccessPolicy.canOrders(
+      ref.watch(authControllerProvider).state.session,
+      'ORDER_VIEW',
+    );
+    String price(InventoryTransaction row) =>
+        row.unitCost == null ? 'Chưa định giá' : stockDisplay(row.unitCost!);
+    String shortId(String id) => id.length > 16
+        ? '${id.substring(0, 8)}…${id.substring(id.length - 6)}'
+        : id;
+    Widget origin(InventoryTransaction row) =>
+        row.source == InventoryTransactionSource.stockDocument
+        ? TextButton(
+            onPressed: () => context.go(stockDetailLocation(row.documentId!)),
+            child: Text(row.documentCode!),
+          )
+        : SizedBox(
+            width: 240,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Tooltip(
+                  message: 'Đơn: ${row.orderId}\nDòng món: ${row.orderItemId}',
+                  child: Text(
+                    'Đơn: ${shortId(row.orderId!)}\nDòng món: ${shortId(row.orderItemId!)}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (canOpenOrder)
+                  TextButton(
+                    onPressed: () => context.go(
+                      '/app/orders/${Uri.encodeComponent(row.orderId!)}',
+                    ),
+                    child: const Text('Xem đơn'),
+                  ),
+              ],
+            ),
+          );
     Widget change(InventoryTransaction row) => InventoryBadge(
       '${row.change.negative ? '' : '+'}${stockDisplay(row.change)} ${row.unit}',
       warning: row.change.negative,
@@ -28,12 +68,28 @@ class InventoryTransactionList extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Sổ biến động chỉ đọc. Tồn trước và sau là số dư tại thời điểm ghi nhận phiếu.',
+          'Sổ biến động chỉ đọc. Tồn trước và sau là số dư tại thời điểm giao dịch.',
         ),
         const SizedBox(height: 12),
         StockFilterLayout(
           identity: c,
           children: [
+            StockSelect(
+              label: 'Nguồn giao dịch',
+              value: q.source?.code ?? 'all',
+              items: {
+                'all': 'Tất cả nguồn',
+                for (final source in InventoryTransactionSource.values)
+                  source.code: source.label,
+              },
+              changed: (value) => c.filter(
+                q.copyWith(
+                  source: () => InventoryTransactionSource.values
+                      .where((e) => e.code == value)
+                      .firstOrNull,
+                ),
+              ),
+            ),
             StockSelect(
               label: 'Loại biến động',
               value: q.type?.code ?? 'all',
@@ -74,6 +130,18 @@ class InventoryTransactionList extends ConsumerWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
+            if (q.orderId != null)
+              InputChip(
+                label: Text('Đơn: ${q.orderId}'),
+                onDeleted: () => c.filter(
+                  q.copyWith(orderId: () => null, orderItemId: () => null),
+                ),
+              ),
+            if (q.orderItemId != null)
+              InputChip(
+                label: Text('Dòng món: ${q.orderItemId}'),
+                onDeleted: () => c.filter(q.copyWith(orderItemId: () => null)),
+              ),
             OutlinedButton.icon(
               onPressed: () async {
                 final row = await chooseInventoryWarehouse(context, ref);
@@ -160,7 +228,7 @@ class InventoryTransactionList extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Text(
-              'Chưa có biến động phù hợp. Phiếu nháp chưa tạo lịch sử.',
+              'Chưa có giao dịch phù hợp. Món đang giữ chỗ chưa có giao dịch tiêu thụ; phiếu nháp chưa tạo lịch sử.',
             ),
           ),
         LayoutBuilder(
@@ -184,7 +252,7 @@ class InventoryTransactionList extends ConsumerWidget {
                       DataColumn(label: Text('Chênh lệch')),
                       DataColumn(label: Text('Tồn trước → sau')),
                       DataColumn(label: Text('Đơn giá')),
-                      DataColumn(label: Text('Chứng từ')),
+                      DataColumn(label: Text('Nguồn giao dịch')),
                     ],
                     rows: [
                       for (final row in c.rows)
@@ -213,15 +281,8 @@ class InventoryTransactionList extends ConsumerWidget {
                                 '${inventoryAmount(row.before, row.unit)} → ${inventoryAmount(row.after, row.unit)}',
                               ),
                             ),
-                            DataCell(Text(stockDisplay(row.unitCost))),
-                            DataCell(
-                              TextButton(
-                                onPressed: () => context.go(
-                                  stockDetailLocation(row.documentId),
-                                ),
-                                child: Text(row.documentCode),
-                              ),
-                            ),
+                            DataCell(Text(price(row))),
+                            DataCell(origin(row)),
                           ],
                         ),
                     ],
@@ -263,15 +324,12 @@ class InventoryTransactionList extends ConsumerWidget {
                             'Trước: ${inventoryAmount(row.before, row.unit)}',
                           ),
                           Text('Sau: ${inventoryAmount(row.after, row.unit)}'),
-                          Text('Đơn giá: ${stockDisplay(row.unitCost)}'),
+                          Text('Đơn giá: ${price(row)}'),
+                          Text('Nguồn: ${row.source.label}'),
                           Text(formatLocalDate(row.createdAt)),
                           Text('Người ghi nhận: ${row.createdBy}'),
                           const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () =>
-                                context.go(stockDetailLocation(row.documentId)),
-                            child: Text(row.documentCode),
-                          ),
+                          origin(row),
                         ],
                       ),
                     ),

@@ -67,13 +67,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
     }
     if (_tab == _InventoryTab.transactions) {
       await ref
-          .read(
-            inventoryTransactionsProvider((
-              warehouseId: null,
-              ingredientId: null,
-              documentId: null,
-            )),
-          )
+          .read(inventoryTransactionsProvider(const StockHistoryTarget()))
           .load();
       return;
     }

@@ -28,8 +28,20 @@ class InventoryTransactionController extends InventoryController {
     _revision = events.revision;
     final change = events.change;
     if (!current ||
-        change?.kind != InventoryChangeKind.balance ||
-        query.warehouseId != null && query.warehouseId != change?.warehouseId ||
+        !(change?.kind == InventoryChangeKind.balance ||
+            change?.kind == InventoryChangeKind.orderStock) ||
+        query.warehouseId != null &&
+            change?.warehouseId != null &&
+            query.warehouseId != change?.warehouseId ||
+        change?.kind == InventoryChangeKind.orderStock &&
+            (query.documentId != null ||
+                query.source == InventoryTransactionSource.stockDocument) ||
+        query.orderId != null &&
+            change?.orderId != null &&
+            query.orderId != change?.orderId ||
+        query.orderItemId != null &&
+            change?.orderItemId != null &&
+            query.orderItemId != change?.orderItemId ||
         query.ingredientId != null &&
             change?.ingredientId != null &&
             query.ingredientId != change?.ingredientId ||

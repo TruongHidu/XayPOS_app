@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/errors/failure.dart';
 import '../../domain/entities/inventory_entities.dart';
 
-enum InventoryChangeKind { warehouse, balance, document }
+enum InventoryChangeKind { warehouse, balance, document, orderStock }
 
 class InventoryChange {
   const InventoryChange(
@@ -12,9 +12,12 @@ class InventoryChange {
     this.warehouse,
     this.deleted = false,
     this.documentId,
+    this.orderId,
+    this.orderItemId,
   });
   final InventoryChangeKind kind;
-  final String warehouseId;
+  final String? warehouseId;
+  final String? orderId, orderItemId;
   final String? ingredientId;
   final Warehouse? warehouse;
   final bool deleted;

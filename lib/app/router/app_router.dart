@@ -191,13 +191,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.inventoryTransactions,
         builder: (context, state) => AppShell(
           initialSection: 'inventory',
-          child: InventoryTransactionScreen(
-            target: (
-              warehouseId: state.uri.queryParameters['warehouseId'],
-              ingredientId: state.uri.queryParameters['ingredientId'],
-              documentId: state.uri.queryParameters['documentId'],
-            ),
-          ),
+          child: InventoryTransactionRoute(query: state.uri.queryParameters),
         ),
       ),
       GoRoute(

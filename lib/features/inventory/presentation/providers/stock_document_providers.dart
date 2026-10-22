@@ -97,11 +97,75 @@ final stockDocumentDetailProvider = ChangeNotifierProvider.autoDispose
       Future.microtask(c.load);
       return c;
     });
-typedef StockHistoryTarget = ({
-  String? warehouseId,
-  String? ingredientId,
-  String? documentId,
-});
+
+class StockHistoryTarget {
+  factory StockHistoryTarget.fromQuery(Map<String, String> query) {
+    final source = query['sourceType'], type = query['transactionType'];
+    final parsedSource = InventoryTransactionSource.values
+        .where((e) => e.code == source)
+        .firstOrNull;
+    final parsedType = InventoryTransactionType.values
+        .where((e) => e.code == type)
+        .firstOrNull;
+    if (source != null && parsedSource == null ||
+        type != null && parsedType == null) {
+      throw const FormatException('Bộ lọc giao dịch không hợp lệ.');
+    }
+    return StockHistoryTarget(
+      warehouseId: query['warehouseId'],
+      ingredientId: query['ingredientId'],
+      documentId: query['documentId'],
+      orderId: query['orderId'],
+      orderItemId: query['orderItemId'],
+      source: parsedSource,
+      type: parsedType,
+    );
+  }
+  const StockHistoryTarget({
+    this.warehouseId,
+    this.ingredientId,
+    this.documentId,
+    this.orderId,
+    this.orderItemId,
+    this.source,
+    this.type,
+  });
+  final String? warehouseId, ingredientId, documentId, orderId, orderItemId;
+  final InventoryTransactionSource? source;
+  final InventoryTransactionType? type;
+  @override
+  bool operator ==(Object other) =>
+      other is StockHistoryTarget &&
+      (
+            warehouseId,
+            ingredientId,
+            documentId,
+            orderId,
+            orderItemId,
+            source,
+            type,
+          ) ==
+          (
+            other.warehouseId,
+            other.ingredientId,
+            other.documentId,
+            other.orderId,
+            other.orderItemId,
+            other.source,
+            other.type,
+          );
+  @override
+  int get hashCode => Object.hash(
+    warehouseId,
+    ingredientId,
+    documentId,
+    orderId,
+    orderItemId,
+    source,
+    type,
+  );
+}
+
 final inventoryTransactionsProvider = ChangeNotifierProvider.autoDispose
     .family<InventoryTransactionController, StockHistoryTarget>((ref, target) {
       ref.watch(inventoryScopeProvider);
@@ -114,6 +178,10 @@ final inventoryTransactionsProvider = ChangeNotifierProvider.autoDispose
           ref.watch(inventoryTransactionRepositoryProvider),
         ),
         query: InventoryTransactionQuery(
+          orderId: target.orderId,
+          orderItemId: target.orderItemId,
+          source: target.source,
+          type: target.type,
           warehouseId: target.warehouseId,
           ingredientId: target.ingredientId,
           documentId: target.documentId,

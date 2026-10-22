@@ -35,18 +35,21 @@ class InventoryBalanceDetailController extends InventoryController {
     _stockRevision = events.revision;
     final change = events.change;
     if (!current ||
-        change?.kind != InventoryChangeKind.balance ||
-        change?.documentId == null ||
-        change?.warehouseId != warehouseId ||
+        !(change?.kind == InventoryChangeKind.orderStock ||
+            change?.kind == InventoryChangeKind.balance &&
+                change?.documentId != null) ||
+        change?.warehouseId != null && change?.warehouseId != warehouseId ||
         change?.ingredientId != null && change?.ingredientId != ingredientId) {
       return;
     }
+    ++_generation;
+    loading = false;
     _baselineVerified = false;
     failure = const Failure(
       type: FailureType.conflict,
       code: 'CONCURRENT_INVENTORY_UPDATE',
       message:
-          'Kho vừa ghi nhận chứng từ. Hãy tải lại để đối chiếu số dư trước khi sửa ngưỡng.',
+          'Tồn hoặc lượng giữ chỗ vừa thay đổi. Hãy tải lại để đối chiếu trước khi sửa ngưỡng.',
     );
     changed();
   }

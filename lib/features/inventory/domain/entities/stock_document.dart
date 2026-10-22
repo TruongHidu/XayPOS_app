@@ -28,12 +28,21 @@ enum AdjustmentDirection {
 }
 
 enum InventoryTransactionType {
+  recipeUse('RECIPE_USE', 'Tiêu thụ theo món'),
   receipt('RECEIPT', 'Nhập kho'),
   issue('ISSUE', 'Xuất kho'),
   adjustmentIncrease('ADJUSTMENT_INCREASE', 'Điều chỉnh tăng'),
   adjustmentDecrease('ADJUSTMENT_DECREASE', 'Điều chỉnh giảm');
 
   const InventoryTransactionType(this.code, this.label);
+  final String code, label;
+}
+
+enum InventoryTransactionSource {
+  stockDocument('STOCK_DOCUMENT', 'Chứng từ kho'),
+  orderItem('ORDER_ITEM', 'Dòng món');
+
+  const InventoryTransactionSource(this.code, this.label);
   final String code, label;
 }
 
@@ -120,6 +129,11 @@ class StockDocumentItem {
 
 class InventoryTransaction {
   const InventoryTransaction({
+    required this.source,
+    required this.orderId,
+    required this.orderItemId,
+    required this.reservationId,
+    required this.recipeUsageId,
     required this.id,
     required this.warehouseId,
     required this.warehouseCode,
@@ -144,14 +158,14 @@ class InventoryTransaction {
       ingredientId,
       ingredientName,
       unit,
-      documentId,
-      documentCode,
       createdBy;
-  final String? ingredientSku;
-  final StockDocumentType documentType;
+  final String? ingredientSku, documentId, documentCode;
+  final String? orderId, orderItemId, reservationId, recipeUsageId;
+  final InventoryTransactionSource source;
+  final StockDocumentType? documentType;
   final InventoryTransactionType type;
   final StockQuantityChange change;
   final InventoryQuantity before, after;
-  final StockMoney unitCost;
+  final StockMoney? unitCost;
   final DateTime createdAt;
 }

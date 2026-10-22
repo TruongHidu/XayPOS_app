@@ -74,6 +74,9 @@ class StockDocumentQuery {
 
 class InventoryTransactionQuery {
   const InventoryTransactionQuery({
+    this.orderId,
+    this.orderItemId,
+    this.source,
     this.warehouseId,
     this.ingredientId,
     this.documentId,
@@ -85,6 +88,8 @@ class InventoryTransactionQuery {
     this.direction = 'desc',
   });
   final String? warehouseId, ingredientId, documentId;
+  final String? orderId, orderItemId;
+  final InventoryTransactionSource? source;
   final InventoryTransactionType? type;
   final StockDateRange? dates;
   final int page, size;
@@ -97,6 +102,9 @@ class InventoryTransactionQuery {
       const {'asc', 'desc'}.contains(direction) &&
       (dates?.valid ?? true);
   InventoryTransactionQuery copyWith({
+    String? Function()? orderId,
+    String? Function()? orderItemId,
+    InventoryTransactionSource? Function()? source,
     String? Function()? warehouseId,
     String? Function()? ingredientId,
     String? Function()? documentId,
@@ -106,6 +114,9 @@ class InventoryTransactionQuery {
     int? size,
     String? direction,
   }) => InventoryTransactionQuery(
+    orderId: orderId == null ? this.orderId : orderId(),
+    orderItemId: orderItemId == null ? this.orderItemId : orderItemId(),
+    source: source == null ? this.source : source(),
     warehouseId: warehouseId == null ? this.warehouseId : warehouseId(),
     ingredientId: ingredientId == null ? this.ingredientId : ingredientId(),
     documentId: documentId == null ? this.documentId : documentId(),

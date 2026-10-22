@@ -141,9 +141,11 @@ class InventoryBalanceList extends ConsumerWidget {
                       const DataColumn(label: Text('Nguyên liệu')),
                       if (target.lowStock) const DataColumn(label: Text('Kho')),
                       const DataColumn(
-                        label: Text('Tồn hiện tại'),
+                        label: Text('Tồn vật lý'),
                         numeric: true,
                       ),
+                      const DataColumn(label: Text('Đang giữ'), numeric: true),
+                      const DataColumn(label: Text('Khả dụng'), numeric: true),
                       const DataColumn(label: Text('Ngưỡng'), numeric: true),
                       const DataColumn(label: Text('Trạng thái')),
                       const DataColumn(label: Text('Thao tác')),
@@ -188,6 +190,25 @@ class InventoryBalanceList extends ConsumerWidget {
                               DataCell(Text(row.warehouseCode)),
                             DataCell(
                               Text(inventoryAmount(row.quantity, row.baseUnit)),
+                            ),
+                            DataCell(
+                              Text(
+                                inventoryAmount(
+                                  row.reservedQuantity,
+                                  row.baseUnit,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                inventoryAmount(
+                                  row.availableQuantity,
+                                  row.baseUnit,
+                                ),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                             DataCell(
                               Text(
@@ -243,9 +264,37 @@ class InventoryBalanceList extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Tồn hiện tại'),
+                                  const Text('Tồn vật lý'),
                                   Text(
                                     inventoryAmount(row.quantity, row.baseUnit),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Đang giữ'),
+                                  Text(
+                                    inventoryAmount(
+                                      row.reservedQuantity,
+                                      row.baseUnit,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Khả dụng'),
+                                  Text(
+                                    inventoryAmount(
+                                      row.availableQuantity,
+                                      row.baseUnit,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,

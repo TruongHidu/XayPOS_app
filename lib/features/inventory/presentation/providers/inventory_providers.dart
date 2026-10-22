@@ -17,16 +17,25 @@ import '../controllers/warehouse_selector_controller.dart';
 import '../controllers/inventory_balance_controller.dart';
 import '../controllers/inventory_balance_detail_controller.dart';
 
-final inventoryScopeProvider = Provider<Object?>(
-  (ref) => ref.watch(
-    authControllerProvider.select(
-      (auth) => AccessPolicy.inventoryScope(auth.state.session),
-    ),
-  ),
+final inventoryScopeProvider = authControllerProvider.select(
+  (auth) => AccessPolicy.inventoryScope(auth.state.session),
 );
 final inventoryEventsProvider = ChangeNotifierProvider((ref) {
   ref.watch(inventoryScopeProvider);
-  return InventoryEvents();
+  final events = InventoryEvents();
+  var revision = ref.read(orderEventsProvider).revision;
+  ref.listen(orderEventsProvider, (_, orderEvents) {
+    if (revision == orderEvents.revision) return;
+    revision = orderEvents.revision;
+    events.emit(
+      InventoryChange(
+        InventoryChangeKind.orderStock,
+        null,
+        orderId: orderEvents.changedId,
+      ),
+    );
+  });
+  return events;
 });
 final inventoryRemoteProvider = Provider(
   (ref) =>

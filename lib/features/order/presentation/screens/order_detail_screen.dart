@@ -11,6 +11,7 @@ import '../../../tables/domain/entities/table_entities.dart';
 import '../../../tables/presentation/widgets/table_transfer_dialog.dart';
 import '../widgets/order_append_dialog.dart';
 import '../widgets/order_line_actions.dart';
+import '../widgets/order_ingredient_dialog.dart';
 import '../widgets/order_mutation_forms.dart';
 import '../widgets/order_payment_dialog.dart';
 import '../widgets/order_widgets.dart';
@@ -702,6 +703,10 @@ class OrderDetailScreen extends ConsumerWidget {
                                               ? Colors.grey
                                               : OrderPalette.orange,
                                         ),
+                                      ),
+                                      OrderIngredientsButton(
+                                        order: order,
+                                        line: line,
                                       ),
                                       if (c.editable &&
                                           line.status ==

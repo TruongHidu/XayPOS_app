@@ -129,6 +129,11 @@ Map<String, dynamic> transactionJson({
   String? name,
 }) => {
   'transactionId': id,
+  'sourceType': 'STOCK_DOCUMENT',
+  'orderId': null,
+  'orderItemId': null,
+  'reservationId': null,
+  'recipeUsageId': null,
   'warehouseId': warehouse,
   'warehouseCode': 'KHO-${warehouse.toUpperCase()}',
   'ingredientId': ingredient,
@@ -145,6 +150,20 @@ Map<String, dynamic> transactionJson({
   'unitCost': 100,
   'createdBy': 'user-1',
   'createdAt': '2026-10-18T02:00:00Z',
+};
+
+Map<String, dynamic> recipeUseJson() => {
+  ...transactionJson(),
+  'sourceType': 'ORDER_ITEM',
+  'orderId': 'o1',
+  'orderItemId': 'line1',
+  'reservationId': 'r1',
+  'recipeUsageId': 'u1',
+  'transactionType': 'RECIPE_USE',
+  'stockDocumentId': null,
+  'documentCode': null,
+  'documentType': null,
+  'unitCost': null,
 };
 
 class FakeStockKeys implements StockKeyGenerator {

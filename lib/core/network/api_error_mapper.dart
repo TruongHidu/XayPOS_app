@@ -278,6 +278,64 @@ abstract final class ApiErrorMapper {
         FailureType.notFound,
         'Phiên bản công thức không còn tồn tại hoặc bạn không có quyền truy cập.',
       ),
+      'ORDER_ITEM_RECIPE_SNAPSHOT_CONFLICT' => (
+        FailureType.conflict,
+        'Dữ liệu công thức của dòng món chưa nhất quán. Hãy tải lại đơn để kiểm tra.',
+      ),
+      'INVALID_RECIPE_SNAPSHOT_DATA' => (
+        FailureType.conflict,
+        'Công thức chưa đủ dữ liệu hợp lệ để gửi món. Giỏ món được giữ nguyên.',
+      ),
+      'RECIPE_YIELD_UNIT_MISMATCH' => (
+        FailureType.conflict,
+        'Đơn vị sản lượng công thức khác đơn vị món. Cần kiểm tra công thức trước khi gửi.',
+      ),
+      'RECIPE_INGREDIENT_UNIT_MISMATCH' => (
+        FailureType.conflict,
+        'Đơn vị nguyên liệu trong công thức không còn phù hợp. Không tự quy đổi; hãy kiểm tra lại.',
+      ),
+      'RECIPE_INGREDIENT_UNAVAILABLE' => (
+        FailureType.conflict,
+        'Nguyên liệu trong công thức không còn hợp lệ để gửi món. Hãy liên hệ quản lý.',
+      ),
+      'RECIPE_USAGE_QUANTITY_OUT_OF_RANGE' ||
+      'INVENTORY_QUANTITY_OUT_OF_RANGE' => (
+        FailureType.conflict,
+        'Lượng nguyên liệu cần dùng vượt giới hạn hỗ trợ. Giỏ món được giữ nguyên.',
+      ),
+      'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED' => (
+        FailureType.conflict,
+        'Chưa có kho mặc định hợp lệ để giữ nguyên liệu. Hãy liên hệ quản lý cấu hình kho rồi thử lại.',
+      ),
+      'INSUFFICIENT_AVAILABLE_STOCK' => (
+        FailureType.conflict,
+        'Không đủ tồn khả dụng để gửi/chấp nhận món. Toàn bộ yêu cầu chưa được ghi nhận; hãy kiểm tra và thử lại.',
+      ),
+      'INVENTORY_ALLOCATION_NOT_FOUND' => (
+        FailureType.conflict,
+        'Dòng món đã gửi chưa có quyết định kho hợp lệ. Hãy tải lại hoặc liên hệ quản lý kiểm tra dữ liệu.',
+      ),
+      'INVALID_INVENTORY_ALLOCATION_TRANSITION' ||
+      'INVENTORY_ALLOCATION_CONFLICT' => (
+        FailureType.conflict,
+        'Trạng thái nguyên liệu của món đã thay đổi. Hãy tải lại để đối chiếu.',
+      ),
+      'INVENTORY_RESERVATION_INVARIANT_VIOLATION' => (
+        FailureType.conflict,
+        'Dữ liệu giữ nguyên liệu chưa nhất quán. Hãy kiểm tra; không tự trừ hoặc giữ bù.',
+      ),
+      'WAREHOUSE_HAS_RESERVATIONS' => (
+        FailureType.conflict,
+        'Kho còn nguyên liệu đang giữ cho món. Cần xử lý các món đang giữ chỗ trước khi thay đổi.',
+      ),
+      'INGREDIENT_HAS_RESERVATIONS' => (
+        FailureType.conflict,
+        'Nguyên liệu đang được giữ cho món. Cần xử lý phần giữ chỗ trước khi thay đổi.',
+      ),
+      'CONCURRENT_INVENTORY_UPDATE' => (
+        FailureType.conflict,
+        'Tồn hoặc lượng giữ chỗ đã thay đổi. Hãy tải lại để đối chiếu trước khi thử lại.',
+      ),
       'INGREDIENT_COST_UNIT_MISMATCH' => (
         FailureType.conflict,
         'Đơn vị trong công thức khác đơn vị hiện tại của nguyên liệu. Không thể ước tính.',

@@ -147,7 +147,26 @@ abstract final class StockDocumentDto {
 
   static InventoryTransaction transaction(Object? raw) {
     final j = InventoryDto.object(raw);
+    for (final key in [
+      'stockDocumentId',
+      'documentCode',
+      'orderId',
+      'orderItemId',
+      'reservationId',
+      'recipeUsageId',
+    ]) {
+      if (j[key] != null) InventoryDto.text(j, key);
+    }
     final value = InventoryTransaction(
+      source: enumeration(
+        j['sourceType'],
+        InventoryTransactionSource.values,
+        (v) => v.code,
+      ),
+      orderId: InventoryDto.optionalText(j, 'orderId'),
+      orderItemId: InventoryDto.optionalText(j, 'orderItemId'),
+      reservationId: InventoryDto.optionalText(j, 'reservationId'),
+      recipeUsageId: InventoryDto.optionalText(j, 'recipeUsageId'),
       id: InventoryDto.text(j, 'transactionId'),
       warehouseId: InventoryDto.text(j, 'warehouseId'),
       warehouseCode: InventoryDto.text(j, 'warehouseCode'),
@@ -155,13 +174,15 @@ abstract final class StockDocumentDto {
       ingredientSku: InventoryDto.optionalText(j, 'ingredientSku'),
       ingredientName: InventoryDto.text(j, 'ingredientName'),
       unit: InventoryDto.text(j, 'unit'),
-      documentId: InventoryDto.text(j, 'stockDocumentId'),
-      documentCode: InventoryDto.text(j, 'documentCode'),
-      documentType: enumeration(
-        j['documentType'],
-        StockDocumentType.values,
-        (v) => v.code,
-      ),
+      documentId: InventoryDto.optionalText(j, 'stockDocumentId'),
+      documentCode: InventoryDto.optionalText(j, 'documentCode'),
+      documentType: j['documentType'] == null
+          ? null
+          : enumeration<StockDocumentType>(
+              j['documentType'],
+              StockDocumentType.values,
+              (v) => v.code,
+            ),
       type: enumeration(
         j['transactionType'],
         InventoryTransactionType.values,
@@ -170,11 +191,12 @@ abstract final class StockDocumentDto {
       change: StockQuantityChange.parse(stockNumberText(j['quantityChange'])),
       before: quantity(j, 'beforeQuantity'),
       after: quantity(j, 'afterQuantity'),
-      unitCost: money(j, 'unitCost', 12),
+      unitCost: j['unitCost'] == null ? null : money(j, 'unitCost', 12),
       createdBy: InventoryDto.text(j, 'createdBy'),
       createdAt: InventoryDto.date(j, 'createdAt')!,
     );
     final negative = const {
+      InventoryTransactionType.recipeUse,
       InventoryTransactionType.issue,
       InventoryTransactionType.adjustmentDecrease,
     }.contains(value.type);
@@ -182,6 +204,28 @@ abstract final class StockDocumentDto {
         BigInt.from(value.before.scaled) + value.change.scaled !=
             BigInt.from(value.after.scaled)) {
       throw const FormatException('Invalid stock movement');
+    }
+    final fromOrder = value.source == InventoryTransactionSource.orderItem;
+    if (fromOrder
+        ? value.type != InventoryTransactionType.recipeUse ||
+              value.orderId == null ||
+              value.orderItemId == null ||
+              value.reservationId == null ||
+              value.recipeUsageId == null ||
+              value.documentId != null ||
+              value.documentCode != null ||
+              value.documentType != null ||
+              value.unitCost != null
+        : value.type == InventoryTransactionType.recipeUse ||
+              value.documentId == null ||
+              value.documentCode == null ||
+              value.documentType == null ||
+              value.unitCost == null ||
+              value.orderId != null ||
+              value.orderItemId != null ||
+              value.reservationId != null ||
+              value.recipeUsageId != null) {
+      throw const FormatException('Invalid inventory transaction source');
     }
     return value;
   }

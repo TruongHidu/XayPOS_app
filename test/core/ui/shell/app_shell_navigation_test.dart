@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pos_saas_app/app/providers.dart';
+import 'package:pos_saas_app/app/router/app_routes.dart';
+import 'package:pos_saas_app/app/theme/app_theme.dart';
+import 'package:pos_saas_app/core/result/result.dart';
+import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../../../helpers/auth_fakes.dart';
+import '../../../features/inventory/inventory_fakes.dart';
+
+void main() {
+  for (final width in [320.0, 1200.0]) {
+    for (final source in [
+      (
+        path: AppRoutes.reports,
+        section: 'reports',
+        content: 'Chi tiết báo cáo',
+      ),
+      (
+        path: '/app/inventory/stock-documents/d1',
+        section: 'inventory',
+        content: 'Chi tiết chứng từ',
+      ),
+    ]) {
+      testWidgets('Kho navigates from ${source.path} at $width px', (
+        tester,
+      ) async {
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final auth = makeController(
+          authRepository: FakeAuthRepository()
+            ..loginResult = Success(
+              makeAuthSession(
+                permissions: {'INVENTORY_VIEW', 'REPORT_DETAIL_VIEW'},
+              ),
+            ),
+          entitlementRepository: FakeEntitlementRepository()
+            ..result = Success(
+              makeEntitlement(
+                features: {'INVENTORY_MANAGEMENT', 'DETAIL_REPORT'},
+              ),
+            ),
+        );
+        await auth.login(
+          const LoginCredentials(
+            email: 'navigation@example.com',
+            password: 'password',
+          ),
+        );
+        final router = GoRouter(
+          initialLocation: source.path,
+          routes: [
+            GoRoute(
+              path: source.path,
+              builder: (_, _) => AppShell(
+                initialSection: source.section,
+                child: Center(child: Text(source.content)),
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.inventory,
+              builder: (_, _) => const AppShell(
+                initialSection: 'inventory',
+                child: InventoryManagementScreen(),
+              ),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authControllerProvider.overrideWith((ref) => auth),
+              warehouseRepositoryProvider.overrideWithValue(FakeWarehouses()),
+              inventoryBalanceRepositoryProvider.overrideWithValue(
+                FakeBalances(),
+              ),
+            ],
+            child: MaterialApp.router(
+              theme: AppTheme.light,
+              routerConfig: router,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(source.content), findsOneWidget);
+        await tester.tap(find.byTooltip('Menu'));
+        await tester.pumpAndSettle();
+        final inventory = find.widgetWithText(ListTile, 'Kho');
+        await tester.ensureVisible(inventory);
+        await tester.tap(inventory);
+        await tester.pumpAndSettle();
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          AppRoutes.inventory,
+        );
+        expect(find.byType(InventoryManagementScreen), findsOneWidget);
+        expect(find.text('Kho nguyên liệu'), findsOneWidget);
+        expect(find.text(source.content), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+}

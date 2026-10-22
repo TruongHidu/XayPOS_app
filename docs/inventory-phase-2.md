@@ -1,5 +1,8 @@
 # Inventory — giai đoạn 2
 
+Cập nhật 21/10/2026: ledger hỗ trợ thêm nguồn ORDER_ITEM/RECIPE_USE và giá chưa định giá.
+Xem [bàn giao nguyên liệu theo món](order-ingredient-inspection.md) cho bộ lọc và luồng liên quan.
+
 ## Sử dụng
 
 Mục **Kho** (`/app/inventory`) giữ các vùng Tồn kho, Kho và Cảnh báo tồn thấp; bổ sung **Chứng từ** và **Biến động**. Cảnh báo chỉ hiện khi có `LOW_STOCK_ALERT`; chứng từ và lịch sử không cần feature này.

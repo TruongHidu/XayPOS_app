@@ -36,7 +36,9 @@ class InventoryBalanceController extends InventoryController {
     _revision = events.revision;
     if (events.change?.kind == InventoryChangeKind.document) return;
     if (!current ||
-        warehouseId != null && events.change?.warehouseId != warehouseId) {
+        warehouseId != null &&
+            events.change?.warehouseId != null &&
+            events.change?.warehouseId != warehouseId) {
       return;
     }
     ++_generation;

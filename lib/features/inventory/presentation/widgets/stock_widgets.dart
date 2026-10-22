@@ -30,12 +30,20 @@ String stockHistoryLocation({
   String? warehouseId,
   String? ingredientId,
   String? documentId,
+  String? orderId,
+  String? orderItemId,
+  InventoryTransactionSource? source,
+  InventoryTransactionType? type,
 }) => Uri(
   path: '/app/inventory/transactions',
   queryParameters: {
     if (warehouseId != null) 'warehouseId': warehouseId,
     if (ingredientId != null) 'ingredientId': ingredientId,
     if (documentId != null) 'documentId': documentId,
+    if (orderId != null) 'orderId': orderId,
+    if (orderItemId != null) 'orderItemId': orderItemId,
+    if (source != null) 'sourceType': source.code,
+    if (type != null) 'transactionType': type.code,
   },
 ).toString();
 

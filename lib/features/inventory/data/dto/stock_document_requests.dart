@@ -32,6 +32,9 @@ abstract final class StockDocumentRequests {
     'direction': q.direction,
   };
   static Map<String, dynamic> transactions(InventoryTransactionQuery q) => {
+    if (q.orderId != null) 'orderId': q.orderId,
+    if (q.orderItemId != null) 'orderItemId': q.orderItemId,
+    if (q.source != null) 'sourceType': q.source!.code,
     if (q.warehouseId != null) 'warehouseId': q.warehouseId,
     if (q.ingredientId != null) 'ingredientId': q.ingredientId,
     if (q.documentId != null) 'documentId': q.documentId,

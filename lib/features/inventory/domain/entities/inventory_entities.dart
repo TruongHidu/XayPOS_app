@@ -29,6 +29,8 @@ class InventoryBalance {
     required this.baseUnit,
     required this.ingredientActive,
     required this.quantity,
+    required this.reservedQuantity,
+    required this.availableQuantity,
     required this.minQuantity,
     required this.lowStock,
     required this.version,
@@ -42,7 +44,10 @@ class InventoryBalance {
       ingredientName,
       baseUnit;
   final bool configured, ingredientActive, lowStock;
-  final InventoryQuantity quantity, minQuantity;
+  final InventoryQuantity quantity,
+      reservedQuantity,
+      availableQuantity,
+      minQuantity;
   final int? version;
   final DateTime? createdAt, updatedAt;
   String get key => '$warehouseId:$ingredientId';

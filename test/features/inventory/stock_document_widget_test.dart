@@ -86,15 +86,8 @@ Future<GoRouter> _pump(
       ),
       GoRoute(
         path: '/app/inventory/transactions',
-        builder: (context, state) => page(
-          InventoryTransactionScreen(
-            target: (
-              warehouseId: state.uri.queryParameters['warehouseId'],
-              ingredientId: state.uri.queryParameters['ingredientId'],
-              documentId: state.uri.queryParameters['documentId'],
-            ),
-          ),
-        ),
+        builder: (context, state) =>
+            page(InventoryTransactionRoute(query: state.uri.queryParameters)),
       ),
       GoRoute(
         path: '/dialog',
@@ -168,6 +161,73 @@ Future<void> _see(WidgetTester tester, Finder target) async {
 }
 
 void main() {
+  testWidgets('inventory-only reader sees mixed sources without order reads', (
+    tester,
+  ) async {
+    final ledger = FakeStockTransactions()
+      ..rows = [
+        StockDocumentDto.transaction(
+          recipeUseJson()..['transactionId'] = 'recipe-use-1',
+        ),
+        StockDocumentDto.transaction(transactionJson()),
+      ];
+    await _pump(
+      tester,
+      ledger: ledger,
+      auth: await _auth(permissions: {'INVENTORY_VIEW'}),
+      location: '/app/inventory/transactions',
+    );
+    expect(find.text('Chưa định giá'), findsOneWidget);
+    expect(find.text('Tiêu thụ theo món'), findsOneWidget);
+    expect(find.text('Xem đơn'), findsNothing);
+    expect(find.text('ISS-d1'), findsOneWidget);
+    expect(ledger.queries, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('invalid ledger source link makes no unfiltered request', (
+    tester,
+  ) async {
+    final ledger = FakeStockTransactions();
+    await _pump(
+      tester,
+      ledger: ledger,
+      location: '/app/inventory/transactions?sourceType=INVALID',
+    );
+    expect(
+      find.textContaining('Bộ lọc giao dịch không hợp lệ'),
+      findsOneWidget,
+    );
+    expect(ledger.queries, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'order stock change keeps threshold draft until explicit baseline reload',
+    (tester) async {
+      await _pump(
+        tester,
+        dialog: const InventoryThresholdDialog(
+          warehouseId: 'w1',
+          ingredientId: 'i1',
+          edit: true,
+        ),
+      );
+      final field = find.byType(TextField);
+      await tester.enterText(field, '123.456');
+      _container(tester).read(orderEventsProvider).emit('o1', null);
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field).controller!.text, '123.456');
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Lưu ngưỡng'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(find.text('Tải lại để đối chiếu'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'compact stock filters do not read the saved workspace scroll offset as a bool',
     (tester) async {
@@ -213,7 +273,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(StockSelect), findsNothing);
       await _tap(tester, find.text('Lọc và sắp xếp'));
-      expect(find.byType(StockSelect), findsNWidgets(3));
+      expect(find.byType(StockSelect), findsNWidgets(4));
 
       await _tap(tester, find.widgetWithText(ChoiceChip, 'Chứng từ'));
       expect(tester.takeException(), isNull);

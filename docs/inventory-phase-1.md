@@ -1,5 +1,8 @@
 # Inventory — giai đoạn 1
 
+Cập nhật 21/10/2026: balance hiển thị tồn vật lý, đang giữ và khả dụng.
+Xem [tích hợp nguyên liệu theo món](order-ingredient-inspection.md) cho contract và refresh mới.
+
 ## Phạm vi và cách dùng
 
 Mục **Kho** có sẵn trên sidebar mở `/app/inventory`, mặc định ở tab **Tồn kho**.

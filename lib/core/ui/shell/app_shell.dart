@@ -91,6 +91,7 @@ class _AppShellState extends ConsumerState<AppShell>
       'dish-status',
       'daily-revenue',
       'reports',
+      'inventory',
     }.contains(item.id)) {
       final router = GoRouter.maybeOf(context);
       if (router != null) {
