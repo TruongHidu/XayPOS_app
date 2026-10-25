@@ -1,6 +1,9 @@
 import '../entities/table_inputs.dart';
 
 abstract final class TableValidation {
+  // Versions must remain exact when encoded as JSON on both native and web.
+  static const _maxVersion = 9007199254740991; // 2^53 - 1
+
   static String? text(String? value, int max, {bool required = false}) =>
       required && (value == null || value.trim().isEmpty)
       ? 'Không được để trống.'
@@ -30,10 +33,7 @@ abstract final class TableValidation {
         if (input.displayOrder != null) {
           add('displayOrder', number(input.displayOrder));
         }
-        add(
-          'expectedVersion',
-          number(input.expectedVersion, max: 9223372036854775807),
-        );
+        add('expectedVersion', number(input.expectedVersion, max: _maxVersion));
       case CreateRestaurantTableInput():
         add('code', text(input.code, 50, required: true));
         add('name', text(input.name, 100, required: true));
@@ -52,33 +52,21 @@ abstract final class TableValidation {
         if (input.displayOrder != null) {
           add('displayOrder', number(input.displayOrder));
         }
-        add(
-          'expectedVersion',
-          number(input.expectedVersion, max: 9223372036854775807),
-        );
+        add('expectedVersion', number(input.expectedVersion, max: _maxVersion));
       case OpenTableSessionInput():
         add('guestCount', number(input.guestCount, min: 1, max: 32767));
         add('note', text(input.note, 2000));
-        add(
-          'expectedVersion',
-          number(input.expectedVersion, max: 9223372036854775807),
-        );
+        add('expectedVersion', number(input.expectedVersion, max: _maxVersion));
       case UpdateTableSessionInput():
         if (input.guestCount != null) {
           add('guestCount', number(input.guestCount, min: 1, max: 32767));
         }
         add('note', text(input.note, 2000));
-        add(
-          'expectedVersion',
-          number(input.expectedVersion, max: 9223372036854775807),
-        );
+        add('expectedVersion', number(input.expectedVersion, max: _maxVersion));
       case TransferTableSessionInput():
         add('targetTableId', text(input.targetTableId, 100, required: true));
         add('reason', text(input.reason, 1000));
-        add(
-          'expectedVersion',
-          number(input.expectedVersion, max: 9223372036854775807),
-        );
+        add('expectedVersion', number(input.expectedVersion, max: _maxVersion));
     }
     return errors;
   }

@@ -1,6 +1,6 @@
 import 'app/app.dart';
 import 'app/bootstrap.dart';
 
-void main() {
-  bootstrap(const App());
+Future<void> main() async {
+  await bootstrap(const App());
 }

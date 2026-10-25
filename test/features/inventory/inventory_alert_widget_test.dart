@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pos_saas_app/app/providers.dart';
+import 'package:pos_saas_app/app/app.dart';
+import 'package:pos_saas_app/app/router/app_router.dart';
+import 'package:pos_saas_app/core/realtime/realtime_config.dart';
+import 'package:pos_saas_app/core/realtime/realtime_transport.dart';
 import 'package:pos_saas_app/app/theme/app_theme.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
@@ -13,6 +17,8 @@ import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_a
 import 'package:pos_saas_app/features/inventory/presentation/widgets/inventory_alert_list.dart';
 import 'package:pos_saas_app/features/inventory/presentation/widgets/inventory_alert_widgets.dart';
 import '../../helpers/auth_fakes.dart';
+import '../../helpers/realtime_fakes.dart';
+import 'inventory_alert_realtime_test.dart' show alertEvent;
 import 'inventory_alert_fakes.dart';
 import 'inventory_fakes.dart';
 
@@ -25,6 +31,10 @@ Future<GoRouter> _pump(
   double width = 1200,
   double scale = 1,
   AuthController? auth,
+  bool mountRealtime = false,
+  bool realtimeEnabled = false,
+  FakeRealtimeFactory? realtimeFactory,
+  MemoryRealtimePreferenceStorage? preferences,
 }) async {
   tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
@@ -71,11 +81,28 @@ Future<GoRouter> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        realtimePreferenceStorageProvider.overrideWithValue(
+          preferences ?? MemoryRealtimePreferenceStorage(),
+        ),
         authControllerProvider.overrideWith((_) => auth!),
         inventoryAlertRepositoryProvider.overrideWithValue(alerts),
         warehouseRepositoryProvider.overrideWithValue(FakeWarehouses()),
+        if (mountRealtime) appRouterProvider.overrideWithValue(router),
+        if (mountRealtime)
+          realtimeConfigProvider.overrideWithValue(
+            RealtimeConfig(
+              enabled: realtimeEnabled,
+              mode: RealtimeTransportMode.websocket,
+            ),
+          ),
+        if (realtimeFactory != null)
+          realtimeTransportFactoryProvider.overrideWithValue(
+            realtimeFactory.call,
+          ),
       ],
-      child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      child: mountRealtime
+          ? const App()
+          : MaterialApp.router(theme: AppTheme.light, routerConfig: router),
     ),
   );
   await tester.pumpAndSettle();
@@ -83,6 +110,213 @@ Future<GoRouter> _pump(
 }
 
 void main() {
+  testWidgets(
+    'switch connects directly from OFF default and shares saved state with detail',
+    (tester) async {
+      final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+      final preferences = MemoryRealtimePreferenceStorage();
+      final router = await _pump(
+        tester,
+        repo,
+        mountRealtime: true,
+        realtimeEnabled: false,
+        realtimeFactory: factory,
+        preferences: preferences,
+      );
+      final toggle = find.byKey(
+        const ValueKey('inventory-alert-realtime-toggle'),
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, false);
+      expect(factory.transports, isEmpty);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(preferences.value, true);
+      expect(factory.transports, hasLength(1));
+      factory.last.connected();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      router.go('/app/inventory/alerts/a1');
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, true);
+      expect(factory.transports, hasLength(1));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(preferences.value, false);
+      expect(factory.last.closed, true);
+      expect(find.text('Thịt bò lịch sử'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('acknowledge-inventory-alert')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('saved OFF prevents a connection despite ON build default', (
+    tester,
+  ) async {
+    final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+    await _pump(
+      tester,
+      repo,
+      mountRealtime: true,
+      realtimeEnabled: true,
+      realtimeFactory: factory,
+      preferences: MemoryRealtimePreferenceStorage(false),
+    );
+    expect(factory.transports, isEmpty);
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey('inventory-alert-realtime-toggle')),
+          )
+          .value,
+      false,
+    );
+    expect(repo.queries, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'toggle storage error keeps runtime choice and REST usable on 320px',
+    (tester) async {
+      final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+      final preferences = MemoryRealtimePreferenceStorage()
+        ..onWrite = (_) async => throw StateError('storage unavailable');
+      await _pump(
+        tester,
+        repo,
+        mountRealtime: true,
+        realtimeFactory: factory,
+        preferences: preferences,
+        width: 320,
+        scale: 2,
+      );
+      final toggle = find.byKey(
+        const ValueKey('inventory-alert-realtime-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(factory.transports, hasLength(1));
+      expect(tester.widget<SwitchListTile>(toggle).value, true);
+      expect(find.textContaining('chưa được lưu'), findsOneWidget);
+      expect(repo.queries, hasLength(1));
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(factory.last.closed, true);
+      expect(tester.widget<SwitchListTile>(toggle).value, false);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('disabled realtime keeps REST detail and read-only ACK guard', (
+    tester,
+  ) async {
+    final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+    await _pump(
+      tester,
+      repo,
+      mountRealtime: true,
+      realtimeFactory: factory,
+      location: '/app/inventory/alerts/a1',
+      permissions: {'INVENTORY_VIEW'},
+    );
+    expect(factory.transports, isEmpty);
+    expect(repo.detailIds, ['a1']);
+    expect(find.text('Thịt bò lịch sử'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('acknowledge-inventory-alert')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'socket hint refreshes REST UI, retains filter, and disconnect does not block data',
+    (tester) async {
+      final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+      await _pump(
+        tester,
+        repo,
+        mountRealtime: true,
+        realtimeEnabled: true,
+        realtimeFactory: factory,
+      );
+      expect(factory.transports, hasLength(1));
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(InventoryAlertList)),
+      );
+      final controller = container.read(inventoryAlertListProvider);
+      controller.filter(controller.query.copyWith(status: () => null));
+      await tester.pumpAndSettle();
+      final search = find.widgetWithText(TextFormField, 'Tìm cảnh báo');
+      await tester.enterText(search, 'bò');
+      await tester.pump(const Duration(milliseconds: 350));
+      factory.last.connected();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      repo.rows = [
+        inventoryAlert(
+          status: 'ACKNOWLEDGED',
+          version: 3,
+          name: 'Thịt bò từ REST',
+        ),
+      ];
+      factory.last.handlers['inventory-alerts']!(alertEvent(version: 3));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(find.text('Thịt bò từ REST'), findsOneWidget);
+      expect(controller.query.q, 'bò');
+      expect(controller.query.status, isNull);
+      factory.last.fail(const RealtimeProblem(RealtimeFailureKind.network));
+      await tester.pumpAndSettle();
+      expect(find.text('Thịt bò từ REST'), findsOneWidget);
+      expect(
+        find.textContaining('Bạn vẫn có thể tải lại cảnh báo'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'App lifecycle closes background socket and foreground resubscribes once',
+    (tester) async {
+      final repo = FakeInventoryAlerts(), factory = FakeRealtimeFactory();
+      await _pump(
+        tester,
+        repo,
+        mountRealtime: true,
+        realtimeEnabled: true,
+        realtimeFactory: factory,
+      );
+      factory.last.connected();
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pumpAndSettle();
+      expect(factory.last.closed, true);
+      final count = factory.transports.length;
+      await tester.pump(const Duration(seconds: 30));
+      expect(factory.transports.length, count);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(factory.transports.length, count + 1);
+      factory.last.connected();
+      expect(factory.last.destinations, ['/user/queue/inventory-alerts']);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(repo.queries.length, greaterThan(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'list is lazy full DTO and opens snapshot/current detail; ACK is server state',
     (tester) async {

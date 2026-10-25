@@ -17,7 +17,75 @@ const credentials = LoginCredentials(
   password: 'password',
 );
 
+class _DeferredEntitlement extends FakeEntitlementRepository {
+  final started = Completer<void>();
+  final complete = Completer<Result<Entitlement>>();
+  @override
+  Future<Result<Entitlement>> getCurrentEntitlements() {
+    started.complete();
+    return complete.future;
+  }
+}
+
 void main() {
+  test('logout fences a late entitlement bootstrap', () async {
+    final entitlement = _DeferredEntitlement();
+    final controller = makeController(entitlementRepository: entitlement);
+    addTearDown(controller.dispose);
+    final login = controller.login(credentials);
+    await entitlement.started.future;
+    await controller.logout();
+    entitlement.complete.complete(Success(makeEntitlement()));
+    await login;
+    expect(controller.state.status, AuthStatus.unauthenticated);
+    expect(controller.state.session, isNull);
+  });
+
+  test(
+    'bootstrap preserves a token and permission refresh received while awaiting entitlements',
+    () async {
+      final events = SessionEvents(), entitlement = _DeferredEntitlement();
+      final controller = makeController(
+        sessionEvents: events,
+        entitlementRepository: entitlement,
+      );
+      addTearDown(controller.dispose);
+      addTearDown(events.dispose);
+      final login = controller.login(credentials);
+      await entitlement.started.future;
+      events.refreshed(
+        makeAuthSession(
+          permissions: {'INVENTORY_VIEW'},
+          tokens: makeTokens(accessToken: 'latest-access'),
+        ),
+      );
+      entitlement.complete.complete(Success(makeEntitlement()));
+      await login;
+      expect(controller.state.session!.tokens.accessToken, 'latest-access');
+      expect(controller.state.session!.permissions, {'INVENTORY_VIEW'});
+    },
+  );
+
+  test(
+    'transient entitlement failure during realtime grant revalidation retains current app session',
+    () async {
+      final auth = FakeAuthRepository()
+        ..restoreResult = Success(makeAuthSession());
+      final entitlement = FakeEntitlementRepository();
+      final controller = makeController(
+        authRepository: auth,
+        entitlementRepository: entitlement,
+      );
+      addTearDown(controller.dispose);
+      await controller.login(credentials);
+      final session = controller.state.session;
+      entitlement.result = const Error(networkFailure);
+      await controller.revalidateAccess();
+      expect(controller.state.status, AuthStatus.authenticated);
+      expect(identical(controller.state.session, session), true);
+    },
+  );
+
   group('AuthController login and role routing', () {
     test('OWNER active opens management shell', () async {
       final state = await _login(role: UserRole.owner);

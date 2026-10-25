@@ -42,17 +42,21 @@ class AuthController extends ChangeNotifier {
 
   AuthState _state = const AuthState();
   AuthState get state => _state;
+  int _generation = 0;
+  Future<void>? _accessCheck;
 
   Future<void> restore() async {
     if (_state.status == AuthStatus.restoring) return;
+    final generation = ++_generation;
     _emit(const AuthState(status: AuthStatus.restoring));
     final result = await _restoreSession();
+    if (generation != _generation) return;
     switch (result) {
       case Success(value: final authSession):
         if (authSession == null) {
           _emit(const AuthState(status: AuthStatus.unauthenticated));
         } else {
-          await _bootstrap(authSession);
+          await _bootstrap(authSession, generation);
         }
       case Error(failure: final failure):
         if (failure.type == FailureType.invalidRefreshToken) {
@@ -88,12 +92,16 @@ class AuthController extends ChangeNotifier {
       return;
     }
 
+    final generation = ++_generation;
+    _sessionEvents.beginScope();
     _emit(const AuthState(status: AuthStatus.authenticating));
     final deviceInfo = await _deviceInfoLoader();
+    if (generation != _generation) return;
     final result = await _login(credentials, deviceInfo: deviceInfo);
+    if (generation != _generation) return;
     switch (result) {
       case Success(value: final authSession):
-        await _bootstrap(authSession);
+        await _bootstrap(authSession, generation);
       case Error(failure: final failure):
         _emit(
           AuthState(
@@ -118,6 +126,7 @@ class AuthController extends ChangeNotifier {
               user: session.authenticatedUser,
               tokens: session.tokens,
             ),
+            ++_generation,
           );
         }
       case AuthFailureStage.login:
@@ -127,11 +136,59 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _logout();
+    ++_generation;
+    _sessionEvents.beginScope();
+    final logout = _logout();
     _emit(const AuthState(status: AuthStatus.unauthenticated));
+    await logout;
   }
 
-  Future<void> _bootstrap(AuthSession authSession) async {
+  /// Rechecks effective grants without briefly dropping the tenant scope.
+  /// Identical denied grants remain blocked by the realtime channel owner.
+  Future<void> revalidateAccess() {
+    final active = _accessCheck;
+    if (active != null) return active;
+    late final Future<void> task;
+    task = _revalidateAccess().whenComplete(() {
+      if (identical(_accessCheck, task)) _accessCheck = null;
+    });
+    _accessCheck = task;
+    return task;
+  }
+
+  Future<void> _revalidateAccess() async {
+    if (_state.status != AuthStatus.authenticated) return;
+    final generation = _generation;
+    final result = await _restoreSession();
+    if (generation != _generation) return;
+    if (result case Success(value: final session)) {
+      if (session == null) {
+        _sessionEvents.invalidate();
+      } else {
+        await _bootstrap(session, generation, preserveCurrent: true);
+      }
+    } else if (result case Error(failure: final failure)) {
+      if (failure.type == FailureType.invalidRefreshToken) {
+        _sessionEvents.invalidate();
+      } else if (failure.type == FailureType.restaurantInactive ||
+          failure.code == 'ACCOUNT_INACTIVE') {
+        _emit(
+          AuthState(
+            status: AuthStatus.failure,
+            failureStage: AuthFailureStage.restore,
+            message: failure.message,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _bootstrap(
+    AuthSession authSession,
+    int generation, {
+    bool preserveCurrent = false,
+  }) async {
+    if (generation != _generation) return;
     final user = authSession.user;
     if (user.role == UserRole.superAdmin ||
         user.role == UserRole.unsupported ||
@@ -152,28 +209,44 @@ class AuthController extends ChangeNotifier {
       user: user,
       tokens: authSession.tokens,
     );
-    _emit(AuthState(status: AuthStatus.bootstrapping, session: partialSession));
+    if (!preserveCurrent) {
+      _emit(
+        AuthState(status: AuthStatus.bootstrapping, session: partialSession),
+      );
+    }
     final result = await _getEntitlements();
+    if (generation != _generation) return;
+    final refreshed = _sessionEvents.refreshedSession;
+    final latestAuth =
+        refreshed?.user.id == user.id &&
+            refreshed?.user.restaurantId == user.restaurantId
+        ? refreshed!
+        : authSession;
+    final tokens = latestAuth.tokens;
     switch (result) {
       case Success(value: final entitlement):
         _emit(
           AuthState(
             status: AuthStatus.authenticated,
             session: AppSession.fromEntitlement(
-              user: user,
-              tokens: authSession.tokens,
+              user: latestAuth.user,
+              tokens: tokens,
               entitlement: entitlement,
             ),
           ),
         );
       case Error(failure: final failure):
+        if (preserveCurrent &&
+            (failure.isNetwork || failure.type == FailureType.internal)) {
+          return;
+        }
         if (failure.type == FailureType.subscriptionNotActive) {
           _emit(
             AuthState(
               status: AuthStatus.authenticated,
               session: AppSession.fromEntitlement(
-                user: user,
-                tokens: authSession.tokens,
+                user: latestAuth.user,
+                tokens: tokens,
                 entitlement: const Entitlement(
                   subscriptionId: null,
                   packageCode: null,
@@ -213,6 +286,7 @@ class AuthController extends ChangeNotifier {
 
   void _handleSessionEvent() {
     if (_sessionEvents.invalidated) {
+      ++_generation;
       _emit(
         const AuthState(
           status: AuthStatus.unauthenticated,
@@ -228,7 +302,7 @@ class AuthController extends ChangeNotifier {
       if (refreshed.user.id != current.authenticatedUser.id ||
           refreshed.user.restaurantId !=
               current.authenticatedUser.restaurantId) {
-        _bootstrap(refreshed);
+        _bootstrap(refreshed, ++_generation);
         return;
       }
       _emit(
@@ -250,6 +324,7 @@ class AuthController extends ChangeNotifier {
 
   @override
   void dispose() {
+    ++_generation;
     _sessionEvents.removeListener(_handleSessionEvent);
     super.dispose();
   }

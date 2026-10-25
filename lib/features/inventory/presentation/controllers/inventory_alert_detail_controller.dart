@@ -30,6 +30,7 @@ class InventoryAlertDetailController extends InventoryController {
       _scheduled = false,
       _applying = false;
   int _generation = 0, _revision = 0;
+  bool _refreshPending = false;
   String get key => InventoryEvents.alertKey(id);
   bool get allowed => current && AccessPolicy.canViewInventoryAlerts(session());
   bool get busy => events.pending(key);
@@ -42,6 +43,7 @@ class InventoryAlertDetailController extends InventoryController {
       !loading &&
       !requiresReview;
   void _event() {
+    _scheduleRefresh();
     if (_revision == events.revision) return;
     _revision = events.revision;
     final change = events.change, old = _value;
@@ -49,8 +51,12 @@ class InventoryAlertDetailController extends InventoryController {
         !allowed ||
         change == null ||
         change.kind == InventoryChangeKind.alert && change.alertId != id ||
+        change.kind == InventoryChangeKind.alertSync &&
+            change.alertIds.isNotEmpty &&
+            !change.alertIds.contains(id) ||
         !const {
           InventoryChangeKind.alert,
+          InventoryChangeKind.alertSync,
           InventoryChangeKind.balance,
           InventoryChangeKind.orderStock,
           InventoryChangeKind.warehouse,
@@ -63,17 +69,22 @@ class InventoryAlertDetailController extends InventoryController {
             change.ingredientId != old.ingredientId) {
       return;
     }
-    ++_generation;
-    if (_scheduled) return;
+    _refreshPending = true;
+    _scheduleRefresh();
+  }
+
+  void _scheduleRefresh() {
+    if (!_refreshPending || _scheduled || loading || busy || !allowed) return;
     _scheduled = true;
     Future.microtask(() {
       _scheduled = false;
-      if (allowed && !busy) unawaited(load());
+      if (_refreshPending && allowed && !busy && !loading) unawaited(load());
     });
   }
 
   Future<void> load() async {
     if (!allowed || busy) return;
+    _refreshPending = false;
     final generation = ++_generation;
     loading = true;
     failure = null;
@@ -98,6 +109,7 @@ class InventoryAlertDetailController extends InventoryController {
     }
     loading = false;
     changed();
+    _scheduleRefresh();
   }
 
   Future<Result<InventoryAlert>> acknowledge() async {
@@ -131,6 +143,7 @@ class InventoryAlertDetailController extends InventoryController {
             fresh.warehouseId,
             ingredientId: fresh.ingredientId,
             alertId: id,
+            resourceVersion: fresh.version,
           ),
         );
         _applying = false;
@@ -142,6 +155,16 @@ class InventoryAlertDetailController extends InventoryController {
       if (InventoryController.unknown(error) ||
           error.type == FailureType.conflict) {
         events.requireVerification(key, error);
+      }
+      if (error.type == FailureType.conflict) {
+        await load();
+        if (allowed &&
+            _value?.status == InventoryAlertStatus.open &&
+            _value!.version <= row.version) {
+          // A stale replica must not immediately enable another identical ACK.
+          events.requireVerification(key, error);
+          failure = error;
+        }
       }
     }
     changed();

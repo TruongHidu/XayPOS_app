@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+export 'realtime_providers.dart';
 
 export '../features/menu/presentation/providers/menu_providers.dart';
 export '../features/tables/presentation/providers/tables_providers.dart';
@@ -8,6 +9,8 @@ export '../features/qr_order/presentation/providers/qr_request_providers.dart';
 export '../features/inventory/presentation/providers/inventory_providers.dart';
 export '../features/inventory/presentation/providers/stock_document_providers.dart';
 export '../features/inventory/presentation/providers/inventory_alert_providers.dart';
+export '../features/inventory/presentation/providers/inventory_alert_notice_providers.dart';
+export '../features/inventory/presentation/providers/inventory_alert_polling_providers.dart';
 export '../features/inventory/presentation/providers/stock_audit_providers.dart';
 export '../features/reports/presentation/providers/report_providers.dart';
 
@@ -72,6 +75,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     remote: ref.watch(authRemoteDataSourceProvider),
     local: ref.watch(authLocalDataSourceProvider),
+    refreshCoordinator: ref.watch(apiClientsProvider).refreshCoordinator,
+    sessionEvents: ref.watch(sessionEventsProvider),
   );
 });
 

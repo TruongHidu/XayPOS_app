@@ -8,6 +8,7 @@ enum InventoryChangeKind {
   document,
   orderStock,
   alert,
+  alertSync,
   audit,
 }
 
@@ -23,11 +24,15 @@ class InventoryChange {
     this.orderItemId,
     this.alertId,
     this.auditId,
+    this.alertIds = const {},
+    this.resourceVersion,
   });
   final InventoryChangeKind kind;
   final String? warehouseId;
   final String? orderId, orderItemId;
   final String? alertId, auditId;
+  final Set<String> alertIds;
+  final int? resourceVersion;
   final String? ingredientId;
   final Warehouse? warehouse;
   final bool deleted;

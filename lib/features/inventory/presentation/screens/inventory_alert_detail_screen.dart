@@ -7,6 +7,7 @@ import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/inventory_quantity.dart';
 import '../widgets/inventory_alert_widgets.dart';
+import '../widgets/inventory_alert_sync_status.dart';
 import '../widgets/inventory_widgets.dart';
 import '../widgets/stock_widgets.dart';
 
@@ -62,6 +63,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const InventoryAlertSyncStatus(),
                   Wrap(
                     alignment: WrapAlignment.spaceBetween,
                     crossAxisAlignment: WrapCrossAlignment.center,

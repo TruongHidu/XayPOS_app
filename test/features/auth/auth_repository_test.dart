@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:pos_saas_app/core/auth/session_events.dart';
+import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/auth/data/data_sources/auth_local_data_source.dart';
@@ -12,6 +15,48 @@ import 'package:pos_saas_app/features/auth/data/repositories/auth_repository_imp
 import '../../helpers/auth_fakes.dart';
 
 void main() {
+  test(
+    'a late logout cannot clear tokens belonging to a later login',
+    () async {
+      final events = SessionEvents(), remote = _DeferredAuthRemote();
+      addTearDown(events.dispose);
+      final storage = FakeTokenStorage(makeTokens(accessToken: 'old'));
+      final repo = AuthRepositoryImpl(
+        remote: remote,
+        local: AuthLocalDataSourceImpl(storage),
+        sessionEvents: events,
+      );
+      final logout = repo.logout();
+      await remote.started.future;
+      events.beginScope();
+      storage.tokens = makeTokens(accessToken: 'other-login');
+      remote.release.complete();
+      await logout;
+      expect(storage.tokens!.accessToken, 'other-login');
+    },
+  );
+
+  test('a login response from an ended scope cannot save tokens', () async {
+    final events = SessionEvents(),
+        remote = _DeferredAuthRemote(delayLogin: true);
+    addTearDown(events.dispose);
+    final storage = FakeTokenStorage();
+    final repo = AuthRepositoryImpl(
+      remote: remote,
+      local: AuthLocalDataSourceImpl(storage),
+      sessionEvents: events,
+    );
+    final login = repo.login(
+      const LoginCredentials(email: 'test@example.com', password: 'password'),
+    );
+    await remote.started.future;
+    events.beginScope();
+    remote.release.complete();
+    expect(await login, isA<Error>());
+    expect(storage.tokens, isNull);
+    expect(storage.replaceCalls, 0);
+  });
+
   test('expired access token refreshes and replaces both tokens', () async {
     final oldTokens = makeTokens(
       accessToken: 'old-access',
@@ -100,6 +145,26 @@ void main() {
     }).toDomain();
     expect(user.restaurantId, isNull);
   });
+}
+
+class _DeferredAuthRemote extends FakeAuthRemoteDataSource {
+  _DeferredAuthRemote({this.delayLogin = false});
+  final bool delayLogin;
+  final started = Completer<void>(), release = Completer<void>();
+  @override
+  Future<void> logout(String refreshToken) async {
+    started.complete();
+    await release.future;
+  }
+
+  @override
+  Future<AuthResponseDto> login(LoginRequestDto request) async {
+    if (delayLogin) {
+      started.complete();
+      await release.future;
+    }
+    return super.login(request);
+  }
 }
 
 class FakeAuthRemoteDataSource implements AuthRemoteDataSource {

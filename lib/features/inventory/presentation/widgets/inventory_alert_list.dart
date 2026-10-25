@@ -10,6 +10,7 @@ import 'inventory_alert_widgets.dart';
 import 'inventory_widgets.dart';
 import 'stock_widgets.dart';
 import 'warehouse_picker.dart';
+import 'inventory_alert_sync_status.dart';
 
 /// Embedded in the inventory workspace. Its provider is created only while the
 /// tab is mounted; alert rows already contain all metadata, without detail GETs.
@@ -39,6 +40,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const InventoryAlertSyncStatus(),
         const Text(
           'Các đợt cảnh báo đã lưu, gồm cả lịch sử. “Đã xem” không có nghĩa đã hết thiếu. Xem “Tồn thấp hiện tại” để kiểm tra số dư đang dưới ngưỡng.',
         ),

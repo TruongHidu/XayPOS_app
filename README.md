@@ -15,19 +15,69 @@ rotation, phân quyền theo permission và giới hạn tính năng theo packag
 
 ## Chạy ứng dụng
 
-Backend URL được lấy từ compile-time environment, không hardcode trong widget:
+Copy file mẫu thành cấu hình cục bộ (chỉ cần khi chưa có `.env`):
 
 ```powershell
-flutter run --dart-define=API_BASE_URL=https://api.example.com
+Copy-Item -LiteralPath .env.example -Destination .env
 ```
 
-Khi chạy backend local trên Android Emulator:
+Sửa `.env` ở thư mục gốc, rồi chạy:
+
+```powershell
+flutter run
+```
+
+Trong VS Code, chọn **Xây POS (.env)** ở Run and Debug và nhấn F5. App tự nạp
+`.env` lúc khởi động, trước khi tạo ProviderScope và các client API/realtime;
+không cần truyền `--dart-define-from-file`. Backend URL và các tùy chọn được đọc
+tập trung tại `lib/core/config/environment.dart`.
+
+| Key | Ý nghĩa |
+| --- | --- |
+| `API_BASE_URL` | URL backend thiết bị truy cập được. Desktop/web dùng `http://localhost:8080`; Android Emulator dùng `http://10.0.2.2:8080`; thiết bị thật dùng IP LAN/domain của backend. |
+| `CASHIER_WEB_URL` | URL Cashier Web dự phòng; hiện chưa có nơi sử dụng. Có thể để trống. |
+| `REALTIME_ENABLED` | `true`/`false`: lựa chọn ban đầu khi thiết bị chưa lưu công tắc Cập nhật tự động. Lựa chọn trong app được ưu tiên. |
+| `REALTIME_TRANSPORT` | Mặc định `websocket` để nhận sự kiện; `polling` chỉ dùng khi chủ động chọn kiểm tra định kỳ. |
+| `REALTIME_URL` | Để trống để suy ra `/ws` từ `API_BASE_URL`; đặt rõ khi reverse proxy có đường WebSocket riêng. Bản release yêu cầu WSS. |
+
+`.env` và `.env.*` được bỏ qua bởi Git; chỉ commit `.env.example`. Dùng định dạng
+`KEY=value`, boolean viết `true`/`false`, comment đặt trên dòng riêng. `.env` được
+khai báo là Flutter asset và nạp một lần lúc app khởi động; sau khi sửa hãy dừng
+app và chạy lại để nhận cấu hình mới. `API_BASE_URL` trống dùng giá trị mặc định
+`http://localhost:8080`.
+
+Nếu gặp `FileNotFoundError` từ DotEnv sau khi thêm `.env`, bản ứng dụng đang chạy
+có thể chưa chứa asset mới. Kiểm tra `.env` có trong thư mục gốc và được khai báo
+ở `flutter: assets:` trong `pubspec.yaml`, sau đó **dừng hẳn phiên debug** và chạy:
+
+```powershell
+flutter pub get
+flutter run
+```
+
+Với lỗi thiếu asset này, hãy build/cài lại từ một phiên chạy mới. Khi `.env` thiếu
+hoặc rỗng, app hiện màn hình lỗi cấu hình có nút Thử lại. Các provider/API chỉ
+được tạo khi cấu hình đã nạp thành công.
+
+Có thể ghi đè một key bằng CLI, ví dụ Android Emulator:
 
 ```powershell
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
 ```
 
-`CASHIER_WEB_URL` có thể được truyền tương tự khi URL Cashier Web sẵn sàng.
+Thứ tự ưu tiên: key được truyền rõ bằng `--dart-define` → `.env` → mặc định.
+Override boolean `false` hoặc chuỗi trống vẫn được áp dụng theo key được truyền.
+Khi build cho môi trường khác, chuẩn bị `.env` với cấu hình của môi trường đó hoặc
+ghi đè từng key bằng `--dart-define`.
+
+Đây là cấu hình phía client: `.env` được đóng gói trong app và có thể bị trích xuất.
+JWT signing secret, mật khẩu database và khóa API bí mật phải nằm ở backend.
+Access/refresh token đăng nhập tiếp tục được lưu qua secure storage, không ghi
+vào `.env`.
+
+Tham khảo [nạp asset bằng flutter_dotenv](https://pub.dev/packages/flutter_dotenv),
+[compile-time override của Dart](https://dart.dev/libraries/core/environment-declarations)
+và [launch configuration của Dart Code](https://dartcode.org/docs/launch-configuration/).
 
 Module quản lý bàn nằm tại `/app/tables`, yêu cầu feature `TABLE_MANAGEMENT`
 và quyền `TABLE_VIEW`; các thao tác tạo/sửa/phục vụ kiểm tra quyền riêng.
@@ -61,5 +111,5 @@ Flutter tạo symlink: Settings → System → For developers → Developer Mode
 ```powershell
 flutter analyze
 flutter test
-flutter build apk --debug --dart-define=API_BASE_URL=https://api.example.com
+flutter build apk --debug
 ```

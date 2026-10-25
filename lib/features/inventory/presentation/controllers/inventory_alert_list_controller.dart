@@ -22,10 +22,12 @@ class InventoryAlertListController extends InventoryController {
   List<InventoryAlert> rows = const [];
   int totalElements = 0, totalPages = 0, _generation = 0, _revision = 0;
   bool loading = false, hasLoaded = false, _scheduled = false;
+  bool _refreshPending = false;
   Failure? failure;
   Timer? _debounce;
   bool get allowed => current && AccessPolicy.canViewInventoryAlerts(session());
   void _event() {
+    _scheduleRefresh();
     if (_revision == events.revision) return;
     _revision = events.revision;
     final change = events.change;
@@ -33,6 +35,7 @@ class InventoryAlertListController extends InventoryController {
         change == null ||
         !const {
           InventoryChangeKind.alert,
+          InventoryChangeKind.alertSync,
           InventoryChangeKind.balance,
           InventoryChangeKind.orderStock,
           InventoryChangeKind.warehouse,
@@ -45,12 +48,16 @@ class InventoryAlertListController extends InventoryController {
             query.ingredientId != change.ingredientId) {
       return;
     }
-    ++_generation;
-    if (_scheduled) return;
+    _refreshPending = true;
+    _scheduleRefresh();
+  }
+
+  void _scheduleRefresh() {
+    if (!_refreshPending || _scheduled || loading || !allowed) return;
     _scheduled = true;
     Future.microtask(() {
       _scheduled = false;
-      if (allowed) unawaited(load());
+      if (_refreshPending && allowed && !loading) unawaited(load());
     });
   }
 
@@ -77,6 +84,7 @@ class InventoryAlertListController extends InventoryController {
 
   Future<void> load() async {
     if (!allowed) return;
+    _refreshPending = false;
     _debounce?.cancel();
     final generation = ++_generation, q = query;
     if (!q.valid) {
@@ -111,6 +119,7 @@ class InventoryAlertListController extends InventoryController {
     }
     loading = false;
     changed();
+    _scheduleRefresh();
   }
 
   @override

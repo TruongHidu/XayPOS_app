@@ -12,6 +12,34 @@ import 'package:pos_saas_app/features/tables/domain/validation/table_validation.
 import 'table_fakes.dart';
 
 void main() {
+  final versionedInputs = <String, Object Function(int)>{
+    'update area': (version) =>
+        UpdateTableAreaInput(name: 'A', expectedVersion: version),
+    'update table': (version) =>
+        UpdateRestaurantTableInput(name: 'B', expectedVersion: version),
+    'open session': (version) =>
+        OpenTableSessionInput(expectedVersion: version),
+    'update session': (version) =>
+        UpdateTableSessionInput(note: 'Note', expectedVersion: version),
+    'transfer session': (version) => TransferTableSessionInput(
+      targetTableId: 't2',
+      expectedVersion: version,
+    ),
+  };
+  for (final entry in versionedInputs.entries) {
+    test('${entry.key} accepts only nonnegative web-safe versions', () {
+      for (final version in [0, 9007199254740991]) {
+        expect(TableValidation.input(entry.value(version)), isEmpty);
+      }
+      for (final version in [-1, 9007199254740992]) {
+        expect(
+          TableValidation.input(entry.value(version)),
+          contains('expectedVersion'),
+        );
+      }
+    });
+  }
+
   test('all 21 endpoint verbs, paths, versions and 204 contracts', () async {
     final s = TableServer();
     addTearDown(s.close);

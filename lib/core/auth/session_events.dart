@@ -5,6 +5,14 @@ import '../../features/auth/domain/entities/auth_session.dart';
 class SessionEvents extends ChangeNotifier {
   AuthSession? _refreshedSession;
   bool _invalidated = false;
+  int _generation = 0;
+  int get generation => _generation;
+
+  void beginScope() {
+    _generation++;
+    _refreshedSession = null;
+    _invalidated = false;
+  }
 
   AuthSession? get refreshedSession => _refreshedSession;
   bool get invalidated => _invalidated;
@@ -16,6 +24,7 @@ class SessionEvents extends ChangeNotifier {
   }
 
   void invalidate() {
+    _generation++;
     _refreshedSession = null;
     _invalidated = true;
     notifyListeners();

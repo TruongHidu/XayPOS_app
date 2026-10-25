@@ -75,7 +75,7 @@ như ký tự literal. Chỉ gửi query allowlist, kiểm tra độ dài, sort 
 
 ## State và đồng bộ
 
-Provider chỉ mount khi tab/màn hình được mở, có scope theo phiên kho hiện tại.
+Provider list/detail chỉ mount khi tab/màn hình được mở, có scope theo phiên kho hiện tại.
 Đổi người dùng, tenant, quyền/feature hoặc logout loại kết quả trễ.
 Token refresh cùng scope giữ trạng thái; request generation chặn kết quả bộ lọc cũ.
 Date/warehouse picker tự đóng khi capability không còn.
@@ -90,7 +90,20 @@ gộp các signal cùng lượt. Signal không biết warehouse vẫn được �
 khi thao tác tiếp; không tự đổi expectedVersion rồi retry.
 ACK replay hợp lệ là trạng thái server; RESOLVED không có nút ACK.
 Có tải lại thủ công và pull-to-refresh màn chi tiết; quay lại danh sách sẽ đọc mới.
-Không thêm polling toàn app, WebSocket hay notification delivery.
+Từ 24/10/2026, công tắc **Cập nhật tự động** mặc định dùng WebSocket/STOMP
+(`REALTIME_TRANSPORT=websocket`). Backend phát sự kiện khi đợt cảnh báo chạm ngưỡng
+được lưu và transaction đã commit; app đang kết nối nhận sự kiện rồi hiện popup,
+không đợi chu kỳ 20 giây. Cửa sổ gom 400 ms chỉ gộp các sự kiện cùng batch.
+Chỉ đợt OPEN mới hiện thông báo; ACK/RESOLVED hay thay đổi version không tạo popup
+mới. Cần app ở foreground, đủ quyền và kết nối thành công; trạng thái hiển thị
+**Đang tự động cập nhật cảnh báo.**
+
+REST vẫn tải dữ liệu khi mở màn hình, sau event và khi reconnect/resume, giữ nguyên
+bộ lọc và lịch sử; không báo lại toàn bộ cảnh báo cũ chỉ vì đồng bộ. OFF/background/
+đổi scope dừng kết nối và loại callback trễ. Polling 20 giây chỉ còn là lựa chọn
+riêng khi đặt rõ `REALTIME_TRANSPORT=polling`, không phải cơ chế thông báo ngay.
+Công tắc/lựa chọn lưu thiết bị giữ nguyên. Chi tiết tại
+[inventory-alert-realtime.md](inventory-alert-realtime.md).
 
 ## Xác minh
 
@@ -105,8 +118,9 @@ số lượng lớn chính xác, date exclusive, tìm literal, phân quyền đ�
 loại kết quả trễ, event phù hợp, không N+1, deep link ledger, thu hồi feature và picker.
 Widget kiểm tra 320/600/800/1200/1440 với text scale 100%/200% và tên dài.
 
-Kết quả cuối: **27/27 kiểm thử cảnh báo đạt**, toàn dự án **794/794 kiểm thử đạt**;
+Kết quả mốc REST ban đầu: **27/27 kiểm thử cảnh báo đạt**, toàn dự án **794/794 kiểm thử đạt**;
 analyzer sạch. Đã kiểm tra bốn ảnh render danh sách/chi tiết trên 320/1200 px.
 
-Không thay đổi backend hoặc kiểm thử mutation bằng dữ liệu nhà hàng thật.
-Chưa xác nhận end-to-end với backend đang chạy và thiết bị thật.
+Các kết quả mốc REST ban đầu ở trên không bao gồm kênh đẩy sự kiện mới. Cần xác minh
+riêng backend WebSocket và luồng end-to-end; không dùng dữ liệu nhà hàng thật để
+thử mutation hoặc coi kiểm thử fake transport là kiểm thử hai thiết bị thật.
