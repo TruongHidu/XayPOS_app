@@ -63,6 +63,8 @@ class OrderServiceContextController extends OrderController {
       selecting = false;
   int _generation = 0, _areasGeneration = 0, _revision = 0, _tableRevision = 0;
   Timer? _refreshTimer;
+  Future<void>? _reading;
+  bool _refreshRequested = false;
   bool get workspaceAllowed =>
       current && AccessPolicy.canOrderWorkspace(session());
   bool get tableAccess =>
@@ -93,10 +95,12 @@ class OrderServiceContextController extends OrderController {
 
   void _scheduleRefresh() {
     if (!tableAccess) return;
+    ++_generation;
+    if (_reading != null) _refreshRequested = true;
     _refreshTimer?.cancel();
     _refreshTimer = Timer(
       const Duration(milliseconds: 120),
-      () => unawaited(load()),
+      () => unawaited(load(background: true)),
     );
   }
 
@@ -134,7 +138,27 @@ class OrderServiceContextController extends OrderController {
     await Future.wait([load(), loadAreas()]);
   }
 
-  Future<void> load() async {
+  Future<void> load({bool background = false}) {
+    if (_reading != null && background) {
+      _refreshRequested = true;
+      return _reading!;
+    }
+    late final Future<void> future;
+    future = _readLoop().whenComplete(() {
+      if (identical(_reading, future)) _reading = null;
+    });
+    _reading = future;
+    return future;
+  }
+
+  Future<void> _readLoop() async {
+    do {
+      _refreshRequested = false;
+      await _load();
+    } while (_refreshRequested && tableAccess);
+  }
+
+  Future<void> _load() async {
     if (!tableAccess) return;
     _refreshTimer?.cancel();
     final generation = ++_generation;
@@ -142,7 +166,6 @@ class OrderServiceContextController extends OrderController {
     billsLoading = canView;
     failure = null;
     billsFailure = null;
-    _snapshot = null;
     changed();
     final result = await getTables(
       isCurrent: () => tableAccess && generation == _generation,
@@ -150,7 +173,6 @@ class OrderServiceContextController extends OrderController {
     if (!tableAccess || generation != _generation) return;
     switch (result) {
       case Error(failure: final error):
-        _tables = const [];
         loading = false;
         billsLoading = false;
         failure = error;

@@ -2,7 +2,9 @@
 
 Gọi món tại bàn/mang đi: `/app/order-create`; danh sách: `/app/orders`.
 Xem [tài liệu Order](docs/order-management.md) về permission, feature,
-idempotency, version và giới hạn chưa có payment/KDS.
+idempotency và version.
+Realtime QR/Order/KDS và cảnh báo kho dùng một socket theo quyền:
+xem [kiến trúc, cấu hình và kiểm thử realtime](docs/order-realtime.md).
 Grid Gọi món tải toàn bộ bàn AVAILABLE, ghép serving order theo currentSession để
 hiển thị totalAmount/currency. Nhấn bàn có bill mở trực tiếp detail; FAB “+” gọi thêm.
 Chọn bàn/chọn món không mở phiên. “Gửi đơn” dùng tableId+SUBMIT tạo phiên nếu cần

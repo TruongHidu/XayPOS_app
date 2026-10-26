@@ -5,6 +5,7 @@ import '../core/auth/access_policy.dart';
 import '../core/network/api_error_mapper.dart';
 import '../core/errors/failure.dart';
 import '../core/realtime/realtime_config.dart';
+import '../core/realtime/realtime_access_policy.dart';
 import '../core/realtime/realtime_connection_service.dart';
 import '../core/realtime/realtime_transport.dart';
 import '../core/realtime/realtime_preference_storage.dart';
@@ -15,6 +16,14 @@ import '../features/auth/presentation/controllers/auth_state.dart';
 import '../features/inventory/presentation/controllers/inventory_alert_realtime_coordinator.dart';
 import '../features/inventory/presentation/controllers/inventory_alert_notice.dart';
 import '../features/inventory/presentation/controllers/inventory_alert_polling_controller.dart';
+import '../features/order/presentation/controllers/order_realtime_coordinator.dart';
+import '../features/order/presentation/controllers/order_invalidation.dart';
+import '../features/tables/presentation/controllers/table_events.dart';
+import '../features/qr_order/presentation/controllers/qr_realtime_coordinator.dart';
+import '../features/qr_order/presentation/controllers/qr_events.dart';
+import '../features/kitchen/presentation/controllers/kitchen_realtime_coordinator.dart';
+import '../features/kitchen/presentation/controllers/kitchen_events.dart';
+import 'realtime_notice.dart';
 import 'providers.dart';
 
 final realtimeConfigProvider = Provider((ref) => RealtimeConfig.environment);
@@ -36,6 +45,42 @@ final realtimeTransportFactoryProvider = Provider<RealtimeTransportFactory>(
   (ref) =>
       () => StompWebSocketTransport(),
 );
+
+/// Downstream UI reconciliation hint. Does not read binding/bootstrap, avoiding
+/// a dependency cycle with scope-owned feature controllers.
+final realtimeChannelConnectedProvider = Provider.family<bool, String>((
+  ref,
+  id,
+) {
+  final allowed = ref.watch(
+    authControllerProvider.select((auth) {
+      final session = auth.state.session;
+      return switch (id) {
+        'orders' || 'qr-order-requests' => RealtimeAccessPolicy.orders(session),
+        'kitchen-orders' => RealtimeAccessPolicy.kitchen(session),
+        'inventory-alerts' => RealtimeAccessPolicy.inventory(session),
+        _ => false,
+      };
+    }),
+  );
+  final connected = ref.watch(
+    realtimeConnectionProvider.select(
+      (connection) =>
+          connection.state == RealtimeConnectionState.connected &&
+          !connection.blockedChannels.contains(id),
+    ),
+  );
+  final foreground = ref.watch(realtimeForegroundProvider);
+  final enabled = ref.watch(
+    realtimeSettingsProvider.select((s) => s.effectiveEnabled),
+  );
+  final websocket = ref.watch(
+    realtimeConfigProvider.select(
+      (c) => c.mode == RealtimeTransportMode.websocket,
+    ),
+  );
+  return allowed && connected && foreground && enabled && websocket;
+});
 
 final realtimeConnectionProvider = ChangeNotifierProvider(
   (ref) => RealtimeConnectionService(
@@ -63,7 +108,7 @@ final Provider<InventoryAlertRealtimeCoordinator?>
 inventoryAlertRealtimeCoordinatorProvider = Provider((ref) {
   ref.watch(inventoryScopeProvider);
   final session = ref.read(authControllerProvider).state.session;
-  if (!AccessPolicy.canViewInventoryAlerts(session)) return null;
+  if (!RealtimeAccessPolicy.inventory(session)) return null;
   final coordinator = InventoryAlertRealtimeCoordinator(
     ref.read(inventoryEventsProvider),
     debounce: ref.read(realtimeConfigProvider).debounce,
@@ -71,6 +116,90 @@ inventoryAlertRealtimeCoordinatorProvider = Provider((ref) {
   ref.onDispose(coordinator.dispose);
   return coordinator;
 });
+
+final qrEventsProvider = ChangeNotifierProvider((ref) {
+  ref.watch(orderScopeProvider);
+  return QrEvents();
+});
+final kitchenEventsProvider = ChangeNotifierProvider((ref) {
+  ref.watch(orderScopeProvider);
+  return KitchenEvents();
+});
+final orderRealtimeCoordinatorProvider = Provider<OrderRealtimeCoordinator?>((
+  ref,
+) {
+  ref.watch(orderScopeProvider);
+  if (!RealtimeAccessPolicy.orders(
+    ref.read(authControllerProvider).state.session,
+  )) {
+    return null;
+  }
+  final events = ref.read(orderEventsProvider);
+  final tables = ref.read(tableEventsProvider);
+  final auth = ref.read(authControllerProvider);
+  final scope = AccessPolicy.orderScope(auth.state.session);
+  final coordinator = OrderRealtimeCoordinator(
+    isCurrent: () => scope == AccessPolicy.orderScope(auth.state.session),
+    debounce: ref.read(realtimeConfigProvider).debounce,
+    invalidate: (hint) {
+      events.invalidateRemote(hint);
+      // The wire has session IDs, not a trustworthy current table snapshot.
+      // Only mounted table readers react; no background detail controllers.
+      tables.emit(
+        const TableChange(TableChangeKind.refresh, '', remoteOrder: true),
+      );
+    },
+  );
+  ref.onDispose(coordinator.dispose);
+  return coordinator;
+});
+final qrRealtimeCoordinatorProvider = Provider<QrRealtimeCoordinator?>((ref) {
+  ref.watch(orderScopeProvider);
+  if (!RealtimeAccessPolicy.orders(
+    ref.read(authControllerProvider).state.session,
+  )) {
+    return null;
+  }
+  final auth = ref.read(authControllerProvider);
+  final scope = AccessPolicy.orderScope(auth.state.session);
+  final coordinator = QrRealtimeCoordinator(
+    ref.read(qrEventsProvider),
+    isCurrent: () => scope == AccessPolicy.orderScope(auth.state.session),
+    debounce: ref.read(realtimeConfigProvider).debounce,
+    onCreated: (tables, takeaway) {
+      ref
+          .read(staffRealtimeNoticeProvider)
+          .show(
+            takeaway > 0
+                ? 'Có ${tables + takeaway} yêu cầu QR mới chờ duyệt ($takeaway mang đi).'
+                : 'Có $tables yêu cầu QR tại bàn mới chờ duyệt.',
+          );
+    },
+  );
+  ref.onDispose(coordinator.dispose);
+  return coordinator;
+});
+final kitchenRealtimeCoordinatorProvider =
+    Provider<KitchenRealtimeCoordinator?>((ref) {
+      ref.watch(orderScopeProvider);
+      if (!RealtimeAccessPolicy.kitchen(
+        ref.read(authControllerProvider).state.session,
+      )) {
+        return null;
+      }
+      final auth = ref.read(authControllerProvider);
+      final scope = AccessPolicy.kitchenScope(auth.state.session);
+      final coordinator = KitchenRealtimeCoordinator(
+        ref.read(kitchenEventsProvider),
+        isCurrent: () => scope == AccessPolicy.kitchenScope(auth.state.session),
+        debounce: ref.read(realtimeConfigProvider).debounce,
+        onNewItems: (count) => ref
+            .read(staffRealtimeNoticeProvider)
+            .show('Bếp có $count lượt món mới cần chế biến.'),
+      );
+      ref.onDispose(coordinator.dispose);
+      return coordinator;
+    });
 
 /// One resolved snapshot prevents listeners from reading partially rebuilt auth,
 /// scope and coordinator providers while configuring the connection.
@@ -80,12 +209,18 @@ typedef RealtimeBinding = ({
   RealtimeSession? session,
   InventoryAlertRealtimeCoordinator? coordinator,
   InventoryAlertPollingController? polling,
+  OrderRealtimeCoordinator? orders,
+  QrRealtimeCoordinator? qr,
+  KitchenRealtimeCoordinator? kitchen,
   RealtimeConfig config,
 });
 
 final realtimeBindingProvider = Provider<RealtimeBinding>((ref) {
   final auth = ref.watch(authControllerProvider).state;
   final coordinator = ref.watch(inventoryAlertRealtimeCoordinatorProvider);
+  final orders = ref.watch(orderRealtimeCoordinatorProvider);
+  final qr = ref.watch(qrRealtimeCoordinatorProvider);
+  final kitchen = ref.watch(kitchenRealtimeCoordinatorProvider);
   final polling = ref.watch(inventoryAlertPollingProvider.notifier);
   final enabled = ref.watch(
     realtimeSettingsProvider.select((settings) => settings.effectiveEnabled),
@@ -111,6 +246,9 @@ final realtimeBindingProvider = Provider<RealtimeBinding>((ref) {
         : null,
     coordinator: session != null ? coordinator : null,
     polling: session != null ? polling : null,
+    orders: session != null ? orders : null,
+    qr: session != null ? qr : null,
+    kitchen: session != null ? kitchen : null,
     config: config,
   );
 }, name: 'realtimeBinding');
@@ -124,6 +262,7 @@ final realtimeBootstrapProvider = Provider.autoDispose<void>((ref) {
   void Function(InventoryAlertNotice)? noticeListener;
   void Function(InventoryAlertNotice)? pollingNoticeListener;
   bool previouslyEnabled = false;
+  RealtimeBinding? previousBinding;
   void synchronize(RealtimeBinding binding) {
     if (!ref.mounted) return;
     final coordinator = binding.coordinator;
@@ -172,6 +311,29 @@ final realtimeBootstrapProvider = Provider.autoDispose<void>((ref) {
     }
     if (previouslyEnabled && !binding.enabled) coordinator?.cancelPending();
     previouslyEnabled = binding.enabled;
+    final socketActive =
+        binding.enabled &&
+        binding.foreground &&
+        binding.session != null &&
+        binding.config.mode == RealtimeTransportMode.websocket;
+    binding.orders?.setActive(socketActive);
+    binding.qr?.setActive(socketActive);
+    binding.kitchen?.setActive(socketActive);
+    final previous = previousBinding;
+    previousBinding = binding;
+    if (previous != null && !previous.foreground && binding.foreground) {
+      // Access can be fenced silently by the server while the app is away.
+      if (binding.orders != null || binding.kitchen != null) {
+        unawaited(ref.read(authControllerProvider).revalidateAccess());
+      }
+      // QR/KDS already refresh through their route lifecycle observers.
+      // Order lists/details have no polling or lifecycle owner of their own.
+      if (!socketActive && binding.orders != null) {
+        ref
+            .read(orderEventsProvider)
+            .invalidateRemote(OrderInvalidation(all: true));
+      }
+    }
     coordinator?.setForeground(binding.foreground);
     polling?.configure(
       enabled: binding.enabled && binding.session != null,
@@ -183,8 +345,13 @@ final realtimeBootstrapProvider = Provider.autoDispose<void>((ref) {
           binding.config.mode == RealtimeTransportMode.websocket,
       foreground: binding.foreground,
       session: binding.session,
-      channels: binding.session != null && coordinator != null
-          ? [coordinator.channel]
+      channels: binding.session != null
+          ? [
+              if (coordinator != null) coordinator.channel,
+              if (binding.orders != null) binding.orders!.channel,
+              if (binding.qr != null) binding.qr!.channel,
+              if (binding.kitchen != null) binding.kitchen!.channel,
+            ]
           : const [],
     );
   }
@@ -206,6 +373,9 @@ final realtimeBootstrapProvider = Provider.autoDispose<void>((ref) {
       notify: false,
     );
     observedCoordinator?.setForeground(false);
+    previousBinding?.orders?.setActive(false);
+    previousBinding?.qr?.setActive(false);
+    previousBinding?.kitchen?.setActive(false);
     connection.stop(notify: false);
   });
 }, name: 'realtimeBootstrap');

@@ -34,11 +34,20 @@ final qrInboxProvider = ChangeNotifierProvider.autoDispose((ref) {
   void changed() {
     if (revision == tableEvents.revision) return;
     revision = tableEvents.revision;
+    if (tableEvents.change?.remoteOrder == true) return;
     controller.invalidate();
   }
 
   tableEvents.addListener(changed);
   ref.onDispose(() => tableEvents.removeListener(changed));
+  ref.listen(qrEventsProvider, (_, _) => controller.invalidate());
+  controller.setRealtimeConnected(
+    ref.read(realtimeChannelConnectedProvider('qr-order-requests')),
+  );
+  ref.listen(
+    realtimeChannelConnectedProvider('qr-order-requests'),
+    (_, value) => controller.setRealtimeConnected(value),
+  );
   return controller;
 });
 final qrReviewProvider = ChangeNotifierProvider.autoDispose
@@ -100,6 +109,44 @@ final qrReviewProvider = ChangeNotifierProvider.autoDispose
       controller.addListener(retain);
       ref.listen(orderEventsProvider, (_, _) => controller.changed());
       ref.listen(tableEventsProvider, (_, _) => controller.changed());
+      final orders = ref.read(orderEventsProvider),
+          tables = ref.read(tableEventsProvider);
+      var orderRevision = orders.revision, tableRevision = tables.revision;
+      ref.listen(qrEventsProvider, (_, events) {
+        final hint = events.hint;
+        if (hint == null) return;
+        final review = controller.review;
+        if (hint.all ||
+            hint.requestIds.contains(id) ||
+            review != null &&
+                (hint.tableIds.contains(review.request.tableId) ||
+                    hint.sessionIds.contains(review.context?.sessionId))) {
+          controller.invalidate();
+        }
+      });
+      ref.listen(orderEventsProvider, (_, events) {
+        if (orderRevision == events.revision) return;
+        orderRevision = events.revision;
+        final context = controller.review?.context;
+        if (!controller.resolved &&
+            context != null &&
+            (events.affectsOrder(context.order?.id ?? '') ||
+                events.affectsSession(context.sessionId))) {
+          controller.invalidate();
+        }
+      });
+      ref.listen(tableEventsProvider, (_, events) {
+        if (tableRevision == events.revision) return;
+        tableRevision = events.revision;
+        if (events.change?.remoteOrder == true) return;
+        final request = controller.review?.request;
+        if (!controller.resolved &&
+            request != null &&
+            (events.change?.kind == TableChangeKind.refresh ||
+                events.change?.id == request.tableId)) {
+          controller.invalidate();
+        }
+      });
       ref.onDispose(() => controller.removeListener(retain));
       Future.microtask(controller.load);
       return controller;

@@ -39,6 +39,8 @@ class QrReviewController extends OrderController {
   DateTime? retryAt;
   Timer? _cooldownTimer, _expiryTimer;
   int _generation = 0;
+  Future<void>? _reading;
+  bool _readAgain = false;
   String? _lockedOrder, _session;
   bool _ownsUnresolved = false;
   bool get coolingDown => retryAt?.isAfter(clock()) == true;
@@ -85,7 +87,35 @@ class QrReviewController extends OrderController {
             review!.context?.sessionId == null,
       );
 
-  Future<void> load() async {
+  /// Never invalidate a running command's generation or release its locks.
+  void invalidate() {
+    if (!can('ORDER_VIEW')) return;
+    needsReload = true;
+    _readAgain = true;
+    if (!busy) ++_generation;
+    changed();
+    if (!busy && !uncertain && !coolingDown) unawaited(load());
+  }
+
+  Future<void> load() {
+    if (!can('ORDER_VIEW') || busy || coolingDown) return Future.value();
+    if (_reading != null) {
+      _readAgain = true;
+      return _reading!;
+    }
+    final future = _readLoop().whenComplete(() => _reading = null);
+    _reading = future;
+    return future;
+  }
+
+  Future<void> _readLoop() async {
+    do {
+      _readAgain = false;
+      await _load();
+    } while (_readAgain && can('ORDER_VIEW') && !busy && !coolingDown);
+  }
+
+  Future<void> _load() async {
     if (!can('ORDER_VIEW') || busy || coolingDown) return;
     final generation = ++_generation;
     loading = true;
@@ -199,6 +229,7 @@ class QrReviewController extends OrderController {
         if (!uncertain) _release();
       }
       changed();
+      if (_readAgain && current && !uncertain) unawaited(load());
     }
   }
 
@@ -241,6 +272,7 @@ class QrReviewController extends OrderController {
     } finally {
       busy = false;
       changed();
+      if (_readAgain && current && !uncertain) unawaited(load());
     }
   }
 

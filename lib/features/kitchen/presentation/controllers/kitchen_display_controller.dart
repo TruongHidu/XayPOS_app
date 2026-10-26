@@ -14,10 +14,19 @@ class KitchenDisplayController extends KitchenController {
     super.onAccessDenied,
     required this.getQueue,
     this.pollInterval = const Duration(seconds: 12),
+    this.readBlocked,
     DateTime Function()? clock,
   }) : clock = clock ?? DateTime.now;
   final GetKitchenQueue getQueue;
   final Duration pollInterval;
+  final bool Function()? readBlocked;
+  bool _socketConnected = false;
+  void setRealtimeConnected(bool value) {
+    if (_socketConnected == value) return;
+    _socketConnected = value;
+    _schedulePoll();
+  }
+
   final DateTime Function() clock;
   final Map<String, KitchenQueueItem> _items = {};
   final Map<String, int> _minimumVersions = {};
@@ -105,13 +114,18 @@ class KitchenDisplayController extends KitchenController {
     _poll?.cancel();
     if (!current || !_visible || !_foreground || !can('KITCHEN_VIEW')) return;
     _poll = Timer(
-      pollInterval * (1 << _backoff),
+      (_socketConnected ? const Duration(seconds: 60) : pollInterval) *
+          (1 << _backoff),
       () => unawaited(refresh(silent: true)),
     );
   }
 
   Future<void> refresh({bool silent = false}) {
     if (!can('KITCHEN_VIEW')) return Future.value();
+    if (readBlocked?.call() == true) {
+      _refreshRequested = true;
+      return Future.value();
+    }
     if (_reading != null) {
       if (_readingGeneration != _generation) _refreshRequested = true;
       return _reading!;
@@ -130,7 +144,9 @@ class KitchenDisplayController extends KitchenController {
       _refreshRequested = false;
       _readingGeneration = _generation + 1;
       await _load(silent: silent);
-    } while (_refreshRequested && can('KITCHEN_VIEW'));
+    } while (_refreshRequested &&
+        can('KITCHEN_VIEW') &&
+        readBlocked?.call() != true);
   }
 
   /// Any reads already running must not overwrite a subsequent POST response.
@@ -142,7 +158,17 @@ class KitchenDisplayController extends KitchenController {
 
   void eventRefresh() {
     invalidateReads();
-    if (_visible && _foreground) unawaited(refresh());
+    _refreshRequested = true;
+    if (_visible && _foreground) unawaited(refresh(silent: true));
+  }
+
+  void resumeQueuedRefresh() {
+    if (_refreshRequested &&
+        _visible &&
+        _foreground &&
+        readBlocked?.call() != true) {
+      unawaited(refresh(silent: true));
+    }
   }
 
   Future<void> _load({bool silent = false}) async {

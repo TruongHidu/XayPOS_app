@@ -39,6 +39,14 @@ class QrInboxController extends OrderController {
   Timer? _timer;
   Future<void>? _reading;
   bool _reloadRequested = false;
+  bool _socketConnected = false;
+  void setRealtimeConnected(bool value) {
+    if (_socketConnected == value) return;
+    _socketConnected = value;
+    if (value) arrivals = 0;
+    _schedule();
+  }
+
   bool get coolingDown => retryAt?.isAfter(clock()) == true;
 
   void setVisible(Object owner, bool value) {
@@ -104,8 +112,13 @@ class QrInboxController extends OrderController {
               .where((r) => r.pendingAt(clock()))
               .map((r) => r.id)
               .toSet();
-          arrivals = _initialized ? fresh.difference(_seen).length : 0;
-          _seen.addAll(fresh);
+          arrivals = _initialized && !_socketConnected
+              ? fresh.difference(_seen).length
+              : 0;
+          // Only the current snapshot is needed for polling arrival detection.
+          _seen
+            ..clear()
+            ..addAll(fresh);
           _initialized = true;
           _rows = rows;
           lastUpdated = clock();
@@ -133,7 +146,8 @@ class QrInboxController extends OrderController {
     if (!can('ORDER_VIEW') || _visible.isEmpty || !_foreground) return;
     final wait = coolingDown
         ? retryAt!.difference(clock())
-        : pollInterval * (1 << _backoff);
+        : (_socketConnected ? const Duration(seconds: 60) : pollInterval) *
+              (1 << _backoff);
     _timer = Timer(wait, () => unawaited(refresh()));
   }
 

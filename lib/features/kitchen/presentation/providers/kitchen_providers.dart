@@ -30,22 +30,37 @@ final kitchenDisplayProvider =
     ChangeNotifierProvider.autoDispose<KitchenDisplayController>((ref) {
       ref.watch(kitchenScopeProvider);
       final auth = ref.read(authControllerProvider);
+      final orders = ref.read(orderEventsProvider);
       final controller = KitchenDisplayController(
         session: () => auth.state.session,
         onAccessDenied: ref.read(orderRecoveryProvider).handle,
         getQueue: GetKitchenQueue(ref.watch(kitchenRepositoryProvider)),
+        readBlocked: () => orders.hasPending,
       );
       var orderRevision = ref.read(orderEventsProvider).revision;
       var tableRevision = ref.read(tableEventsProvider).revision;
       ref.listen(orderEventsProvider, (_, events) {
+        controller.resumeQueuedRefresh();
         if (orderRevision == events.revision) return;
         orderRevision = events.revision;
+        if (events.remote != null) {
+          return; // Kitchen has its own fan-out consumer.
+        }
         if (events.source is KitchenOrderActionController) return;
         controller.eventRefresh();
       });
+      ref.listen(kitchenEventsProvider, (_, _) => controller.eventRefresh());
+      controller.setRealtimeConnected(
+        ref.read(realtimeChannelConnectedProvider('kitchen-orders')),
+      );
+      ref.listen(
+        realtimeChannelConnectedProvider('kitchen-orders'),
+        (_, value) => controller.setRealtimeConnected(value),
+      );
       ref.listen(tableEventsProvider, (_, events) {
         if (tableRevision == events.revision) return;
         tableRevision = events.revision;
+        if (events.change?.remoteOrder == true) return;
         controller.eventRefresh();
       });
       return controller;

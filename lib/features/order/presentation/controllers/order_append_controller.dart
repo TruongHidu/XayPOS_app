@@ -76,6 +76,26 @@ class OrderAppendController extends OrderController {
 
   bool get canPick =>
       appendable && AccessPolicy.canMenu(session(), 'MENU_VIEW');
+  void rootChanged() {
+    final target = root();
+    if (current &&
+        dirty &&
+        !frozen &&
+        target != null &&
+        const {
+          OrderStatus.completed,
+          OrderStatus.cancelled,
+        }.contains(target.summary.status)) {
+      failure = const Failure(
+        type: FailureType.conflict,
+        code: 'ORDER_NO_LONGER_SERVING',
+        message:
+            'Đơn đã kết thúc trên thiết bị khác. Các món đang chọn chưa được gửi; hãy kiểm tra hoặc bỏ giỏ gọi thêm.',
+      );
+    }
+    changed();
+  }
+
   bool get canRetry =>
       uncertain &&
       !keyConflict &&

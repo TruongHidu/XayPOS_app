@@ -22,12 +22,16 @@ class OrderListController extends OrderController {
   Failure? failure;
   bool loading = false;
   int _generation = 0, _revision = 0;
+  Future<void>? _reading;
+  bool _reloadRequested = false;
   Timer? _debounce;
   void _event() {
     if (_revision == events.revision) return;
     _revision = events.revision;
     if (query.tableSessionId == null ||
-        query.tableSessionId == events.sessionId) {
+        events.affectsSession(query.tableSessionId)) {
+      ++_generation;
+      _reloadRequested = true;
       unawaited(load());
     }
   }
@@ -66,7 +70,24 @@ class OrderListController extends OrderController {
     return load();
   }
 
-  Future<void> load() async {
+  Future<void> load() {
+    if (_reading != null) {
+      _reloadRequested = true;
+      return _reading!;
+    }
+    final future = _readLoop().whenComplete(() => _reading = null);
+    _reading = future;
+    return future;
+  }
+
+  Future<void> _readLoop() async {
+    do {
+      _reloadRequested = false;
+      await _load();
+    } while (_reloadRequested && current && can('ORDER_VIEW'));
+  }
+
+  Future<void> _load() async {
     if (!can('ORDER_VIEW')) return;
     if (!query.valid) {
       loading = false;
@@ -89,7 +110,7 @@ class OrderListController extends OrderController {
           query = query.copyWith(
             page: value.totalPages > 0 ? value.totalPages - 1 : 0,
           );
-          return load();
+          _reloadRequested = true;
         }
       case Error(failure: final f):
         failure = f;

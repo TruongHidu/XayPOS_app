@@ -25,6 +25,8 @@ class RealtimeProblem {
     'RESTAURANT_INACTIVE',
     'REALTIME_PROTOCOL_VIOLATION',
     'REALTIME_CONNECTION_LIMIT',
+    'REALTIME_SUBSCRIPTION_LIMIT',
+    'REALTIME_SHUTDOWN',
   };
   static String? stableCode(String? candidate) =>
       codes.contains(candidate) ? candidate : null;

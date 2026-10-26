@@ -5,6 +5,7 @@ import 'router/app_router.dart';
 import 'providers.dart';
 import 'theme/app_theme.dart';
 import '../features/inventory/presentation/widgets/inventory_alert_notice_overlay.dart';
+import '../core/ui/widgets/staff_realtime_notice_overlay.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -102,6 +103,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         children: [
           if (child != null) child,
           const InventoryAlertNoticeOverlay(),
+          const StaffRealtimeNoticeOverlay(),
         ],
       ),
     );

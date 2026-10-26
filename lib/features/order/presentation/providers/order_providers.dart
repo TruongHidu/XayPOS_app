@@ -68,7 +68,7 @@ class OrderAccessRecovery {
       await _pending;
       return;
     }
-    final future = auth.restore();
+    final future = auth.revalidateAccess();
     _pending = future;
     try {
       await future;
@@ -201,7 +201,8 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
         root: () => ref.read(orderDetailProvider(id)).order,
         blocked: () {
           final detail = ref.read(orderDetailProvider(id));
-          return detail.requiresVerification ||
+          return detail.loading ||
+              detail.requiresVerification ||
               ref
                   .read(tableEventsProvider)
                   .sessionTransferBlocked(detail.order?.summary.tableSessionId);
@@ -220,7 +221,7 @@ final orderAppendProvider = ChangeNotifierProvider.autoDispose
         keys: ref.watch(orderKeyGeneratorProvider),
       );
       // Keep the selected read-side alive without rebuilding the append controller.
-      ref.listen(orderDetailProvider(id), (_, _) => controller.changed());
+      ref.listen(orderDetailProvider(id), (_, _) => controller.rootChanged());
       ref.listen(tableEventsProvider, (_, _) => controller.changed());
       void Function()? release;
       void retainIntent() {

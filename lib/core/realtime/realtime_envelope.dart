@@ -47,10 +47,20 @@ class RealtimeEnvelope {
         resourceId: text('resourceId'),
         resourceVersion: version,
         occurredAt: time,
-        payload: Map.unmodifiable(data['payload'] as Map<String, dynamic>),
+        payload: _freeze(data['payload']) as Map<String, dynamic>,
       );
     } catch (_) {
       return null;
     }
+  }
+
+  static dynamic _freeze(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return Map<String, dynamic>.unmodifiable(
+        value.map((key, item) => MapEntry(key, _freeze(item))),
+      );
+    }
+    if (value is List) return List<dynamic>.unmodifiable(value.map(_freeze));
+    return value;
   }
 }

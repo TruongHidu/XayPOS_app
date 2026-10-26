@@ -78,6 +78,23 @@ class RealtimeConnectionService extends ChangeNotifier {
     required List<RealtimeChannel> channels,
   }) {
     if (_disposed) return;
+    final ids = <String>{}, destinations = <String>{};
+    if (channels.length > 4 ||
+        channels.any(
+          (c) =>
+              !RegExp(r'^[A-Za-z0-9._:-]{1,100}$').hasMatch(c.id) ||
+              !ids.add(c.id) ||
+              !destinations.add(c.destination),
+        )) {
+      _connectionBlocked = true;
+      problem = const RealtimeProblem(
+        RealtimeFailureKind.protocol,
+        code: 'REALTIME_PROTOCOL_VIOLATION',
+      );
+      _channels = const [];
+      _restart();
+      return;
+    }
     final policyChanged =
         session?.identity != _session?.identity ||
         session?.policy != _session?.policy;
@@ -266,11 +283,16 @@ class RealtimeConnectionService extends ChangeNotifier {
         _blocked.addAll(_channels.map((c) => c.id));
       }
       // A policy recovery is attempted once; repeated identical grants stay blocked.
-      unawaited(recoverAccess(code!).catchError((Object _) {}));
+      try {
+        await recoverAccess(code!);
+      } catch (_) {
+        /* Remain blocked on old grants. */
+      }
     } else if (code == 'ACCOUNT_INACTIVE' || code == 'RESTAURANT_INACTIVE') {
       _connectionBlocked = true;
       unawaited(recoverAccess(code!).catchError((Object _) {}));
     } else if (code == 'REALTIME_PROTOCOL_VIOLATION' ||
+        code == 'REALTIME_SUBSCRIPTION_LIMIT' ||
         failure.kind == RealtimeFailureKind.protocol ||
         failure.closeCode == 1008 && code == null) {
       _connectionBlocked = true;

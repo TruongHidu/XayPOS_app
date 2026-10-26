@@ -19,6 +19,7 @@ class StompWebSocketTransport implements RealtimeTransport {
   final DateTime Function() _now;
   final StompDecoder _decoder = StompDecoder();
   final Map<String, void Function(String)> _handlers = {};
+  final Map<String, String> _destinations = {};
   WebSocketChannel? _socket;
   StreamSubscription<dynamic>? _listener;
   RealtimeCallbacks? _callbacks;
@@ -153,7 +154,19 @@ class StompWebSocketTransport implements RealtimeTransport {
   @override
   void subscribe(String id, String destination, void Function(String) message) {
     if (!_connected || _closed || _failed || _handlers.containsKey(id)) return;
+    if (!RegExp(r'^[A-Za-z0-9._:-]{1,100}$').hasMatch(id) ||
+        _destinations.containsValue(destination) ||
+        _handlers.length >= 4) {
+      _fail(
+        const RealtimeProblem(
+          RealtimeFailureKind.protocol,
+          code: 'REALTIME_PROTOCOL_VIOLATION',
+        ),
+      );
+      return;
+    }
     _handlers[id] = message;
+    _destinations[id] = destination;
     try {
       _write('SUBSCRIBE', {
         'id': id,
@@ -167,6 +180,7 @@ class StompWebSocketTransport implements RealtimeTransport {
 
   @override
   void unsubscribe(String id) {
+    _destinations.remove(id);
     if (_handlers.remove(id) == null || !_connected || _closed || _failed) {
       return;
     }
@@ -202,6 +216,7 @@ class StompWebSocketTransport implements RealtimeTransport {
     _closed = true;
     _callbacks = null;
     _handlers.clear();
+    _destinations.clear();
     _deadline?.cancel();
     _sendHeartbeat?.cancel();
     _receiveHeartbeat?.cancel();

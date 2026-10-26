@@ -50,6 +50,8 @@ class OrderDetailController extends OrderController {
   set requiresVerification(bool value) => _requiresVerification = value;
   int _generation = 0;
   int _eventRevision = 0;
+  Future<void>? _reading;
+  bool _refreshRequested = false;
   bool get busy => events.pending(id);
   bool get blocked => externalBlocked?.call() == true;
   bool get editable =>
@@ -140,18 +142,14 @@ class OrderDetailController extends OrderController {
   }
 
   void _event() {
-    if (_eventRevision == events.revision) return;
-    if (identical(events.source, this)) {
+    if (_eventRevision != events.revision) {
       _eventRevision = events.revision;
-      return;
+      if (!identical(events.source, this) && events.affectsOrder(id)) {
+        _refreshRequested = true;
+        ++_generation;
+      }
     }
-    if (events.changedId != id) {
-      _eventRevision = events.revision;
-      return;
-    }
-    if (busy) return;
-    _eventRevision = events.revision;
-    if (events.changedId == id &&
+    if (_refreshRequested &&
         !busy &&
         !requiresVerification &&
         can('ORDER_VIEW')) {
@@ -159,7 +157,28 @@ class OrderDetailController extends OrderController {
     }
   }
 
-  Future<void> load() async {
+  Future<void> load() {
+    if (!can('ORDER_VIEW') || busy) return Future.value();
+    if (_reading != null) {
+      _refreshRequested = true;
+      return _reading!;
+    }
+    final future = _readLoop().whenComplete(() => _reading = null);
+    _reading = future;
+    return future;
+  }
+
+  Future<void> _readLoop() async {
+    do {
+      _refreshRequested = false;
+      await _load();
+    } while (_refreshRequested &&
+        can('ORDER_VIEW') &&
+        !busy &&
+        !requiresVerification);
+  }
+
+  Future<void> _load() async {
     if (!can('ORDER_VIEW') || busy) return;
     final g = ++_generation;
     loading = true;
@@ -168,6 +187,14 @@ class OrderDetailController extends OrderController {
     if (!current || g != _generation) return;
     switch (response) {
       case Success(value: final value):
+        if (value.id != id) {
+          failure = const Failure(
+            type: FailureType.internal,
+            code: 'INVALID_ORDER_RESPONSE',
+            message: 'Dữ liệu đơn không đúng yêu cầu. Hãy tải lại.',
+          );
+          break;
+        }
         if (order == null || value.version >= order!.version) order = value;
         failure = null;
         requiresVerification = false;

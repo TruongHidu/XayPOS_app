@@ -11,6 +11,7 @@ class TableChange {
     this.area,
     this.sessionId,
     this.relatedTableIds = const {},
+    this.remoteOrder = false,
   });
   final TableChangeKind kind;
 
@@ -18,6 +19,7 @@ class TableChange {
   /// after an order closes a session whose current table was not returned.
   final String id;
   final bool deleted;
+  final bool remoteOrder;
   final TableAreaSummary? area;
   final String? sessionId;
   final Set<String> relatedTableIds;

@@ -1,6 +1,6 @@
 # Cập nhật tự động cảnh báo tồn kho
 
-Triển khai Flutter ngày 23/10/2026, cập nhật ngày 24/10/2026. Mặc định dùng
+Triển khai Flutter ngày 23/10/2026, cập nhật ngày 26/10/2026. Mặc định dùng
 **WebSocket/STOMP** để thông báo theo sự kiện ngay khi backend đã lưu thành công
 đợt cảnh báo chạm ngưỡng. App không chờ chu kỳ 20 giây. REST polling được giữ như
 một lựa chọn riêng khi cấu hình rõ, không phải cơ chế realtime mặc định.
@@ -94,9 +94,11 @@ Các chi tiết kết nối sau áp dụng chế độ mặc định `REALTIME_T
 - Không có API SEND/ACK/NACK trong transport của app. Không subscribe topic,
   raw queue, wildcard hoặc destination theo userId/restaurantId.
 
-Transport không chứa policy kho. `RealtimeChannel` nhận handler/resync từ feature;
-sau này có thể bổ sung channel khác trên cùng connection service. Lần này chưa
-đăng ký realtime order.
+Transport không chứa policy kho. `RealtimeChannel` nhận handler/resync từ feature.
+Từ 26/10/2026, bootstrap đăng ký thêm order, QR và kitchen trên cùng connection
+service nếu đủ quyền; mất quyền kho không chặn các kênh còn lại. Cảnh báo kho giữ
+parser/coordinator/polling/notice hiện có. Xem [realtime Order/QR/KDS](order-realtime.md)
+về quyền từng kênh và cách đối soát REST.
 
 ## Polling REST tùy chọn
 
