@@ -101,7 +101,14 @@ class OrderDraftController extends OrderController {
   BigInt get previewMinor =>
       _lines.fold(BigInt.zero, (sum, line) => sum + line.previewMinor);
   void add(MenuItem item) {
-    if (!current || frozen || !canPick || !item.sellable) return;
+    if (!current ||
+        frozen ||
+        !canPick ||
+        !item.active ||
+        !item.sellable ||
+        item.availabilityStatus != AvailabilityStatus.available) {
+      return;
+    }
     if (_lines.length >= 100) {
       failure = OrderController.invalid({'items': 'Tối đa 100 dòng món.'});
       changed();

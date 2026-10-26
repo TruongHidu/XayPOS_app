@@ -122,7 +122,8 @@ class _StockCreateWorkspace extends ConsumerWidget {
                     'Yêu cầu đang chờ xác minh. Nội dung được khóa; thử lại sẽ dùng đúng mã đối chiếu và nội dung ban đầu. Không tự tạo phiếu khác.',
                   ),
                   TextButton(
-                    onPressed: () => context.go('/app/inventory?tab=documents'),
+                    onPressed: () =>
+                        context.go('/app/inventory/stock-documents'),
                     child: const Text('Đối chiếu danh sách chứng từ'),
                   ),
                   if (c.failure?.code == 'IDEMPOTENCY_KEY_REUSED')

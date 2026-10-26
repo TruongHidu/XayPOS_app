@@ -88,7 +88,7 @@ Future<_Host> _pump(WidgetTester tester) async {
           ),
         ),
         GoRoute(
-          path: '/app/inventory',
+          path: '/app/inventory/alerts',
           builder: (_, _) =>
               const Scaffold(body: Center(child: Text('Danh sách cảnh báo'))),
         ),

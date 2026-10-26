@@ -18,7 +18,13 @@ import '../../../features/menu/presentation/screens/menu_management_screen.dart'
 import '../../../features/tables/presentation/screens/tables_management_screen.dart';
 import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../../features/reports/presentation/screens/reports_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_balances_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_documents_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_transactions_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_low_stock_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_alerts_screen.dart';
+import '../../../features/inventory/presentation/screens/inventory_audits_screen.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -77,6 +83,11 @@ class _AppShellState extends ConsumerState<AppShell>
       _sidebarController.reverse();
     } else {
       _sidebarController.forward();
+      if (AccessPolicy.canViewInventoryAlerts(
+        ref.read(authControllerProvider).state.session,
+      )) {
+        ref.read(inventoryLowStockCountProvider).load();
+      }
     }
   }
 
@@ -92,6 +103,12 @@ class _AppShellState extends ConsumerState<AppShell>
       'daily-revenue',
       'reports',
       'inventory',
+      'inventory-warehouses',
+      'inventory-documents',
+      'inventory-transactions',
+      'inventory-low-stock',
+      'inventory-alerts',
+      'inventory-audits',
     }.contains(item.id)) {
       final router = GoRouter.maybeOf(context);
       if (router != null) {
@@ -125,6 +142,11 @@ class _AppShellState extends ConsumerState<AppShell>
       session,
       AppSidebarRegistry.categories,
     );
+    final lowStockCount = AccessPolicy.canViewInventoryAlerts(session)
+        ? ref.watch(
+            inventoryLowStockCountProvider.select((counter) => counter.count),
+          )
+        : null;
 
     // Flatten all visible items to pick a default selection.
     final allVisibleItems = visibleCategories.expand((c) => c.items).toList();
@@ -197,6 +219,10 @@ class _AppShellState extends ConsumerState<AppShell>
           AppSidebar(
             animation: _sidebarController,
             categories: visibleCategories,
+            itemBadges: {
+              if (lowStockCount != null && lowStockCount > 0)
+                'inventory-low-stock': lowStockCount,
+            },
             selectedId: _selectedId,
             onItemTap: _onItemTap,
             onLogout: controller.logout,
@@ -276,7 +302,25 @@ class _AppShellState extends ConsumerState<AppShell>
       return ReportsScreen(key: ValueKey(AccessPolicy.reportScope(session)));
     }
     if (selected.id == 'inventory') {
-      return const InventoryManagementScreen();
+      return const InventoryBalancesScreen();
+    }
+    if (selected.id == 'inventory-warehouses') {
+      return const InventoryWarehousesScreen();
+    }
+    if (selected.id == 'inventory-documents') {
+      return const InventoryDocumentsScreen();
+    }
+    if (selected.id == 'inventory-transactions') {
+      return const InventoryTransactionsScreen();
+    }
+    if (selected.id == 'inventory-low-stock') {
+      return const InventoryLowStockScreen();
+    }
+    if (selected.id == 'inventory-alerts') {
+      return const InventoryAlertsScreen();
+    }
+    if (selected.id == 'inventory-audits') {
+      return const InventoryAuditsScreen();
     }
 
     // Placeholder content for each section.

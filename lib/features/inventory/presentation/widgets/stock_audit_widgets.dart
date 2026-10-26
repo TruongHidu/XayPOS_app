@@ -74,8 +74,7 @@ class StockAuditPageFrame extends StatelessWidget {
                       runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () =>
-                              context.go('/app/inventory?tab=audits'),
+                          onPressed: () => context.go('/app/inventory/audits'),
                           icon: const Icon(Icons.arrow_back),
                           label: const Text('Danh sách kiểm kê'),
                         ),

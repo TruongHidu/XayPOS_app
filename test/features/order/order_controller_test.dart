@@ -27,6 +27,23 @@ import 'order_fakes.dart';
 
 final saleItem = MenuItemDto.fromJson(itemJson()..['id'] = itemId).toEntity();
 void main() {
+  test('draft cannot add sold-out or inactive catalog items', () {
+    final repo = FakeOrders();
+    final cart = draft(repo, () => orderSession());
+    addTearDown(cart.dispose);
+    for (final json in [
+      itemJson(sellable: false)..['availabilityStatus'] = 'OUT_OF_STOCK',
+      itemJson()..['availabilityStatus'] = 'OUT_OF_STOCK',
+      itemJson(active: false),
+    ]) {
+      cart.add(MenuItemDto.fromJson(json).toEntity());
+      expect(cart.lines, isEmpty);
+    }
+    cart.add(saleItem);
+    expect(cart.lines.single.item.id, saleItem.id);
+    expect(repo.creates, isEmpty);
+  });
+
   test(
     'permissions/features/tenant/subscription and platform policy without owner bypass',
     () {
@@ -484,7 +501,8 @@ void main() {
       await c.loadGroups();
       await c.loadGroups();
       expect(c.groups.length, 2);
-      expect(items.queries.single.sellable, true);
+      expect(items.queries.single.sellable, isNull);
+      expect(items.queries.single.availabilityStatus, isNull);
       expect(items.queries.single.active, true);
       expect(c.query, isA<MenuQuery>());
       final denied = OrderMenuPickerController(

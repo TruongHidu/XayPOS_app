@@ -238,7 +238,8 @@ class StockPageFrame extends ConsumerWidget {
                       runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () => context.go('/app/inventory'),
+                          onPressed: () =>
+                              context.go('/app/inventory/balances'),
                           icon: const Icon(Icons.arrow_back),
                           label: const Text('Về kho'),
                         ),

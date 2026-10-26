@@ -444,10 +444,25 @@ abstract final class AccessPolicy {
     if (path == '/app/daily-revenue') return canDailyReport(session);
     if (path == '/app/inventory') {
       return switch (uri?.queryParameters['tab']) {
-        'alerts' => canViewInventoryAlerts(session),
+        'alerts' ||
+        'lowStock' ||
+        'low-stock' => canViewInventoryAlerts(session),
         'audits' => canViewStockAudits(session),
         _ => canInventory(session, 'INVENTORY_VIEW'),
       };
+    }
+    if (const {
+      '/app/inventory/balances',
+      '/app/inventory/warehouses',
+      '/app/inventory/stock-documents',
+    }.contains(path)) {
+      return canInventory(session, 'INVENTORY_VIEW');
+    }
+    if (path == '/app/inventory/alerts' || path == '/app/inventory/low-stock') {
+      return canViewInventoryAlerts(session);
+    }
+    if (path == '/app/inventory/audits') {
+      return canViewStockAudits(session);
     }
     if (path == '/app/inventory/audits/new') {
       return canManageStockAudits(session);

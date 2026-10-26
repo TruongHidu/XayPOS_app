@@ -116,7 +116,7 @@ class InventoryAlertNoticeOverlay extends ConsumerWidget {
                                     .read(appRouterProvider)
                                     .go(
                                       id == null
-                                          ? '/app/inventory?tab=alerts'
+                                          ? '/app/inventory/alerts'
                                           : inventoryAlertLocation(id),
                                     );
                               },

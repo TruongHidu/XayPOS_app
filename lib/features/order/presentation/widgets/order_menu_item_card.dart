@@ -30,7 +30,19 @@ class OrderMenuItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = cartQuantity.milliUnits > 0;
-    final canInteract = enabled && item.sellable;
+    final outOfStock = item.availabilityStatus == AvailabilityStatus.outOfStock;
+    final canSell = item.active && item.sellable && !outOfStock;
+    final canInteract = enabled && canSell;
+    final statusLabel = outOfStock
+        ? 'Hết hàng'
+        : !item.active
+        ? 'Ngừng bán'
+        : canSell
+        ? 'Còn món'
+        : 'Chưa thể bán';
+    final statusColor = canSell
+        ? const Color(0xFF0D9488)
+        : const Color(0xFFDC2626);
 
     return Card(
       elevation: 0,
@@ -47,12 +59,13 @@ class OrderMenuItemCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap:
-            onEdit ?? (canInteract ? (isSelected ? onIncrement : onAdd) : null),
+        onTap: canInteract
+            ? (onEdit ?? (isSelected ? onIncrement : onAdd))
+            : null,
         child: Padding(
           padding: const EdgeInsets.all(10),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ── Thumbnail ──────────────────────────────────────────
               ClipRRect(
@@ -71,7 +84,7 @@ class OrderMenuItemCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
 
-              // ── Info: Name, Description, Status, Price & Stepper ────
+              // ── Info: Name, Description, Status, Price ─────────────
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,38 +119,56 @@ class OrderMenuItemCard extends StatelessWidget {
 
                     const SizedBox(height: 4),
 
-                    // Status row: • Còn món / • Hết món
+                    // Availability stays separate from temporarily disabled actions.
                     Wrap(
                       spacing: 4,
                       runSpacing: 2,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: canInteract
-                                    ? const Color(0xFF0D9488)
-                                    : const Color(0xFFDC2626),
-                              ),
+                        if (outOfStock)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              canInteract ? 'Còn món' : 'Hết món',
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              statusLabel,
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                                color: canInteract
-                                    ? const Color(0xFF0D9488)
-                                    : const Color(0xFFDC2626),
+                                fontWeight: FontWeight.w700,
+                                color: statusColor,
                               ),
                             ),
-                          ],
-                        ),
+                          )
+                        else
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: statusColor,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  statusLabel,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         if (item.baseUnit.isNotEmpty)
                           Text(
                             '• ${item.baseUnit}',
@@ -148,7 +179,7 @@ class OrderMenuItemCard extends StatelessWidget {
                           ),
                         if (hasMultipleConfigurations)
                           InkWell(
-                            onTap: onEdit,
+                            onTap: canInteract ? onEdit : null,
                             borderRadius: BorderRadius.circular(4),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
@@ -174,136 +205,116 @@ class OrderMenuItemCard extends StatelessWidget {
 
                     const SizedBox(height: 6),
 
-                    // Price & Stepper Row
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        // Price
-                        Text(
-                          orderMoney(
-                            BigInt.from(item.salePrice.minorUnits),
-                            currency: currencyCode ?? 'Đ',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: OrderPalette.orange,
-                          ),
-                        ),
-
-                        // Stepper: [ - ]   qty   [ + ]
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Minus button
-                              IconButton(
-                                tooltip: 'Bớt ${item.name}',
-                                onPressed: isSelected && canInteract
-                                    ? (hasMultipleConfigurations &&
-                                              onEdit != null
-                                          ? onEdit
-                                          : onDecrement)
-                                    : null,
-                                constraints: const BoxConstraints(
-                                  minWidth: 32,
-                                  minHeight: 32,
-                                ),
-                                style: IconButton.styleFrom(
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                  backgroundColor: isSelected && canInteract
-                                      ? const Color(0xFFFFF2EB)
-                                      : const Color(0xFFF9FAFB),
-                                  foregroundColor: isSelected && canInteract
-                                      ? OrderPalette.orange
-                                      : Colors.grey.shade300,
-                                  disabledBackgroundColor: const Color(
-                                    0xFFF9FAFB,
-                                  ),
-                                  disabledForegroundColor: Colors.grey.shade300,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(
-                                      color: isSelected && canInteract
-                                          ? const Color(0xFFFFD8C2)
-                                          : Colors.grey.shade200,
-                                    ),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(32, 32),
-                                  maximumSize: const Size(32, 32),
-                                ),
-                                icon: const Icon(Icons.remove, size: 16),
-                              ),
-
-                              // Quantity number
-                              Container(
-                                constraints: const BoxConstraints(minWidth: 26),
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                child: Text(
-                                  cartQuantity.milliUnits == 0
-                                      ? '0'
-                                      : (cartQuantity.milliUnits % 1000 == 0
-                                            ? '${cartQuantity.milliUnits ~/ 1000}'
-                                            : cartQuantity.toString()),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF111827),
-                                  ),
-                                ),
-                              ),
-
-                              // Plus button
-                              IconButton(
-                                tooltip: 'Thêm ${item.name}',
-                                onPressed: canInteract
-                                    ? (hasMultipleConfigurations &&
-                                              onEdit != null
-                                          ? onEdit
-                                          : (isSelected ? onIncrement : onAdd))
-                                    : null,
-                                constraints: const BoxConstraints(
-                                  minWidth: 32,
-                                  minHeight: 32,
-                                ),
-                                style: IconButton.styleFrom(
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                  backgroundColor: canInteract
-                                      ? OrderPalette.orange
-                                      : Colors.grey.shade200,
-                                  foregroundColor: canInteract
-                                      ? Colors.white
-                                      : Colors.grey.shade400,
-                                  disabledBackgroundColor: Colors.grey.shade200,
-                                  disabledForegroundColor: Colors.grey.shade400,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  minimumSize: const Size(32, 32),
-                                  maximumSize: const Size(32, 32),
-                                ),
-                                icon: const Icon(Icons.add, size: 18),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // Price
+                    Text(
+                      orderMoney(
+                        BigInt.from(item.salePrice.minorUnits),
+                        currency: currencyCode ?? 'Đ',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: OrderPalette.orange,
+                      ),
                     ),
                   ],
                 ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // ── Stepper: [ - ]  qty  [ + ] ── (right side) ─────────
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Minus button
+                  IconButton(
+                    tooltip: 'Bớt ${item.name}',
+                    onPressed: isSelected && canInteract
+                        ? (hasMultipleConfigurations && onEdit != null
+                              ? onEdit
+                              : onDecrement)
+                        : null,
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: isSelected && canInteract
+                          ? const Color(0xFFFFF2EB)
+                          : const Color(0xFFF9FAFB),
+                      foregroundColor: isSelected && canInteract
+                          ? OrderPalette.orange
+                          : Colors.grey.shade300,
+                      disabledBackgroundColor: const Color(0xFFF9FAFB),
+                      disabledForegroundColor: Colors.grey.shade300,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        side: BorderSide(
+                          color: isSelected && canInteract
+                              ? const Color(0xFFFFD8C2)
+                              : Colors.grey.shade200,
+                        ),
+                      ),
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      maximumSize: const Size(44, 44),
+                    ),
+                    icon: const Icon(Icons.remove, size: 20),
+                  ),
+
+                  // Quantity number
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 32),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      cartQuantity.milliUnits == 0
+                          ? '0'
+                          : (cartQuantity.milliUnits % 1000 == 0
+                                ? '${cartQuantity.milliUnits ~/ 1000}'
+                                : cartQuantity.toString()),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                  ),
+
+                  // Plus button
+                  IconButton(
+                    tooltip: 'Thêm ${item.name}',
+                    onPressed: canInteract
+                        ? (hasMultipleConfigurations && onEdit != null
+                              ? onEdit
+                              : (isSelected ? onIncrement : onAdd))
+                        : null,
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 44,
+                    ),
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: canInteract
+                          ? OrderPalette.orange
+                          : Colors.grey.shade200,
+                      foregroundColor: canInteract
+                          ? Colors.white
+                          : Colors.grey.shade400,
+                      disabledBackgroundColor: Colors.grey.shade200,
+                      disabledForegroundColor: Colors.grey.shade400,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      maximumSize: const Size(44, 44),
+                    ),
+                    icon: const Icon(Icons.add, size: 22),
+                  ),
+                ],
               ),
             ],
           ),

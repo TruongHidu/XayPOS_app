@@ -8,9 +8,8 @@ import 'sidebar_menu_item.dart';
 /// Uses an [AnimationController] owned by the parent via [animation] so
 /// the parent can trigger open/close from a hamburger icon.
 ///
-/// Menu items are grouped by [SidebarCategory]. When only one category
-/// is visible, the category header is hidden automatically.
-class AppSidebar extends StatelessWidget {
+/// Expandable categories retain their presentation state while the drawer closes.
+class AppSidebar extends StatefulWidget {
   const AppSidebar({
     super.key,
     required this.animation,
@@ -20,6 +19,7 @@ class AppSidebar extends StatelessWidget {
     required this.onLogout,
     required this.userName,
     required this.userRole,
+    this.itemBadges = const {},
     this.restaurantName,
     this.packageCode,
   });
@@ -32,6 +32,9 @@ class AppSidebar extends StatelessWidget {
 
   /// The [SidebarMenuItem.id] of the currently active item.
   final String? selectedId;
+
+  /// Optional counts displayed beside visible menu items.
+  final Map<String, int> itemBadges;
 
   /// Called when the user taps on a menu item.
   final ValueChanged<SidebarMenuItem> onItemTap;
@@ -51,10 +54,45 @@ class AppSidebar extends StatelessWidget {
   /// Optional package code (BASIC / PRO / PREMIUM).
   final String? packageCode;
 
+  @override
+  State<AppSidebar> createState() => _AppSidebarState();
+}
+
+class _AppSidebarState extends State<AppSidebar> {
   static const double _width = 280;
+  final Map<String, bool> _expanded = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _syncExpansion();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppSidebar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncExpansion(selectionChanged: oldWidget.selectedId != widget.selectedId);
+  }
+
+  void _syncExpansion({bool selectionChanged = false}) {
+    final categories = widget.categories.where(
+      (category) => category.collapsible,
+    );
+    final titles = categories.map((category) => category.title).toSet();
+    _expanded.removeWhere((title, _) => !titles.contains(title));
+    for (final category in categories) {
+      final containsSelection = category.items.any(
+        (item) => item.id == widget.selectedId,
+      );
+      _expanded.putIfAbsent(category.title, () => containsSelection);
+      if (selectionChanged && containsSelection) {
+        _expanded[category.title] = true;
+      }
+    }
+  }
 
   /// Whether to show category headers (hidden when there is only one).
-  bool get _showHeaders => categories.length > 1;
+  bool get _showHeaders => widget.categories.length > 1;
 
   @override
   Widget build(BuildContext context) {
@@ -62,26 +100,28 @@ class AppSidebar extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return ListenableBuilder(
-      listenable: animation,
+      listenable: widget.animation,
       builder: (context, child) {
         final slide =
             Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              CurvedAnimation(
+                parent: widget.animation,
+                curve: Curves.easeOutCubic,
+              ),
             );
-        final fade = Tween<double>(
-          begin: 0,
-          end: 0.5,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+        final fade = Tween<double>(begin: 0, end: 0.5).animate(
+          CurvedAnimation(parent: widget.animation, curve: Curves.easeOut),
+        );
 
         return Stack(
           children: [
             // Scrim – tapping anywhere dismisses the sidebar.
-            if (animation.value > 0)
+            if (widget.animation.value > 0)
               Positioned.fill(
                 child: GestureDetector(
                   onTap: () {
-                    if (animation is AnimationController) {
-                      (animation as AnimationController).reverse();
+                    if (widget.animation is AnimationController) {
+                      (widget.animation as AnimationController).reverse();
                     }
                   },
                   child: ColoredBox(
@@ -94,7 +134,7 @@ class AppSidebar extends StatelessWidget {
             SlideTransition(
               position: slide,
               child: Material(
-                elevation: animation.value == 0 ? 0 : 16,
+                elevation: widget.animation.value == 0 ? 0 : 16,
                 shadowColor: Colors.black26,
                 child: SizedBox(
                   width: _width,
@@ -122,7 +162,7 @@ class AppSidebar extends StatelessWidget {
                           const Divider(height: 1),
                           Expanded(child: _buildCategoryList(context)),
                           const Divider(height: 1),
-                          _LogoutTile(onTap: onLogout),
+                          _LogoutTile(onTap: widget.onLogout),
                         ],
                       ),
                     ),
@@ -143,35 +183,102 @@ class AppSidebar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
         _Header(
-          userName: userName,
-          userRole: userRole,
-          restaurantName: restaurantName,
-          packageCode: packageCode,
+          userName: widget.userName,
+          userRole: widget.userRole,
+          restaurantName: widget.restaurantName,
+          packageCode: widget.packageCode,
         ),
-        for (int i = 0; i < categories.length; i++) ...[
-          // Category header
-          if (_showHeaders) ...[
-            if (i > 0) const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-              child: Text(
-                categories[i].title,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.outline,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
+        for (int i = 0; i < widget.categories.length; i++) ...[
+          if (widget.categories[i].collapsible)
+            _buildExpandableCategory(context, widget.categories[i])
+          else ...[
+            // Category header
+            if (_showHeaders) ...[
+              if (i > 0) const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                child: Text(
+                  widget.categories[i].title,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.outline,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
-            ),
+            ],
+            // Menu items within category
+            for (final item in widget.categories[i].items)
+              _MenuTile(
+                item: item,
+                badgeCount: widget.itemBadges[item.id],
+                isSelected: item.id == widget.selectedId,
+                onTap: () => widget.onItemTap(item),
+              ),
           ],
-          // Menu items within category
-          for (final item in categories[i].items)
-            _MenuTile(
-              item: item,
-              isSelected: item.id == selectedId,
-              onTap: () => onItemTap(item),
-            ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildExpandableCategory(
+    BuildContext context,
+    SidebarCategory category,
+  ) {
+    final expanded = _expanded[category.title] ?? false;
+    final active = category.items.any((item) => item.id == widget.selectedId);
+    final colors = Theme.of(context).colorScheme;
+    void toggle() => setState(() => _expanded[category.title] = !expanded);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+          child: Semantics(
+            expanded: expanded,
+            child: ListTile(
+              key: ValueKey('sidebar-group-${category.title}'),
+              minTileHeight: 56,
+              contentPadding: const EdgeInsets.only(left: 16, right: 4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              leading: Icon(
+                category.icon ?? Icons.folder_outlined,
+                color: active ? colors.primary : colors.onSurfaceVariant,
+                size: 22,
+              ),
+              title: Text(
+                category.title,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: active ? colors.primary : colors.onSurface,
+                ),
+              ),
+              trailing: IconButton(
+                tooltip:
+                    '${expanded ? 'Thu gọn' : 'Mở rộng'} ${category.title}',
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                onPressed: toggle,
+                icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+              ),
+              onTap: toggle,
+            ),
+          ),
+        ),
+        if (expanded)
+          for (final item in category.items)
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: _MenuTile(
+                key: ValueKey('sidebar-item-${item.id}'),
+                item: item,
+                badgeCount: widget.itemBadges[item.id],
+                isSelected: item.id == widget.selectedId,
+                onTap: () => widget.onItemTap(item),
+              ),
+            ),
       ],
     );
   }
@@ -292,14 +399,17 @@ class _Header extends StatelessWidget {
 
 class _MenuTile extends StatefulWidget {
   const _MenuTile({
+    super.key,
     required this.item,
     required this.isSelected,
     required this.onTap,
+    this.badgeCount,
   });
 
   final SidebarMenuItem item;
   final bool isSelected;
   final VoidCallback onTap;
+  final int? badgeCount;
 
   @override
   State<_MenuTile> createState() => _MenuTileState();
@@ -314,6 +424,7 @@ class _MenuTileState extends State<_MenuTile> {
     final colorScheme = theme.colorScheme;
 
     final isActive = widget.isSelected;
+    final badgeCount = widget.badgeCount ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
@@ -350,6 +461,36 @@ class _MenuTileState extends State<_MenuTile> {
                 color: isActive ? colorScheme.primary : colorScheme.onSurface,
               ),
             ),
+            trailing: badgeCount > 0
+                ? Semantics(
+                    key: ValueKey('sidebar-badge-${widget.item.id}'),
+                    label: '$badgeCount mục',
+                    child: ExcludeSemantics(
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 22,
+                          minHeight: 22,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.error,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onError,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
             onTap: widget.onTap,
           ),
         ),

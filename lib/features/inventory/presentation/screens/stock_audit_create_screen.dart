@@ -68,7 +68,7 @@ class StockAuditCreateScreen extends ConsumerWidget {
               'Kết quả tạo chưa được xác minh. Nội dung được khóa; thử lại giữ đúng mã đối chiếu và nội dung ban đầu, kể cả khi bạn rời rồi quay lại màn hình.',
             ),
             TextButton(
-              onPressed: () => context.go('/app/inventory?tab=audits'),
+              onPressed: () => context.go('/app/inventory/audits'),
               child: const Text('Đối chiếu danh sách kiểm kê'),
             ),
             if (c.failure?.code == 'IDEMPOTENCY_KEY_REUSED')

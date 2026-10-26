@@ -114,6 +114,12 @@ Tab “Lịch sử trong phiên” là history, không phải chọn một trong
 Mang đi: không gọi bàn/khu vực/phiên; tableSessionId=null, tên/số điện thoại
 tùy chọn, guestCount mặc định 1.
 
+Màn chọn món dùng chung cho tạo đơn và gọi thêm tải menu với `active=true`,
+không lọc `sellable` hoặc `availabilityStatus`. Món `OUT_OF_STOCK` vẫn hiện kèm
+nhãn đỏ “Hết hàng”; thao tác thêm, tăng số lượng và nhấn card đều bị khóa.
+Món còn hàng bị khóa tạm do giỏ đang bận vẫn giữ nhãn “Còn món”. Controller
+chỉ nhận thêm món active, AVAILABLE và sellable.
+
 Giỏ local chưa là order. Chọn món sellable; mỗi dòng có ID draft riêng,
 không tự gộp món khác ghi chú. Quantity exact thousandths, giá MenuPrice
 hundredths. Preview BigInt HALF_UP từng dòng, không double.

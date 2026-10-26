@@ -32,8 +32,19 @@ List<SidebarMenuItem> filterMenuItems(
     }
     if (item.id == 'menu') return AccessPolicy.canMenuWorkspace(session);
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
-    if (item.id == 'inventory') {
+    if (const {
+      'inventory',
+      'inventory-warehouses',
+      'inventory-documents',
+      'inventory-transactions',
+    }.contains(item.id)) {
       return AccessPolicy.canInventory(session, 'INVENTORY_VIEW');
+    }
+    if (item.id == 'inventory-low-stock' || item.id == 'inventory-alerts') {
+      return AccessPolicy.canViewInventoryAlerts(session);
+    }
+    if (item.id == 'inventory-audits') {
+      return AccessPolicy.canViewStockAudits(session);
     }
     if (item.id == 'daily-revenue') {
       return AccessPolicy.canDailyReport(session);
@@ -66,7 +77,14 @@ List<SidebarCategory> filterCategories(
   for (final category in allCategories) {
     final visibleItems = filterMenuItems(session, category.items);
     if (visibleItems.isNotEmpty) {
-      result.add(SidebarCategory(title: category.title, items: visibleItems));
+      result.add(
+        SidebarCategory(
+          title: category.title,
+          items: visibleItems,
+          collapsible: category.collapsible,
+          icon: category.icon,
+        ),
+      );
     }
   }
   return result;

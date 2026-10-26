@@ -29,8 +29,6 @@ class OrderMenuPickerController extends OrderController {
   final String permission;
   MenuQuery query = const MenuQuery(
     active: true,
-    sellable: true,
-    availabilityStatus: AvailabilityStatus.available,
     sortBy: 'name',
     direction: 'asc',
   );

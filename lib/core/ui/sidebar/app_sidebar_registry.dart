@@ -116,9 +116,9 @@ abstract final class AppSidebarRegistry {
       ],
     ),
 
-    // ── Báo cáo & Kho ───────────────────────────────────────
+    // ── Báo cáo ─────────────────────────────────────────────
     SidebarCategory(
-      title: 'BÁO CÁO & KHO',
+      title: 'BÁO CÁO',
       items: [
         SidebarMenuItem(
           id: 'daily-revenue',
@@ -136,13 +136,68 @@ abstract final class AppSidebarRegistry {
           requiredPermissions: ['REPORT_DETAIL_VIEW'],
           requiredFeatures: ['DETAIL_REPORT'],
         ),
+      ],
+    ),
+    SidebarCategory(
+      title: 'Kho',
+      collapsible: true,
+      icon: Icons.warehouse_outlined,
+      items: [
         SidebarMenuItem(
           id: 'inventory',
-          label: 'Kho',
+          label: 'Tồn kho',
           icon: Icons.inventory_2_outlined,
-          routePath: '/app/inventory',
+          routePath: '/app/inventory/balances',
           requiredPermissions: ['INVENTORY_VIEW'],
           requiredFeatures: ['INVENTORY_MANAGEMENT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-warehouses',
+          label: 'Quản lý kho',
+          icon: Icons.warehouse_outlined,
+          routePath: '/app/inventory/warehouses',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-documents',
+          label: 'Chứng từ kho',
+          icon: Icons.receipt_long_outlined,
+          routePath: '/app/inventory/stock-documents',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-transactions',
+          label: 'Biến động kho',
+          icon: Icons.swap_vert,
+          routePath: '/app/inventory/transactions',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-low-stock',
+          label: 'Tồn thấp hiện tại',
+          icon: Icons.warning_amber_outlined,
+          routePath: '/app/inventory/low-stock',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT', 'LOW_STOCK_ALERT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-alerts',
+          label: 'Cảnh báo tồn kho',
+          icon: Icons.notifications_none_outlined,
+          routePath: '/app/inventory/alerts',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT', 'LOW_STOCK_ALERT'],
+        ),
+        SidebarMenuItem(
+          id: 'inventory-audits',
+          label: 'Kiểm kê',
+          icon: Icons.fact_check_outlined,
+          routePath: '/app/inventory/audits',
+          requiredPermissions: ['INVENTORY_VIEW'],
+          requiredFeatures: ['INVENTORY_MANAGEMENT', 'STOCK_AUDIT'],
         ),
       ],
     ),

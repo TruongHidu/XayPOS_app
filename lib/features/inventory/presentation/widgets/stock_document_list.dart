@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../screens/stock_document_detail_screen.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
@@ -251,7 +252,8 @@ class StockDocumentList extends ConsumerWidget {
                             DataCell(
                               TextButton(
                                 onPressed: () =>
-                                    context.go(stockDetailLocation(row.id)),
+                                    showStockDocumentDetailOverlay(
+                                      context, ref, documentId: row.id),
                                 child: const Text('Chi tiết'),
                               ),
                             ),
@@ -304,7 +306,8 @@ class StockDocumentList extends ConsumerWidget {
                           const SizedBox(height: 8),
                           TextButton(
                             onPressed: () =>
-                                context.go(stockDetailLocation(row.id)),
+                                showStockDocumentDetailOverlay(
+                                  context, ref, documentId: row.id),
                             child: const Text('Chi tiết'),
                           ),
                         ],

@@ -14,6 +14,12 @@ abstract final class AppRoutes {
   static const dailyRevenue = '/app/daily-revenue';
   static const reports = '/app/reports';
   static const inventory = '/app/inventory';
+  static const inventoryBalances = '/app/inventory/balances';
+  static const inventoryWarehouses = '/app/inventory/warehouses';
+  static const inventoryDocuments = '/app/inventory/stock-documents';
+  static const inventoryLowStock = '/app/inventory/low-stock';
+  static const inventoryAlerts = '/app/inventory/alerts';
+  static const inventoryAudits = '/app/inventory/audits';
   static const stockCreate = '/app/inventory/stock-documents/new';
   static const stockDocument = '/app/inventory/stock-documents/:documentId';
   static const inventoryTransactions = '/app/inventory/transactions';

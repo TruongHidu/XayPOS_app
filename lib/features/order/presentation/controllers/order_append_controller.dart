@@ -97,7 +97,12 @@ class OrderAppendController extends OrderController {
   }
 
   void add(MenuItem item) {
-    if (!canPick || !item.sellable) return;
+    if (!canPick ||
+        !item.active ||
+        !item.sellable ||
+        item.availabilityStatus != AvailabilityStatus.available) {
+      return;
+    }
     if (_lines.length >= 100) {
       failure = OrderController.invalid({'items': 'Tối đa 100 dòng món.'});
       changed();

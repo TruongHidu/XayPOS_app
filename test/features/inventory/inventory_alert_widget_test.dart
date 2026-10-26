@@ -25,7 +25,7 @@ import 'inventory_fakes.dart';
 Future<GoRouter> _pump(
   WidgetTester tester,
   FakeInventoryAlerts alerts, {
-  String location = '/app/inventory?tab=alerts',
+  String location = '/app/inventory/alerts',
   Set<String> permissions = alertPermissions,
   Set<String> features = alertFeatures,
   double width = 1200,
@@ -57,7 +57,7 @@ Future<GoRouter> _pump(
     initialLocation: location,
     routes: [
       GoRoute(
-        path: '/app/inventory',
+        path: '/app/inventory/alerts',
         builder: (_, _) => const Scaffold(
           body: SingleChildScrollView(
             padding: EdgeInsets.all(16),
@@ -392,7 +392,7 @@ void main() {
         location: '/app/inventory/alerts/a1',
       );
       expect(repo.detailIds, isEmpty);
-      router.go('/app/inventory?tab=alerts');
+      router.go('/app/inventory/alerts');
       await tester.pumpAndSettle();
       expect(repo.queries, isEmpty);
       expect(find.textContaining('Bạn cần quyền xem kho'), findsOneWidget);
@@ -451,7 +451,7 @@ void main() {
       );
       final read = container.read(inventoryAlertDetailProvider('a1')).load();
       await tester.pump();
-      router.go('/app/inventory?tab=alerts');
+      router.go('/app/inventory/alerts');
       await tester.pumpAndSettle();
       pending.complete(Success(inventoryAlert()));
       await read;

@@ -66,6 +66,22 @@ class AppendHarness {
 }
 
 void main() {
+  test('append cannot add sold-out or inactive catalog items', () {
+    final h = AppendHarness();
+    addTearDown(h.close);
+    for (final json in [
+      itemJson(sellable: false)..['availabilityStatus'] = 'OUT_OF_STOCK',
+      itemJson()..['availabilityStatus'] = 'OUT_OF_STOCK',
+      itemJson(active: false),
+    ]) {
+      h.cart.add(MenuItemDto.fromJson(json).toEntity());
+      expect(h.cart.lines, isEmpty);
+    }
+    h.cart.add(dish);
+    expect(h.cart.lines.single.item.id, dish.id);
+    expect(h.repo.submissions, isEmpty);
+  });
+
   test(
     '401 refresh retry preserves append key, baseline version, mode and ordered payload',
     () async {

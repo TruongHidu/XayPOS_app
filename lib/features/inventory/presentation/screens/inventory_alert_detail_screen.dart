@@ -81,7 +81,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                         children: [
                           OutlinedButton.icon(
                             onPressed: () =>
-                                context.go('/app/inventory?tab=alerts'),
+                                context.go('/app/inventory/alerts'),
                             icon: const Icon(Icons.arrow_back),
                             label: const Text('Về cảnh báo'),
                           ),

@@ -87,6 +87,13 @@ QR và giới hạn phiên phục vụ. Chạy riêng test module: `flutter test
 Trên Windows, dự án sử dụng plugin native nên cần bật **Developer Mode** để
 Flutter tạo symlink: Settings → System → For developers → Developer Mode.
 
+## Kho
+
+Nhóm **Kho** trên sidebar có mũi tên mở rộng/thu gọn, gồm Tồn kho, Quản lý kho,
+Chứng từ kho, Biến động kho, Tồn thấp hiện tại, Cảnh báo tồn kho và Kiểm kê.
+Mỗi chức năng có màn hình/đường dẫn riêng và chỉ hiển thị khi đủ quyền/feature.
+Xem [điều hướng Kho](docs/inventory-navigation.md) để biết cấu trúc và route.
+
 ## Kiến trúc auth
 
 - `core/network`: Dio client, error mapping và interceptor refresh single-flight.

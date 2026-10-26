@@ -78,7 +78,7 @@ Future<_Host> _pump(
           ),
         ),
         GoRoute(
-          path: '/app/inventory',
+          path: '/app/inventory/alerts',
           builder: (_, _) => const Scaffold(
             body: SingleChildScrollView(
               padding: EdgeInsets.all(16),
@@ -280,7 +280,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       host.router.routerDelegate.currentConfiguration.uri.toString(),
-      '/app/inventory?tab=alerts',
+      '/app/inventory/alerts',
     );
     expect(host.repo.queries, hasLength(1));
     expect(tester.takeException(), isNull);

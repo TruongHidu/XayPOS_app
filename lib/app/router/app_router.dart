@@ -16,7 +16,13 @@ import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
-import '../../features/inventory/presentation/screens/inventory_management_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_balances_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_documents_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_transactions_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_low_stock_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_alerts_screen.dart';
+import '../../features/inventory/presentation/screens/inventory_audits_screen.dart';
 import '../../features/inventory/presentation/screens/stock_document_create_screen.dart';
 import '../../features/inventory/presentation/screens/stock_document_detail_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_transaction_screen.dart';
@@ -168,17 +174,71 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.inventory,
-        builder: (context, state) => AppShell(
+        redirect: (context, state) {
+          final target = switch (state.uri.queryParameters['tab']) {
+            'warehouses' => AppRoutes.inventoryWarehouses,
+            'documents' => AppRoutes.inventoryDocuments,
+            'transactions' => AppRoutes.inventoryTransactions,
+            'lowStock' || 'low-stock' => AppRoutes.inventoryLowStock,
+            'alerts' => AppRoutes.inventoryAlerts,
+            'audits' => AppRoutes.inventoryAudits,
+            _ => AppRoutes.inventoryBalances,
+          };
+          final query = Map<String, String>.of(state.uri.queryParameters)
+            ..remove('tab');
+          return Uri(
+            path: target,
+            queryParameters: query.isEmpty ? null : query,
+            fragment: state.uri.hasFragment ? state.uri.fragment : null,
+          ).toString();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryBalances,
+        builder: (context, state) => const AppShell(
           initialSection: 'inventory',
-          child: InventoryManagementScreen(
-            initialTab: state.uri.queryParameters['tab'],
-          ),
+          child: InventoryBalancesScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryWarehouses,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory-warehouses',
+          child: InventoryWarehousesScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryDocuments,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory-documents',
+          child: InventoryDocumentsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryLowStock,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory-low-stock',
+          child: InventoryLowStockScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryAlerts,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory-alerts',
+          child: InventoryAlertsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.inventoryAudits,
+        builder: (context, state) => const AppShell(
+          initialSection: 'inventory-audits',
+          child: InventoryAuditsScreen(),
         ),
       ),
       GoRoute(
         path: AppRoutes.inventoryAlert,
         builder: (context, state) => AppShell(
-          initialSection: 'inventory',
+          initialSection: 'inventory-alerts',
           child: InventoryAlertDetailScreen(
             id: state.pathParameters['alertId']!,
           ),
@@ -188,7 +248,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.stockAuditCreate,
         onExit: (context, state) => confirmStockAuditExit(context, ref, null),
         builder: (context, state) => const AppShell(
-          initialSection: 'inventory',
+          initialSection: 'inventory-audits',
           child: StockAuditCreateScreen(),
         ),
       ),
@@ -200,21 +260,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.pathParameters['auditId']!,
         ),
         builder: (context, state) => AppShell(
-          initialSection: 'inventory',
+          initialSection: 'inventory-audits',
           child: StockAuditDetailScreen(id: state.pathParameters['auditId']!),
         ),
       ),
       GoRoute(
         path: AppRoutes.stockCreate,
         builder: (context, state) => const AppShell(
-          initialSection: 'inventory',
+          initialSection: 'inventory-documents',
           child: StockDocumentCreateScreen(),
         ),
       ),
       GoRoute(
         path: AppRoutes.stockDocument,
         builder: (context, state) => AppShell(
-          initialSection: 'inventory',
+          initialSection: 'inventory-documents',
           child: StockDocumentDetailScreen(
             id: state.pathParameters['documentId']!,
           ),
@@ -223,8 +283,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.inventoryTransactions,
         builder: (context, state) => AppShell(
-          initialSection: 'inventory',
-          child: InventoryTransactionRoute(query: state.uri.queryParameters),
+          initialSection: 'inventory-transactions',
+          child: state.uri.queryParameters.isEmpty
+              ? const InventoryTransactionsScreen()
+              : InventoryTransactionRoute(query: state.uri.queryParameters),
         ),
       ),
       GoRoute(

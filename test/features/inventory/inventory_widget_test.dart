@@ -11,7 +11,9 @@ import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dar
 import 'package:pos_saas_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/inventory_entities.dart';
 import 'package:pos_saas_app/features/inventory/presentation/controllers/warehouse_list_controller.dart';
-import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_management_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_balances_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_warehouses_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_low_stock_screen.dart';
 import 'package:pos_saas_app/features/inventory/presentation/widgets/inventory_threshold_dialog.dart';
 import 'package:pos_saas_app/features/inventory/presentation/widgets/inventory_widgets.dart';
 import 'package:pos_saas_app/features/inventory/presentation/widgets/warehouse_action_dialog.dart';
@@ -46,6 +48,7 @@ Future<void> _pump(
   FakeBalances? balances,
   AuthController? auth,
   Widget? dialog,
+  Widget screen = const InventoryBalancesScreen(),
   double width = 1200,
   double scale = 1,
   bool keyboard = false,
@@ -74,7 +77,7 @@ Future<void> _pump(
           body: dialog == null
               ? RepaintBoundary(
                   key: const ValueKey('inventory-preview'),
-                  child: const InventoryManagementScreen(),
+                  child: screen,
                 )
               : Consumer(
                   builder: (context, ref, _) => Center(
@@ -156,74 +159,81 @@ void main() {
   );
   for (final width in [320.0, 600.0, 800.0, 1200.0, 1440.0]) {
     for (final scale in [1.0, 2.0]) {
-      testWidgets('all tabs fit width $width with system text $scale', (
-        tester,
-      ) async {
-        final wh = FakeWarehouses()
-          ..rows = [
-            warehouse(
-              name:
-                  'Kho nguyên liệu chính tại khu vực phía sau nhà hàng với tên dài',
-            ),
-          ];
-        final balances = FakeBalances()
-          ..rows = [
-            balance(
-              name:
-                  'Nguyên liệu tên rất dài dùng để kiểm tra bố cục khi phóng chữ hệ thống',
-              quantity: 99999999999.999,
-              min: 0,
-            ),
-            balance(i: 'i2', configured: false),
-            balance(i: 'i3', active: false),
-          ];
-        await _pump(
-          tester,
-          wh: wh,
-          balances: balances,
-          width: width,
-          scale: scale,
-        );
-        expect(find.text('Kho nguyên liệu'), findsOneWidget);
-        await tester.scrollUntilVisible(
-          find.text('Chưa cấu hình'),
-          300,
-          scrollable: find.byType(Scrollable).first,
-        );
-        expect(find.text('Chưa cấu hình'), findsOneWidget);
-        expect(balances.details, 0); // no N+1 detail requests
-        expect(tester.takeException(), isNull);
-        if (find.byType(ExpansionTile).evaluate().isNotEmpty) {
-          await _tap(tester, find.text('Lọc và sắp xếp'));
-          expect(
-            find.byType(DropdownButtonFormField<String>),
-            findsNWidgets(4),
+      testWidgets(
+        'independent stock screens fit width $width with system text $scale',
+        (tester) async {
+          final wh = FakeWarehouses()
+            ..rows = [
+              warehouse(
+                name:
+                    'Kho nguyên liệu chính tại khu vực phía sau nhà hàng với tên dài',
+              ),
+            ];
+          final balances = FakeBalances()
+            ..rows = [
+              balance(
+                name:
+                    'Nguyên liệu tên rất dài dùng để kiểm tra bố cục khi phóng chữ hệ thống',
+                quantity: 99999999999.999,
+                min: 0,
+              ),
+              balance(i: 'i2', configured: false),
+              balance(i: 'i3', active: false),
+            ];
+          await _pump(
+            tester,
+            wh: wh,
+            balances: balances,
+            width: width,
+            scale: scale,
           );
+          expect(find.text('Tồn kho'), findsOneWidget);
+          await tester.scrollUntilVisible(
+            find.text('Chưa cấu hình'),
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+          expect(find.text('Chưa cấu hình'), findsOneWidget);
+          expect(balances.details, 0); // no N+1 detail requests
           expect(tester.takeException(), isNull);
-        }
-        tester
-            .state<ScrollableState>(find.byType(Scrollable).first)
-            .position
-            .jumpTo(0);
-        await tester.pumpAndSettle();
-        await _tap(tester, find.text('Kho', skipOffstage: false));
-        await tester.scrollUntilVisible(
-          find.text('Mặc định'),
-          300,
-          scrollable: find.byType(Scrollable).first,
-        );
-        expect(find.text('Mặc định'), findsOneWidget);
-        expect(tester.takeException(), isNull);
-        tester
-            .state<ScrollableState>(find.byType(Scrollable).first)
-            .position
-            .jumpTo(0);
-        await tester.pumpAndSettle();
-        await _tap(tester, find.text('Tồn thấp hiện tại'));
-        expect(balances.lowCalls, 1);
-        expect(find.textContaining('KHO-W1'), findsWidgets);
-        expect(tester.takeException(), isNull);
-      });
+          if (find.byType(ExpansionTile).evaluate().isNotEmpty) {
+            await _tap(tester, find.text('Lọc và sắp xếp'));
+            expect(
+              find.byType(DropdownButtonFormField<String>),
+              findsNWidgets(4),
+            );
+            expect(tester.takeException(), isNull);
+          }
+          await _pump(
+            tester,
+            wh: wh,
+            balances: balances,
+            width: width,
+            scale: scale,
+            screen: const InventoryWarehousesScreen(),
+          );
+          expect(find.text('Quản lý kho'), findsOneWidget);
+          await tester.scrollUntilVisible(
+            find.text('Mặc định'),
+            300,
+            scrollable: find.byType(Scrollable).first,
+          );
+          expect(find.text('Mặc định'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+          await _pump(
+            tester,
+            wh: wh,
+            balances: balances,
+            width: width,
+            scale: scale,
+            screen: const InventoryLowStockScreen(),
+          );
+          expect(find.text('Tồn thấp hiện tại'), findsOneWidget);
+          expect(balances.lowCalls, 1);
+          expect(find.textContaining('KHO-W1'), findsWidgets);
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   }
 

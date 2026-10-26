@@ -13,6 +13,8 @@ import 'package:pos_saas_app/features/auth/presentation/controllers/auth_control
 import 'package:pos_saas_app/features/inventory/data/dto/stock_document_dto.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/stock_document.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_management_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_documents_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_transactions_screen.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/stock_document_create_screen.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/stock_document_detail_screen.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_transaction_screen.dart';
@@ -53,6 +55,7 @@ Future<GoRouter> _pump(
   double width = 1200,
   double scale = 1,
   bool keyboard = false,
+  PageStorageBucket? storageBucket,
 }) async {
   tester.view.physicalSize = Size(width, 1000);
   tester.view.devicePixelRatio = 1;
@@ -63,7 +66,12 @@ Future<GoRouter> _pump(
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   addTearDown(tester.view.resetViewInsets);
   auth ??= await _auth();
-  Widget page(Widget child) => Scaffold(body: child);
+  Widget page(Widget child) => storageBucket == null
+      ? Scaffold(body: child)
+      : PageStorage(
+          bucket: storageBucket,
+          child: Scaffold(body: child),
+        );
   final router = GoRouter(
     initialLocation: dialog == null ? location : '/dialog',
     routes: [
@@ -76,6 +84,10 @@ Future<GoRouter> _pump(
         ),
       ),
       GoRoute(
+        path: '/app/inventory/stock-documents',
+        builder: (context, state) => page(const InventoryDocumentsScreen()),
+      ),
+      GoRoute(
         path: '/app/inventory/stock-documents/new',
         builder: (context, state) => page(const StockDocumentCreateScreen()),
       ),
@@ -86,8 +98,11 @@ Future<GoRouter> _pump(
       ),
       GoRoute(
         path: '/app/inventory/transactions',
-        builder: (context, state) =>
-            page(InventoryTransactionRoute(query: state.uri.queryParameters)),
+        builder: (context, state) => page(
+          state.uri.queryParameters.isEmpty
+              ? const InventoryTransactionsScreen()
+              : InventoryTransactionRoute(query: state.uri.queryParameters),
+        ),
       ),
       GoRoute(
         path: '/dialog',
@@ -262,7 +277,7 @@ void main() {
           ]),
         );
       await _pump(tester, docs: docs);
-      final workspace = find.byKey(const PageStorageKey('inventory-workspace'));
+      final workspace = find.byKey(const PageStorageKey('inventory-documents'));
       await tester.drag(workspace, const Offset(0, -400));
       await tester.pumpAndSettle();
       final context = tester.element(workspace);
@@ -287,21 +302,44 @@ void main() {
   );
 
   testWidgets(
-    'document and transaction tabs keep filter expansion separate from scrolling',
+    'document and transaction screens keep filter expansion separate from scrolling',
     (tester) async {
-      await _pump(tester, width: 600);
+      final router = await _pump(
+        tester,
+        width: 600,
+        location: '/app/inventory/stock-documents',
+        storageBucket: PageStorageBucket(),
+      );
+      final documents = find.byKey(const PageStorageKey('inventory-documents'));
+      final documentsContext = tester.element(documents);
+      final bucket = PageStorage.of(documentsContext);
+      bucket.writeState(documentsContext, 180.0);
       await _tap(tester, find.text('Lọc và sắp xếp'));
       expect(find.byType(StockSelect), findsNWidgets(5));
+      expect(bucket.readState(documentsContext), isA<double>());
 
-      await _tap(tester, find.widgetWithText(ChoiceChip, 'Biến động'));
+      router.go('/app/inventory/transactions');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const PageStorageKey('inventory-transactions')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       expect(find.byType(StockSelect), findsNothing);
       await _tap(tester, find.text('Lọc và sắp xếp'));
       expect(find.byType(StockSelect), findsNWidgets(4));
 
-      await _tap(tester, find.widgetWithText(ChoiceChip, 'Chứng từ'));
+      router.go('/app/inventory/stock-documents');
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(StockSelect), findsNWidgets(5));
+      router.go('/app/inventory/transactions');
+      await tester.pumpAndSettle();
+      // The ledger's auto-disposed controller starts a fresh filter identity.
+      expect(find.byType(StockSelect), findsNothing);
+      await _tap(tester, find.text('Lọc và sắp xếp'));
+      expect(find.byType(StockSelect), findsNWidgets(4));
+      expect(tester.takeException(), isNull);
     },
   );
 

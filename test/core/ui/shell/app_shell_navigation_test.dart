@@ -8,12 +8,16 @@ import 'package:pos_saas_app/app/theme/app_theme.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
-import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_management_screen.dart';
+import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../../helpers/auth_fakes.dart';
 import '../../../features/inventory/inventory_fakes.dart';
 
 void main() {
-  for (final width in [320.0, 1200.0]) {
+  for (final viewport in [
+    (width: 320.0, scale: 1.0),
+    (width: 320.0, scale: 2.0),
+    (width: 1200.0, scale: 1.0),
+  ]) {
     for (final source in [
       (
         path: AppRoutes.reports,
@@ -22,89 +26,113 @@ void main() {
       ),
       (
         path: '/app/inventory/stock-documents/d1',
-        section: 'inventory',
+        section: 'inventory-documents',
         content: 'Chi tiết chứng từ',
       ),
     ]) {
-      testWidgets('Kho navigates from ${source.path} at $width px', (
-        tester,
-      ) async {
-        tester.view.physicalSize = Size(width, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        final auth = makeController(
-          authRepository: FakeAuthRepository()
-            ..loginResult = Success(
-              makeAuthSession(
-                permissions: {'INVENTORY_VIEW', 'REPORT_DETAIL_VIEW'},
+      testWidgets(
+        'Kho collapses, reopens and navigates from ${source.path} at ${viewport.width} px/${viewport.scale}x',
+        (tester) async {
+          tester.view.physicalSize = Size(viewport.width, 900);
+          tester.view.devicePixelRatio = 1;
+          tester.platformDispatcher.textScaleFactorTestValue = viewport.scale;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          final auth = makeController(
+            authRepository: FakeAuthRepository()
+              ..loginResult = Success(
+                makeAuthSession(
+                  permissions: {'INVENTORY_VIEW', 'REPORT_DETAIL_VIEW'},
+                ),
               ),
-            ),
-          entitlementRepository: FakeEntitlementRepository()
-            ..result = Success(
-              makeEntitlement(
-                features: {'INVENTORY_MANAGEMENT', 'DETAIL_REPORT'},
+            entitlementRepository: FakeEntitlementRepository()
+              ..result = Success(
+                makeEntitlement(
+                  features: {'INVENTORY_MANAGEMENT', 'DETAIL_REPORT'},
+                ),
               ),
+          );
+          await auth.login(
+            const LoginCredentials(
+              email: 'navigation@example.com',
+              password: 'password',
             ),
-        );
-        await auth.login(
-          const LoginCredentials(
-            email: 'navigation@example.com',
-            password: 'password',
-          ),
-        );
-        final router = GoRouter(
-          initialLocation: source.path,
-          routes: [
-            GoRoute(
-              path: source.path,
-              builder: (_, _) => AppShell(
-                initialSection: source.section,
-                child: Center(child: Text(source.content)),
+          );
+          final router = GoRouter(
+            initialLocation: source.path,
+            routes: [
+              GoRoute(
+                path: source.path,
+                builder: (_, _) => AppShell(
+                  initialSection: source.section,
+                  child: Center(child: Text(source.content)),
+                ),
               ),
-            ),
-            GoRoute(
-              path: AppRoutes.inventory,
-              builder: (_, _) => const AppShell(
-                initialSection: 'inventory',
-                child: InventoryManagementScreen(),
-              ),
-            ),
-          ],
-        );
-        addTearDown(router.dispose);
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              authControllerProvider.overrideWith((ref) => auth),
-              warehouseRepositoryProvider.overrideWithValue(FakeWarehouses()),
-              inventoryBalanceRepositoryProvider.overrideWithValue(
-                FakeBalances(),
+              GoRoute(
+                path: AppRoutes.inventoryBalances,
+                builder: (_, _) => const AppShell(
+                  initialSection: 'inventory',
+                  child: InventoryBalancesScreen(),
+                ),
               ),
             ],
-            child: MaterialApp.router(
-              theme: AppTheme.light,
-              routerConfig: router,
+          );
+          addTearDown(router.dispose);
+          await tester.pumpWidget(
+            ProviderScope(
+              overrides: [
+                authControllerProvider.overrideWith((ref) => auth),
+                warehouseRepositoryProvider.overrideWithValue(FakeWarehouses()),
+                inventoryBalanceRepositoryProvider.overrideWithValue(
+                  FakeBalances(),
+                ),
+              ],
+              child: MaterialApp.router(
+                theme: AppTheme.light,
+                routerConfig: router,
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text(source.content), findsOneWidget);
-        await tester.tap(find.byTooltip('Menu'));
-        await tester.pumpAndSettle();
-        final inventory = find.widgetWithText(ListTile, 'Kho');
-        await tester.ensureVisible(inventory);
-        await tester.tap(inventory);
-        await tester.pumpAndSettle();
-        expect(
-          router.routeInformationProvider.value.uri.path,
-          AppRoutes.inventory,
-        );
-        expect(find.byType(InventoryManagementScreen), findsOneWidget);
-        expect(find.text('Kho nguyên liệu'), findsOneWidget);
-        expect(find.text(source.content), findsNothing);
-        expect(tester.takeException(), isNull);
-      });
+          );
+          await tester.pumpAndSettle();
+          expect(find.text(source.content), findsOneWidget);
+          await tester.tap(find.byTooltip('Menu'));
+          await tester.pumpAndSettle();
+          if (find.byTooltip('Thu gọn Kho').evaluate().isNotEmpty) {
+            await tester.ensureVisible(find.byTooltip('Thu gọn Kho'));
+            await tester.tap(find.byTooltip('Thu gọn Kho'));
+            await tester.pumpAndSettle();
+          }
+          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsNothing);
+          await tester.ensureVisible(find.byTooltip('Mở rộng Kho'));
+          await tester.tap(find.byTooltip('Mở rộng Kho'));
+          await tester.pumpAndSettle();
+          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsOneWidget);
+          expect(router.routeInformationProvider.value.uri.path, source.path);
+          await tester.tap(find.byTooltip('Thu gọn Kho'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('Menu'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('Menu'));
+          await tester.pumpAndSettle();
+          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsNothing);
+          await tester.ensureVisible(find.byTooltip('Mở rộng Kho'));
+          await tester.tap(find.byTooltip('Mở rộng Kho'));
+          await tester.pumpAndSettle();
+          final inventory = find.widgetWithText(ListTile, 'Tồn kho');
+          await tester.ensureVisible(inventory);
+          await tester.tap(inventory);
+          await tester.pumpAndSettle();
+          expect(
+            router.routeInformationProvider.value.uri.path,
+            AppRoutes.inventoryBalances,
+          );
+          expect(find.byType(InventoryBalancesScreen), findsOneWidget);
+          expect(find.text('Tồn kho'), findsWidgets);
+          expect(find.text(source.content), findsNothing);
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   }
 }
