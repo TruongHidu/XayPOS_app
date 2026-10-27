@@ -8,6 +8,7 @@ class CreateIngredientInput {
     this.sku,
     this.description,
     this.costPrice,
+    this.costConfigured,
     this.trackInventory = false,
     this.active = true,
   });
@@ -17,6 +18,7 @@ class CreateIngredientInput {
   final String? sku;
   final String? description;
   final MenuPrice? costPrice;
+  final bool? costConfigured;
   final bool trackInventory;
   final bool active;
 }
@@ -29,6 +31,7 @@ class UpdateIngredientInput {
     this.sku,
     this.description,
     this.costPrice,
+    this.costConfigured,
     this.trackInventory,
   });
 
@@ -38,6 +41,7 @@ class UpdateIngredientInput {
   final String? sku;
   final String? description;
   final MenuPrice? costPrice;
+  final bool? costConfigured;
   final bool? trackInventory;
 
   bool get isEmpty =>
@@ -46,6 +50,7 @@ class UpdateIngredientInput {
       sku == null &&
       description == null &&
       costPrice == null &&
+      costConfigured == null &&
       trackInventory == null;
 
   factory UpdateIngredientInput.changes(
@@ -55,6 +60,7 @@ class UpdateIngredientInput {
     required String sku,
     required String description,
     MenuPrice? costPrice,
+    bool? costConfigured,
     required bool trackInventory,
   }) {
     final trimmedName = name.trim();
@@ -84,14 +90,6 @@ class UpdateIngredientInput {
       descChange = null;
     }
 
-    // Cost price: if null or same as baseline -> null; if different -> send new costPrice
-    final MenuPrice? costChange;
-    if (costPrice == null || costPrice == baseline.costPrice) {
-      costChange = null;
-    } else {
-      costChange = costPrice;
-    }
-
     final trackChange = trackInventory == baseline.trackInventory
         ? null
         : trackInventory;
@@ -102,7 +100,9 @@ class UpdateIngredientInput {
       baseUnit: unitChange,
       sku: skuChange,
       description: descChange,
-      costPrice: costChange,
+      // An explicit equal value still confirms a formerly unknown reference cost.
+      costPrice: costPrice,
+      costConfigured: costConfigured,
       trackInventory: trackChange,
     );
   }

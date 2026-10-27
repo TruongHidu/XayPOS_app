@@ -1,5 +1,4 @@
 import '../../domain/entities/menu_inputs.dart';
-import '../../domain/entities/menu_price.dart';
 import '../../domain/entities/menu_query.dart';
 
 abstract final class MenuRequests {
@@ -29,7 +28,9 @@ abstract final class MenuRequests {
     'name': input.name.trim(),
     'baseUnit': input.baseUnit.trim(),
     'salePrice': input.salePrice.toNumber(),
-    'costPrice': (input.costPrice ?? MenuPrice.zero).toNumber(),
+    if (input.costPrice != null) 'costPrice': input.costPrice!.toNumber(),
+    if (input.costConfigured != null) 'costConfigured': input.costConfigured,
+    'recipeEnabled': input.recipeEnabled,
     'groupId': input.groupId,
     'sku': input.sku?.trim(),
     'description': input.description?.trim(),
@@ -41,6 +42,8 @@ abstract final class MenuRequests {
     if (input.baseUnit != null) 'baseUnit': input.baseUnit!.trim(),
     if (input.salePrice != null) 'salePrice': input.salePrice!.toNumber(),
     if (input.costPrice != null) 'costPrice': input.costPrice!.toNumber(),
+    if (input.costConfigured != null) 'costConfigured': input.costConfigured,
+    if (input.recipeEnabled != null) 'recipeEnabled': input.recipeEnabled,
     if (input.sku != null) 'sku': input.sku!.trim(),
     if (input.description != null) 'description': input.description!.trim(),
     if (input.imageUrl != null) 'imageUrl': input.imageUrl!.trim(),

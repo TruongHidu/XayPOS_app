@@ -2,6 +2,7 @@ import '../../../../core/values/ingredient_quantity.dart';
 
 enum RecipeSnapshotStatus {
   captured('CAPTURED', 'Đã chốt công thức'),
+  recipeDisabled('RECIPE_DISABLED', 'Khi gửi món không sử dụng công thức'),
   noRecipe('NO_RECIPE', 'Khi gửi món chưa có công thức áp dụng'),
   featureDisabled(
     'FEATURE_DISABLED',
@@ -14,6 +15,15 @@ enum RecipeSnapshotStatus {
   notSubmitted('NOT_SUBMITTED', 'Món chưa gửi, chưa chốt công thức');
 
   const RecipeSnapshotStatus(this.code, this.label);
+  final String code, label;
+}
+
+/// The source selected at acceptance, not a historical monetary cost amount.
+enum RecipeCostSourceSnapshot {
+  manual('MANUAL', 'Thủ công'),
+  recipe('RECIPE', 'Công thức');
+
+  const RecipeCostSourceSnapshot(this.code, this.label);
   final String code, label;
 }
 
@@ -30,6 +40,8 @@ class OrderRecipeSnapshot {
     required this.orderUnit,
     required this.capturedAt,
     required List<OrderRecipeIngredient> ingredients,
+    this.recipeEnabledSnapshot,
+    this.costSourceSnapshot,
   }) : ingredients = List.unmodifiable(ingredients);
   final String orderId, orderItemId, orderUnit;
   final RecipeSnapshotStatus status;
@@ -39,6 +51,8 @@ class OrderRecipeSnapshot {
   final IngredientQuantity orderQuantity;
   final DateTime? capturedAt;
   final List<OrderRecipeIngredient> ingredients;
+  final bool? recipeEnabledSnapshot;
+  final RecipeCostSourceSnapshot? costSourceSnapshot;
 }
 
 class OrderRecipeIngredient {

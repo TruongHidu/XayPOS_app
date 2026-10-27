@@ -29,10 +29,12 @@ class StockDocumentCreateController extends InventoryController {
     required this.create,
     required this.getWarehouse,
     required this.keys,
+    this.onReceiptApplied,
   });
   final CreateStockDocument create;
   final GetWarehouse getWarehouse;
   final StockKeyGenerator keys;
+  final void Function()? onReceiptApplied;
   StockDocumentType type = StockDocumentType.receipt;
   Warehouse? warehouse;
   String note = '';
@@ -211,6 +213,9 @@ class StockDocumentCreateController extends InventoryController {
                 documentId: value.id,
               ),
             );
+            if (current && value.type == StockDocumentType.receipt) {
+              onReceiptApplied?.call();
+            }
           }
         case Error(failure: final error):
           failure = error;

@@ -18,6 +18,74 @@ import 'order_ingredient_fakes.dart';
 
 void main() {
   test(
+    'source decisions preserve nullable history and reject malformed/contradictory metadata',
+    () {
+      final manual = OrderRecipeSnapshotDto.parse(
+        snapshotJson(status: 'RECIPE_DISABLED'),
+      );
+      expect(manual.recipeEnabledSnapshot, false);
+      expect(manual.costSourceSnapshot, RecipeCostSourceSnapshot.manual);
+      expect(manual.capturedAt, isNotNull);
+      expect(manual.ingredients, isEmpty);
+      final unavailable = OrderRecipeSnapshotDto.parse(
+        snapshotJson(status: 'FEATURE_DISABLED'),
+      );
+      expect(unavailable.recipeEnabledSnapshot, true);
+      expect(unavailable.costSourceSnapshot, RecipeCostSourceSnapshot.recipe);
+      for (final status in [
+        'CAPTURED',
+        'FEATURE_DISABLED',
+        'NO_RECIPE',
+        'LEGACY_UNAVAILABLE',
+        'NOT_SUBMITTED',
+      ]) {
+        final legacy = snapshotJson(status: status, legacyDecision: true)
+          ..remove('recipeEnabledSnapshot')
+          ..remove('costSourceSnapshot');
+        final snapshot = OrderRecipeSnapshotDto.parse(legacy);
+        expect(snapshot.recipeEnabledSnapshot, null);
+        expect(snapshot.costSourceSnapshot, null);
+      }
+      for (final raw in [
+        snapshotJson()..['recipeEnabledSnapshot'] = 1,
+        snapshotJson()..['costSourceSnapshot'] = false,
+        snapshotJson()..['costSourceSnapshot'] = 'MENU_CURRENT',
+        snapshotJson()..['costSourceSnapshot'] = 'MANUAL',
+        snapshotJson(status: 'RECIPE_DISABLED')
+          ..['recipeEnabledSnapshot'] = true,
+        snapshotJson(status: 'RECIPE_DISABLED')..['capturedAt'] = null,
+        snapshotJson(status: 'NOT_SUBMITTED')
+          ..['costSourceSnapshot'] = 'RECIPE',
+      ]) {
+        expect(() => OrderRecipeSnapshotDto.parse(raw), throwsFormatException);
+      }
+    },
+  );
+  test(
+    'disabled application and unavailable recipe feature keep distinct allocation decisions',
+    () {
+      final off = OrderItemAllocationDto.parse(
+        allocationJson(status: 'SKIPPED', reason: 'SNAPSHOT_RECIPE_DISABLED'),
+      );
+      final feature = OrderItemAllocationDto.parse(
+        allocationJson(status: 'SKIPPED', reason: 'SNAPSHOT_FEATURE_DISABLED'),
+      );
+      expect(off.skipReason, AllocationSkipReason.recipeApplicationDisabled);
+      expect(feature.skipReason, AllocationSkipReason.recipeFeatureDisabled);
+      expect(off.skipReason, isNot(feature.skipReason));
+      expect(off.ingredients, isEmpty);
+      expect(off.warehouseId, null);
+      expect(off.reservedAt, null);
+      expect(
+        () => OrderItemAllocationDto.parse(
+          allocationJson(status: 'RESERVED')
+            ..['skipReason'] = 'SNAPSHOT_RECIPE_DISABLED',
+        ),
+        throwsFormatException,
+      );
+    },
+  );
+  test(
     'both GET endpoints use exact IDs, auth/no-store and no body/query/version/key',
     () async {
       final requests = <RequestOptions>[];

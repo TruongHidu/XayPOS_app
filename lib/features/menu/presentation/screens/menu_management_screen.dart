@@ -35,6 +35,7 @@ class MenuManagementScreen extends ConsumerStatefulWidget {
 
 class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
   MenuWorkspaceTab _tab = MenuWorkspaceTab.menuItems;
+  String? _routeTab;
   bool get _groups => _tab == MenuWorkspaceTab.menuGroups;
   MenuItemGroupSummary? get _filterGroup => ref.read(menuGroupFilterProvider);
   set _filterGroup(MenuItemGroupSummary? value) =>
@@ -235,6 +236,13 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final routeTab = GoRouter.maybeOf(
+      context,
+    )?.routeInformationProvider.value.uri.queryParameters['tab'];
+    if (routeTab != _routeTab) {
+      _routeTab = routeTab;
+      if (routeTab == 'ingredients') _tab = MenuWorkspaceTab.ingredients;
+    }
     final session = ref.watch(authControllerProvider).state.session;
     final canMenuView = AccessPolicy.canMenu(session, 'MENU_VIEW');
     final canIngredientView = AccessPolicy.canIngredient(
@@ -1077,6 +1085,17 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                   const SizedBox(height: 8),
 
                   // ── Group & SKU (secondary info) ──
+                  Text(
+                    item.costConfigured && item.costPrice != null
+                        ? 'Giá vốn thủ công: ${item.costPrice} / ${item.baseUnit}'
+                        : 'Chưa cấu hình giá vốn',
+                  ),
+                  Text(
+                    item.recipeEnabled
+                        ? 'Sử dụng công thức: Bật'
+                        : 'Sử dụng công thức: Tắt',
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(

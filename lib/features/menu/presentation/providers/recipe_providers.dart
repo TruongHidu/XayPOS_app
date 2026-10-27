@@ -14,6 +14,42 @@ import '../controllers/recipe_controller.dart';
 import '../controllers/recipe_cost_controller.dart';
 import '../../domain/use_cases/menu_item_use_cases.dart';
 import '../controllers/recipe_ingredient_selector_controller.dart';
+import '../controllers/recipe_application_controller.dart';
+
+/// Menu-scoped, so disabling remains available after RECIPE_MANAGEMENT expires.
+final recipeApplicationProvider = ChangeNotifierProvider.autoDispose
+    .family<RecipeApplicationController, String>((ref, menuItemId) {
+      ref.watch(menuScopeProvider);
+      final auth = ref.read(authControllerProvider);
+      final menu = ref.watch(menuItemControllerProvider.notifier);
+      final controller = RecipeApplicationController(
+        menuItemId: menuItemId,
+        session: () => auth.state.session,
+        get: GetMenuItemDetail(ref.watch(menuItemRepositoryProvider)),
+        update: menu.update,
+        itemPending: () => menu.isPending(menuItemId),
+        events: ref.read(menuCatalogEventsProvider),
+        onAccessDenied: (_) => auth.revalidateAccess(),
+      );
+      ref.listen(
+        menuItemControllerProvider,
+        (_, _) => controller.signalsChanged(),
+      );
+      void Function()? release;
+      void retain() {
+        if (controller.busy) {
+          release ??= ref.keepAlive().close;
+        } else {
+          release?.call();
+          release = null;
+        }
+      }
+
+      controller.addListener(retain);
+      ref.onDispose(() => controller.removeListener(retain));
+      Future.microtask(controller.loadIfNeeded);
+      return controller;
+    });
 
 final recipeScopeProvider = authControllerProvider.select(
   (auth) => AccessPolicy.recipeScope(auth.state.session),
@@ -76,7 +112,7 @@ class RecipeAccessRecovery {
       await pending;
       return;
     }
-    final future = auth.restore();
+    final future = auth.revalidateAccess();
     _inFlight = future;
     try {
       await future;

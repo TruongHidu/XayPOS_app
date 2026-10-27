@@ -38,7 +38,7 @@ final orderRecipeSnapshotProvider = ChangeNotifierProvider.autoDispose
       ref.listen(orderEventsProvider, (_, events) {
         if (revision == events.revision) return;
         revision = events.revision;
-        if (events.changedId == target.orderId) controller.markStale();
+        if (events.affectsOrder(target.orderId)) controller.markStale();
       });
       Future.microtask(controller.load);
       return controller;

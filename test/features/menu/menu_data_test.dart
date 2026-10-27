@@ -136,7 +136,9 @@ void main() {
       );
       expect(requests[6].queryParameters, containsPair('sellable', false));
       expect(requests[8].data['salePrice'], isA<num>());
-      expect(requests[8].data['costPrice'], 0);
+      // An untouched price must not explicitly configure zero after V37.
+      expect((requests[8].data as Map).containsKey('costPrice'), false);
+      expect(requests[8].data['recipeEnabled'], false);
       expect(jsonEncode(requests[8].data), contains('999999999999.99'));
       expect(requests[9].data, {
         'sku': '',
@@ -174,6 +176,8 @@ void main() {
         'name',
         'baseUnit',
         'salePrice',
+        'costConfigured',
+        'recipeEnabled',
         'active',
         'sellable',
         'availabilityStatus',
@@ -192,6 +196,8 @@ void main() {
         'salePrice': '35000',
         'availabilityStatus': 'UNKNOWN',
         'active': 'true',
+        'costConfigured': 0,
+        'recipeEnabled': 'false',
         'createdAt': 'yesterday',
       }.entries) {
         expect(
@@ -296,7 +302,7 @@ void main() {
     },
   );
   test(
-    'create costPrice null becomes JSON zero; PATCH omission keeps cost and explicit zero resets it',
+    'untouched create cost is omitted; PATCH omission keeps cost and explicit zero configures it',
     () {
       final create = CreateMenuItemInput(
         name: 'Tea',
@@ -304,7 +310,11 @@ void main() {
         salePrice: MenuPrice.parse('35000'),
       );
       expect(create.costPrice, isNull);
-      expect(MenuRequests.createItem(create)['costPrice'], 0);
+      expect(MenuRequests.createItem(create).containsKey('costPrice'), false);
+      expect(
+        MenuRequests.createItem(create).containsKey('costConfigured'),
+        false,
+      );
       expect(
         MenuRequests.updateItem(
           const UpdateMenuItemInput(expectedVersion: 9, name: 'Changed'),
@@ -323,7 +333,7 @@ void main() {
     },
   );
   test(
-    'cost-only PATCH compares exact baseline cost and sends numeric decimal',
+    'explicit cost PATCH preserves intent even when equal and sends numeric decimal',
     () async {
       final baseline = MenuItemDto.fromJson(
         itemJson()..['costPrice'] = 12500.5,
@@ -339,7 +349,7 @@ void main() {
             imageUrl: '',
             costPrice: cost,
           );
-      expect(changes(MenuPrice.parse('12500.50')).isEmpty, true);
+      expect(changes(MenuPrice.parse('12500.50')).isEmpty, false);
       final changed = changes(MenuPrice.parse('999999999999.99'));
       expect(changed.isEmpty, false);
       final requests = <RequestOptions>[];

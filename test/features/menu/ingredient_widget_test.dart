@@ -189,7 +189,6 @@ void main() {
         'name': 'Bò Úc',
         'baseUnit': 'kg',
         'sku': 'NL-BO-UC',
-        'costPrice': 0,
         'trackInventory': false,
         'active': true,
       });
@@ -261,7 +260,7 @@ void main() {
 
   for (final clearCost in [false, true]) {
     testWidgets(
-      'ingredient edit omits unchanged price or explicitly resets to zero: $clearCost',
+      'ingredient edit omits unchanged price or explicitly clears configuration: $clearCost',
       (tester) async {
         final ingredients = FakeIngredients();
         await _pump(
@@ -278,7 +277,13 @@ void main() {
         await tester.enterText(_field('name'), 'Tên mới');
         await tester.enterText(_field('sku'), '');
         await tester.enterText(_field('description'), '');
-        if (clearCost) await tester.enterText(_field('costPrice'), '');
+        if (clearCost) {
+          await _tap(
+            tester,
+            find.byKey(const ValueKey('ingredient-costPrice-clear')),
+          );
+          await _tap(tester, find.text('Xóa cấu hình'));
+        }
         await _tap(tester, find.text('Lưu thay đổi'));
         await tester.pumpAndSettle();
         final body = IngredientRequests.update(ingredients.lastUpdate!);
@@ -286,8 +291,9 @@ void main() {
         expect(body['sku'], '');
         expect(body['description'], '');
         expect(body.containsKey('active'), isFalse);
-        expect(body.containsKey('costPrice'), clearCost);
-        if (clearCost) expect(body['costPrice'], 0);
+        expect(body.containsKey('costPrice'), false);
+        expect(body.containsKey('costConfigured'), clearCost);
+        if (clearCost) expect(body['costConfigured'], false);
       },
     );
   }
@@ -503,7 +509,10 @@ void main() {
           dialog: IngredientDetailsDialog(initial: ingredient()),
           permission: 'INGREDIENT_VIEW',
         );
-        expect(find.text('Giá vốn: 250.25 / g'), findsOneWidget);
+        expect(
+          find.text('Giá vốn tham chiếu: 250.25 / g · Đã cấu hình'),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
       },
     );

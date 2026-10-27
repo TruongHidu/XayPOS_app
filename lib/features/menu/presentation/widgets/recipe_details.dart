@@ -17,7 +17,7 @@ class RecipeDetails extends StatelessWidget {
         style: Theme.of(context).textTheme.titleLarge,
       ),
       const SizedBox(height: 8),
-      Text(recipe.active ? 'Đang áp dụng' : 'Đã ngừng áp dụng'),
+      Text(recipe.active ? 'Phiên bản hiện hành' : 'Đã lưu trữ'),
       Text('Cập nhật: ${formatLocalDate(recipe.updatedAt)}'),
       const SizedBox(height: 16),
       Text(

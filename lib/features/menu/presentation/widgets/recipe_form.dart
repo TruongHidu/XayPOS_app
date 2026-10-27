@@ -88,6 +88,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
   bool _dirty = false;
   bool _allowClose = false;
   bool _outcomeUnknown = false;
+  bool _savedWithoutApplication = false;
   late Object? _scope;
   String get _permission =>
       _baseline == null ? 'RECIPE_CREATE' : 'RECIPE_UPDATE';
@@ -229,7 +230,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
           permission: _permission,
           title: 'Bỏ thay đổi công thức?',
           message:
-              'Bản nháp chưa lưu sẽ bị bỏ. Công thức đang áp dụng không thay đổi.',
+              'Bản nháp chưa lưu sẽ bị bỏ. Phiên bản hiện hành không thay đổi.',
           confirmLabel: 'Bỏ bản nháp',
         )) {
       return;
@@ -337,8 +338,9 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
     return true;
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool useRecipe = false}) async {
     if (_busy ||
+        _savedWithoutApplication ||
         _verifying ||
         _verificationError != null ||
         _outcomeUnknown ||
@@ -373,9 +375,15 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
     // The mapping remains stable even if later rows are removed after a failure.
     final submittedRows = List<_DraftLine>.of(_lines);
     final baseline = _baseline;
-    final result = baseline == null
-        ? await controller.create(input)
-        : await controller.createVersion(baseline, input);
+    Future<Result<Recipe>> saveDefinition() => baseline == null
+        ? controller.create(input)
+        : controller.createVersion(baseline, input);
+    final application = useRecipe
+        ? ref.read(recipeApplicationProvider(widget.menuItemId))
+        : null;
+    final result = application == null
+        ? await saveDefinition()
+        : await application.saveAndEnable(saveDefinition);
     if (!mounted || !_current) return;
     switch (result) {
       case Success():
@@ -386,10 +394,17 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
         });
         Navigator.of(context).pop(true);
       case Error(failure: final failure):
+        final definitionSaved =
+            useRecipe && application?.savedDefinition != null;
         setState(() {
           _busy = false;
           _failure = failure;
-          _outcomeUnknown = failure.isNetwork;
+          _savedWithoutApplication = definitionSaved;
+          _outcomeUnknown = !definitionSaved && failure.isNetwork;
+          if (definitionSaved) {
+            _allowClose = true;
+            _dirty = false;
+          }
           for (final entry in failure.fieldErrors.entries) {
             if (entry.key == 'yieldQuantity') {
               _yieldError = entry.value;
@@ -418,6 +433,40 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
             }
           }
         }
+    }
+  }
+
+  Future<void> _enableSavedDefinition() async {
+    if (_busy || !_savedWithoutApplication || !_current) return;
+    final application = ref.read(recipeApplicationProvider(widget.menuItemId));
+    if (!application.canSet(true)) return;
+    setState(() {
+      _busy = true;
+      _failure = null;
+    });
+    await application.load();
+    if (!mounted || !_current) return;
+    if (application.failure != null || application.item == null) {
+      setState(() {
+        _busy = false;
+        _failure = application.failure;
+      });
+      return;
+    }
+    final result = await application.setEnabled(true);
+    if (!mounted || !_current) return;
+    switch (result) {
+      case Success():
+        setState(() {
+          _busy = false;
+          _allowClose = true;
+        });
+        Navigator.of(context).pop(true);
+      case Error(failure: final failure):
+        setState(() {
+          _busy = false;
+          _failure = failure;
+        });
     }
   }
 
@@ -514,7 +563,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
           type: FailureType.conflict,
           code: 'CONCURRENT_RECIPE_UPDATE',
           message:
-              'Đã kiểm tra dữ liệu mới nhất. ${controller.active == null ? "Món chưa có công thức đang áp dụng." : "Đang áp dụng phiên bản ${controller.active!.recipeVersion}."} Bản nháp của bạn được giữ nguyên. Hãy xem lại dữ liệu trước khi quyết định lưu hoặc tải lại bản nháp.',
+              'Đã kiểm tra dữ liệu mới nhất. ${controller.active == null ? "Món chưa có phiên bản hiện hành." : "Phiên bản hiện hành phiên bản ${controller.active!.recipeVersion}."} Bản nháp của bạn được giữ nguyên. Hãy xem lại dữ liệu trước khi quyết định lưu hoặc tải lại bản nháp.',
         );
       } else {
         _failure = controller.activeFailure ?? controller.historyFailure;
@@ -528,7 +577,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
           context,
           ref,
           permission: _permission,
-          title: 'Tải lại bản nháp từ công thức đang áp dụng?',
+          title: 'Tải lại bản nháp từ phiên bản hiện hành?',
           message:
               'Bản nháp hiện tại sẽ bị thay bằng dữ liệu mới nhất. Bạn cần xem lại trước khi lưu.',
           confirmLabel: 'Thay bản nháp',
@@ -610,7 +659,11 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                 TextField(
                   key: ValueKey('recipe-quantity-${line.key}'),
                   controller: line.quantity,
-                  enabled: !_busy && !_verifying && line.blocked == null,
+                  enabled:
+                      !_busy &&
+                      !_verifying &&
+                      !_savedWithoutApplication &&
+                      line.blocked == null,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -628,7 +681,11 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                 TextField(
                   key: ValueKey('recipe-waste-${line.key}'),
                   controller: line.waste,
-                  enabled: !_busy && !_verifying && line.blocked == null,
+                  enabled:
+                      !_busy &&
+                      !_verifying &&
+                      !_savedWithoutApplication &&
+                      line.blocked == null,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -666,7 +723,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
             children: [
               if (canRead)
                 TextButton.icon(
-                  onPressed: _busy || _verifying
+                  onPressed: _busy || _verifying || _savedWithoutApplication
                       ? null
                       : () => _pick(replace: line),
                   icon: const Icon(Icons.swap_horiz),
@@ -674,7 +731,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                 ),
               TextButton.icon(
                 key: ValueKey('recipe-remove-${line.key}'),
-                onPressed: _busy || _verifying
+                onPressed: _busy || _verifying || _savedWithoutApplication
                     ? null
                     : () => setState(() {
                         _lines.remove(line);
@@ -695,8 +752,12 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
   Widget build(BuildContext context) {
     final controller = ref.watch(recipeControllerProvider(widget.menuItemId));
     final session = ref.watch(authControllerProvider).state.session;
+    final application = AccessPolicy.canMenu(session, 'MENU_UPDATE')
+        ? ref.watch(recipeApplicationProvider(widget.menuItemId))
+        : null;
     final canRead = AccessPolicy.canIngredient(session, 'INGREDIENT_VIEW');
     final available =
+        !_savedWithoutApplication &&
         controller.can(_permission) &&
         _scope == AccessPolicy.recipeScope(session);
     return PopScope(
@@ -726,23 +787,36 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                       RecipeNotice(
                         message: _failure!.message,
                         error: true,
-                        action: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            TextButton(
-                              onPressed: _busy ? null : _check,
-                              child: const Text(
-                                'Kiểm tra đang áp dụng và lịch sử',
+                        action: _savedWithoutApplication
+                            ? null
+                            : Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  TextButton(
+                                    onPressed: _busy ? null : _check,
+                                    child: const Text(
+                                      'Kiểm tra hiện hành và lịch sử',
+                                    ),
+                                  ),
+                                  if (recipeNeedsReload(_failure) ||
+                                      _failure!.isNetwork)
+                                    TextButton(
+                                      onPressed: _busy ? null : _reloadDraft,
+                                      child: const Text('Tải lại bản nháp'),
+                                    ),
+                                ],
                               ),
-                            ),
-                            if (recipeNeedsReload(_failure) ||
-                                _failure!.isNetwork)
-                              TextButton(
-                                onPressed: _busy ? null : _reloadDraft,
-                                child: const Text('Tải lại bản nháp'),
-                              ),
-                          ],
+                      ),
+                    if (_savedWithoutApplication)
+                      RecipeNotice(
+                        message:
+                            'Công thức đã được lưu. Chỉ cần kiểm tra và bật sử dụng; không lưu lại công thức.',
+                        action: TextButton(
+                          onPressed: _busy || application?.canSet(true) != true
+                              ? null
+                              : _enableSavedDefinition,
+                          child: const Text('Kiểm tra và bật sử dụng'),
                         ),
                       ),
                     if (_verificationError != null)
@@ -825,7 +899,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Công thức mới sẽ được áp dụng ngay sau khi lưu.',
+                      'Lưu công thức không tự bật sử dụng. Phiên bản hiện hành và lựa chọn sử dụng được quản lý riêng.',
                     ),
                   ],
                 ),
@@ -857,10 +931,28 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                     _busy
                         ? 'Đang xử lý…'
                         : _baseline == null
-                        ? 'Áp dụng công thức'
+                        ? 'Lưu công thức'
                         : 'Tạo phiên bản mới',
                   ),
                 ),
+                if (_baseline == null &&
+                    application?.canSet(true) == true &&
+                    !_savedWithoutApplication)
+                  FilledButton.icon(
+                    key: const ValueKey('recipe-submit-and-enable'),
+                    onPressed:
+                        _busy ||
+                            _verifying ||
+                            !available ||
+                            _verificationError != null ||
+                            _outcomeUnknown ||
+                            recipeNeedsReload(_failure) ||
+                            _unit == null
+                        ? null
+                        : () => _save(useRecipe: true),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Lưu & sử dụng công thức'),
+                  ),
               ],
             ),
           ],

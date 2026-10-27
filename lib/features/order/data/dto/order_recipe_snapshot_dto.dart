@@ -10,6 +10,10 @@ abstract final class OrderRecipeSnapshotDto {
       (e) => e.code,
     );
     final captured = status == RecipeSnapshotStatus.captured;
+    final application = j['recipeEnabledSnapshot'];
+    if (application != null && application is! bool) {
+      throw const FormatException('Invalid snapshot application flag');
+    }
     final ingredients = ReadJson.list(j, 'ingredients').map((raw) {
       final row = ReadJson.object(raw);
       if (row['trackInventory'] is! bool) {
@@ -55,6 +59,14 @@ abstract final class OrderRecipeSnapshotDto {
       orderUnit: ReadJson.text(j, 'orderUnit'),
       capturedAt: ReadJson.date(j, 'capturedAt'),
       ingredients: ingredients,
+      recipeEnabledSnapshot: application as bool?,
+      costSourceSnapshot: j['costSourceSnapshot'] == null
+          ? null
+          : ReadJson.enumeration<RecipeCostSourceSnapshot>(
+              j['costSourceSnapshot'],
+              RecipeCostSourceSnapshot.values,
+              (e) => e.code,
+            ),
     );
     if (captured
         ? value.recipeId == null ||
@@ -81,9 +93,29 @@ abstract final class OrderRecipeSnapshotDto {
         const {
               RecipeSnapshotStatus.noRecipe,
               RecipeSnapshotStatus.featureDisabled,
+              RecipeSnapshotStatus.recipeDisabled,
             }.contains(status) &&
             value.capturedAt == null) {
       throw const FormatException('Invalid snapshot history');
+    }
+    // Nullable metadata belongs to old rows; never invent a source from today's menu.
+    final source = value.costSourceSnapshot;
+    if (const {
+              RecipeSnapshotStatus.legacyUnavailable,
+              RecipeSnapshotStatus.notSubmitted,
+              RecipeSnapshotStatus.noRecipe,
+            }.contains(status) &&
+            (application != null || source != null) ||
+        status == RecipeSnapshotStatus.recipeDisabled &&
+            (application == true ||
+                source == RecipeCostSourceSnapshot.recipe) ||
+        const {
+              RecipeSnapshotStatus.captured,
+              RecipeSnapshotStatus.featureDisabled,
+            }.contains(status) &&
+            (application == false ||
+                source == RecipeCostSourceSnapshot.manual)) {
+      throw const FormatException('Invalid snapshot source decision');
     }
     return value;
   }

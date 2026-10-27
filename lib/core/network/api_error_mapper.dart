@@ -24,6 +24,33 @@ abstract final class ApiErrorMapper {
         ? ApiErrorDto.fromJson(data)
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
+    const configurationMessages = {
+      'COST_PRICE_REQUIRED': 'Nhập giá vốn tham chiếu để xác nhận cấu hình.',
+      'INVALID_COST_CONFIGURATION':
+          'Chưa cấu hình giá vốn không thể đi kèm giá dương. Hãy chọn đặt giá hoặc xóa cấu hình.',
+      'ACTIVE_RECIPE_REQUIRED':
+          'Cần một công thức hiện hành hợp lệ trước khi bật sử dụng hoặc gửi món dùng công thức.',
+      'RECIPE_APPLICATION_ENABLED':
+          'Món đang sử dụng công thức này. Hãy tắt sử dụng công thức trước khi lưu trữ phiên bản hiện hành.',
+      'INGREDIENT_COST_NOT_CONFIGURED':
+          'Chưa thể ước tính giá vốn vì có nguyên liệu chưa cấu hình giá tham chiếu.',
+    };
+    final configurationMessage = configurationMessages[apiError.code];
+    if (configurationMessage != null) {
+      return Failure(
+        type:
+            const {
+              'COST_PRICE_REQUIRED',
+              'INVALID_COST_CONFIGURATION',
+            }.contains(apiError.code)
+            ? FailureType.validation
+            : FailureType.conflict,
+        code: apiError.code,
+        message: configurationMessage,
+        fieldErrors: apiError.fieldErrors,
+      );
+    }
+
     const inventoryExtensionMessages = {
       'LOW_STOCK_ALERT_NOT_FOUND':
           'Không tìm thấy cảnh báo hoặc bạn không có quyền truy cập.',

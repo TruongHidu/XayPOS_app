@@ -72,7 +72,10 @@ class IngredientController extends ChangeNotifier {
        _status = status,
        _delete = delete,
        _events = events,
-       _state = IngredientListState(query: query);
+       _state = IngredientListState(query: query) {
+    _eventRevision = events.ingredientRevision;
+    events.addListener(_catalogChanged);
+  }
 
   final AppSession? Function() _session;
   final Object? _scope;
@@ -92,6 +95,44 @@ class IngredientController extends ChangeNotifier {
   Timer? _debounce;
   final _pending = <String>{};
   final _detailGeneration = <String, int>{};
+  late int _eventRevision;
+  bool _publishing = false,
+      _catalogReloadRequested = false,
+      _catalogReloadScheduled = false;
+
+  void _catalogChanged() {
+    if (!isCurrent || _eventRevision == _events.ingredientRevision) return;
+    _eventRevision = _events.ingredientRevision;
+    if (_publishing) return;
+    ++_generation;
+    final id = _events.changedIngredientId;
+    for (final key in _detailGeneration.keys.toList()) {
+      if (id == null || key == id) {
+        _detailGeneration[key] = _detailGeneration[key]! + 1;
+      }
+    }
+    _catalogReloadRequested = true;
+    _scheduleCatalogReload();
+  }
+
+  void _scheduleCatalogReload() {
+    if (_catalogReloadScheduled ||
+        !_catalogReloadRequested ||
+        _pending.isNotEmpty) {
+      return;
+    }
+    _catalogReloadScheduled = true;
+    Future.microtask(() {
+      _catalogReloadScheduled = false;
+      if (!can('INGREDIENT_VIEW') ||
+          !_catalogReloadRequested ||
+          _pending.isNotEmpty) {
+        return;
+      }
+      _catalogReloadRequested = false;
+      unawaited(load());
+    });
+  }
 
   bool get isCurrent =>
       !_disposed && _scope == AccessPolicy.ingredientScope(_session());
@@ -314,7 +355,12 @@ class IngredientController extends ChangeNotifier {
       if (!can(permission)) return const Error(expired);
 
       if (result case Success(value: final value)) {
-        onSuccess?.call(value);
+        _publishing = true;
+        try {
+          onSuccess?.call(value);
+        } finally {
+          _publishing = false;
+        }
         await load();
       } else if (result case Error(failure: final failure)) {
         onFailure?.call(failure);
@@ -337,6 +383,7 @@ class IngredientController extends ChangeNotifier {
       return can(permission) ? result : const Error(expired);
     } finally {
       _pending.remove(key);
+      _scheduleCatalogReload();
       if (isCurrent) notifyListeners();
     }
   }
@@ -359,6 +406,7 @@ class IngredientController extends ChangeNotifier {
     _disposed = true;
     _generation++;
     _debounce?.cancel();
+    _events.removeListener(_catalogChanged);
     super.dispose();
   }
 }

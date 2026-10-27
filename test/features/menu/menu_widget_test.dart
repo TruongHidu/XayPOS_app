@@ -107,10 +107,10 @@ void main() {
       expected: null,
     ),
     (
-      name: 'known cost cleared to zero',
+      name: 'known cost configuration explicitly cleared',
       original: 12500.5,
       edited: '',
-      expected: '0',
+      expected: null,
     ),
     (
       name: 'known cost changed to decimal',
@@ -120,7 +120,7 @@ void main() {
     ),
   ]) {
     testWidgets('edit costPrice: ${scenario.name}', (tester) async {
-      final json = itemJson();
+      final json = itemJson(costConfigured: scenario.original != null);
       if (scenario.original != null) json['costPrice'] = scenario.original;
       final initial = MenuItemDto.fromJson(json).toEntity();
       final items = FakeMenuItems()..current = initial;
@@ -141,7 +141,15 @@ void main() {
         'Changed',
       );
       if (scenario.edited != null) {
-        await tester.enterText(costField, scenario.edited!);
+        if (scenario.edited!.isEmpty) {
+          await _tapVisible(
+            tester,
+            find.byKey(const ValueKey('menu-item-costPrice-clear')),
+          );
+          await _tapVisible(tester, find.text('Xóa cấu hình'));
+        } else {
+          await tester.enterText(costField, scenario.edited!);
+        }
       }
       await _tapVisible(tester, find.text('Lưu thay đổi'));
       await tester.pumpAndSettle();
@@ -150,6 +158,9 @@ void main() {
         scenario.expected == null ? null : MenuPrice.parse(scenario.expected!),
       );
       expect(items.lastUpdate?.expectedVersion, initial.version);
+      if (scenario.edited == '') {
+        expect(items.lastUpdate?.costConfigured, false);
+      }
       expect(items.writes, hasLength(1));
     });
   }
@@ -297,7 +308,10 @@ void main() {
       await _tapVisible(tester, find.text('Tạo món'));
       await tester.pumpAndSettle();
       expect(items.lastCreate?.salePrice.minorUnits, 0);
-      expect(items.lastCreate?.costPrice, MenuPrice.zero);
+      expect(
+        items.lastCreate?.costPrice,
+        isNull,
+      ); // V37: untouched optional cost is omitted.
       expect(items.writes, hasLength(1));
       expect(find.byType(MenuItemForm), findsNothing);
     },

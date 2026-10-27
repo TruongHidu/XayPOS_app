@@ -57,6 +57,9 @@ final stockDocumentCreateProvider = ChangeNotifierProvider((ref) {
     create: CreateStockDocument(ref.watch(stockDocumentRepositoryProvider)),
     getWarehouse: GetWarehouse(ref.watch(warehouseRepositoryProvider)),
     keys: ref.watch(stockKeyGeneratorProvider),
+    onReceiptApplied: () {
+      if (ref.mounted) ref.read(menuCatalogEventsProvider).ingredientChanged();
+    },
   );
   if (controller.allowedTypes.isNotEmpty) {
     controller.type = controller.allowedTypes.first;
@@ -81,6 +84,11 @@ final stockDocumentDetailProvider = ChangeNotifierProvider.autoDispose
         confirm: ConfirmStockDocument(repo),
         cancel: CancelStockDocument(repo),
         getWarehouse: GetWarehouse(ref.watch(warehouseRepositoryProvider)),
+        onReceiptApplied: () {
+          if (ref.mounted) {
+            ref.read(menuCatalogEventsProvider).ingredientChanged();
+          }
+        },
       );
       void Function()? release;
       void retain() {

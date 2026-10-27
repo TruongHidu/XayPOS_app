@@ -21,6 +21,7 @@ class IngredientDto {
         baseUnit: _string(json, 'baseUnit'),
         description: _nullableString(json, 'description'),
         costPrice: price,
+        costConfigured: _boolean(json, 'costConfigured'),
         trackInventory: _boolean(json, 'trackInventory'),
         active: _boolean(json, 'active'),
         version: _integer(json, 'version'),

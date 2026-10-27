@@ -31,11 +31,15 @@ Map<String, dynamic> itemJson({
   int version = 9,
   bool active = true,
   bool sellable = true,
+  bool costConfigured = false,
+  bool recipeEnabled = false,
 }) => {
   'id': 'i1',
   'name': 'Trà đào',
   'baseUnit': 'ly',
   'salePrice': 35000.5,
+  'costConfigured': costConfigured,
+  'recipeEnabled': recipeEnabled,
   'active': active,
   'availabilityStatus': 'AVAILABLE',
   'sellable': sellable,
@@ -47,8 +51,19 @@ Map<String, dynamic> itemJson({
   'createdAt': '2026-01-01T10:00:00Z',
   'updatedAt': '2026-01-02T10:00:00+07:00',
 };
-MenuItem item({int version = 9, bool active = true}) =>
-    MenuItemDto.fromJson(itemJson(version: version, active: active)).toEntity();
+MenuItem item({
+  int version = 9,
+  bool active = true,
+  bool costConfigured = false,
+  bool recipeEnabled = false,
+}) => MenuItemDto.fromJson(
+  itemJson(
+    version: version,
+    active: active,
+    costConfigured: costConfigured,
+    recipeEnabled: recipeEnabled,
+  ),
+).toEntity();
 MenuGroup group({int version = 7, bool active = true}) => MenuGroupDto.fromJson(
   groupJson(version: version, active: active),
 ).toEntity();

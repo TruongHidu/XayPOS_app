@@ -76,7 +76,7 @@ class MenuAccessRecovery {
       await pending;
       return;
     }
-    final future = auth.restore();
+    final future = auth.revalidateAccess();
     _inFlight = future;
     try {
       await future;
@@ -101,7 +101,7 @@ class IngredientAccessRecovery {
       await pending;
       return;
     }
-    final future = auth.restore();
+    final future = auth.revalidateAccess();
     _inFlight = future;
     try {
       await future;

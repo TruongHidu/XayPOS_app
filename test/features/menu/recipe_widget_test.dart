@@ -127,6 +127,66 @@ Ingredient _ingredient(String id, {String unit = 'g', bool active = true}) =>
 
 void main() {
   testWidgets(
+    'save and use partial failure keeps saved definition and retries only application',
+    (tester) async {
+      final recipes = UiRecipes()..current = null;
+      recipes.onWrite = () async {
+        recipes.current = uiRecipe(unit: 'ly');
+        return Success(recipes.current!);
+      };
+      final items = FakeMenuItems()
+        ..onWrite = () async => const Error(networkFailure);
+      await _pump(
+        tester,
+        recipes: recipes,
+        items: items,
+        auth: await _auth(
+          permissions: {
+            ...recipeUiPermissions,
+            'MENU_VIEW',
+            'MENU_UPDATE',
+            'INGREDIENT_VIEW',
+          },
+        ),
+      );
+      await _tap(tester, find.text('Thiết lập công thức'));
+      await tester.enterText(find.byKey(const ValueKey('recipe-yield')), '10');
+      await _tap(tester, find.byKey(const ValueKey('recipe-add-ingredient')));
+      await _tap(
+        tester,
+        find.byKey(const ValueKey('recipe-pick-ingredient-1')),
+      );
+      await _tap(tester, find.text('Thêm 1 nguyên liệu'));
+      await tester.enterText(
+        find.byKey(const ValueKey('recipe-quantity-0')),
+        '1200',
+      );
+      await _tap(
+        tester,
+        find.byKey(const ValueKey('recipe-submit-and-enable')),
+      );
+      expect(recipes.creates, hasLength(1));
+      expect(items.writes, hasLength(1));
+      expect(
+        find.textContaining('Đã lưu công thức, chưa bật sử dụng'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('recipe-submit')))
+            .onPressed,
+        null,
+      );
+      // The first PATCH may have reached the server despite a lost response.
+      items.current = item(version: 12, recipeEnabled: true);
+      await _tap(tester, find.text('Kiểm tra và bật sử dụng'));
+      expect(recipes.creates, hasLength(1));
+      expect(items.writes, hasLength(1));
+      expect(find.byKey(const ValueKey('recipe-yield')), findsNothing);
+      expect(tester.takeException(), null);
+    },
+  );
+  testWidgets(
     'fresh create rechecks menu and selected ingredient units before saving',
     (tester) async {
       final recipes = UiRecipes()..current = null;

@@ -14,6 +14,7 @@ import 'package:pos_saas_app/features/order/domain/entities/order_recipe_snapsho
 import 'package:pos_saas_app/features/order/data/dto/order_recipe_snapshot_dto.dart';
 import 'package:pos_saas_app/features/order/presentation/providers/order_recipe_snapshot_providers.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_detail_screen.dart';
+import 'package:pos_saas_app/features/order/presentation/controllers/order_invalidation.dart';
 import 'package:pos_saas_app/features/inventory/presentation/providers/order_item_allocation_providers.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_transaction_screen.dart';
 import '../../helpers/auth_fakes.dart';
@@ -117,6 +118,90 @@ Future<void> _open(WidgetTester tester) =>
     _tap(tester, find.byKey(const ValueKey('order-ingredients-line1')));
 
 void main() {
+  for (final state in [
+    ('RECIPE_DISABLED', 'Nguồn được chốt khi gửi món: Thủ công'),
+    ('FEATURE_DISABLED', 'Nguồn được chốt khi gửi món: Công thức'),
+    ('LEGACY_UNAVAILABLE', 'Dữ liệu lịch sử chưa ghi nhận nguồn'),
+  ]) {
+    testWidgets(
+      'protected decision ${state.$1} is read from snapshot and never from current menu',
+      (tester) async {
+        final snapshots = FakeOrderSnapshots()
+          ..value = snapshotJson(status: state.$1);
+        final allocations = FakeOrderAllocations()
+          ..value = allocationJson(
+            status: 'SKIPPED',
+            reason: state.$1 == 'RECIPE_DISABLED'
+                ? 'SNAPSHOT_RECIPE_DISABLED'
+                : state.$1 == 'FEATURE_DISABLED'
+                ? 'SNAPSHOT_FEATURE_DISABLED'
+                : 'LEGACY_UNAVAILABLE',
+          );
+        final container = await _pump(
+          tester,
+          snapshots: snapshots,
+          allocations: allocations,
+        );
+        await _open(tester);
+        expect(find.text(state.$2), findsOneWidget);
+        final reader = container.read(
+          orderRecipeSnapshotProvider((orderId: 'o1', orderItemId: 'line1')),
+        );
+        final decision = reader.value;
+        container.read(menuCatalogEventsProvider).itemChanged(itemId);
+        container.read(menuCatalogEventsProvider).recipeChanged(itemId);
+        await tester.pumpAndSettle();
+        expect(reader.value, same(decision));
+        expect(reader.stale, false);
+        expect(snapshots.calls, hasLength(1));
+        await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+        expect(
+          find.textContaining(
+            state.$1 == 'RECIPE_DISABLED'
+                ? 'không giữ nguyên liệu theo công thức'
+                : state.$1 == 'FEATURE_DISABLED'
+                ? 'chưa bật tính năng công thức'
+                : 'chưa có dữ liệu giữ/tiêu thụ',
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), null);
+      },
+    );
+  }
+  testWidgets('remote order batch marks only related protected reads stale', (
+    tester,
+  ) async {
+    final snapshots = FakeOrderSnapshots(),
+        allocations = FakeOrderAllocations();
+    final container = await _pump(
+      tester,
+      snapshots: snapshots,
+      allocations: allocations,
+    );
+    await _open(tester);
+    await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+    final snapshot = container.read(
+      orderRecipeSnapshotProvider((orderId: 'o1', orderItemId: 'line1')),
+    );
+    final allocation = container.read(
+      orderItemAllocationProvider((orderId: 'o1', orderItemId: 'line1')),
+    );
+    container
+        .read(orderEventsProvider)
+        .invalidateRemote(OrderInvalidation(orderIds: ['other']));
+    await tester.pumpAndSettle();
+    expect(snapshot.stale, false);
+    expect(allocation.stale, false);
+    container
+        .read(orderEventsProvider)
+        .invalidateRemote(OrderInvalidation(orderIds: ['o1']));
+    await tester.pumpAndSettle();
+    expect(snapshot.stale, true);
+    expect(allocation.stale, true);
+    expect(snapshots.calls, hasLength(1));
+    expect(allocations.calls, hasLength(1));
+  });
   testWidgets(
     'opening is lazy, snapshots and allocation load separately and reopening reads fresh',
     (tester) async {

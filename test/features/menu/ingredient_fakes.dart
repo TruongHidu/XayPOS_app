@@ -19,6 +19,7 @@ Map<String, dynamic> ingredientJson({
   int version = 4,
   bool active = true,
   String name = 'Thịt bò',
+  bool costConfigured = true,
 }) => {
   'id': 'ingredient-1',
   'sku': 'NL-BO',
@@ -26,6 +27,7 @@ Map<String, dynamic> ingredientJson({
   'baseUnit': 'g',
   'description': 'Thịt bò dùng cho phở',
   'costPrice': 250.25,
+  'costConfigured': costConfigured,
   'trackInventory': true,
   'active': active,
   'version': version,
@@ -37,8 +39,14 @@ Ingredient ingredient({
   int version = 4,
   bool active = true,
   String name = 'Thịt bò',
+  bool costConfigured = true,
 }) => IngredientDto.fromJson(
-  ingredientJson(version: version, active: active, name: name),
+  ingredientJson(
+    version: version,
+    active: active,
+    name: name,
+    costConfigured: costConfigured,
+  ),
 ).toEntity();
 
 class FakeIngredients implements IngredientRepository {

@@ -100,7 +100,7 @@ class RecipeController extends ChangeNotifier {
     type: FailureType.conflict,
     code: 'CONCURRENT_RECIPE_UPDATE',
     message:
-        'Công thức đang áp dụng đã thay đổi. Hãy tải lại để kiểm tra trước khi lưu; bản nháp vẫn được giữ.',
+        'Phiên bản hiện hành đã thay đổi. Hãy tải lại để kiểm tra trước khi lưu; bản nháp vẫn được giữ.',
   );
 
   static Failure validation(Map<String, String> errors) => Failure(
@@ -215,7 +215,7 @@ class RecipeController extends ChangeNotifier {
         Failure(
           type: FailureType.conflict,
           code: 'ACTIVE_RECIPE_ALREADY_EXISTS',
-          message: 'Món đã có công thức đang áp dụng. Hãy tải lại để kiểm tra.',
+          message: 'Món đã có phiên bản hiện hành. Hãy tải lại để kiểm tra.',
         ),
       );
     }
@@ -311,6 +311,7 @@ class RecipeController extends ChangeNotifier {
             'RECIPE_NOT_ACTIVE',
             'RECIPE_NOT_FOUND',
             'ACTIVE_RECIPE_NOT_FOUND',
+            'RECIPE_APPLICATION_ENABLED',
           }.contains(failure.code)) {
             _baselineNeedsReload = true;
             // A read started before this refusal cannot verify the baseline.
@@ -326,7 +327,7 @@ class RecipeController extends ChangeNotifier {
                 code: failure.code,
                 fieldErrors: failure.fieldErrors,
                 message:
-                    'Chưa xác định công thức đã được lưu hay chưa. Hãy kiểm tra công thức đang áp dụng và lịch sử trước khi gửi lại.',
+                    'Chưa xác định công thức đã được lưu hay chưa. Hãy kiểm tra phiên bản hiện hành và lịch sử trước khi gửi lại.',
               ),
             );
           }

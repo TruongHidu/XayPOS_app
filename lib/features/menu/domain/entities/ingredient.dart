@@ -8,6 +8,7 @@ class Ingredient {
     required this.baseUnit,
     required this.description,
     required this.costPrice,
+    this.costConfigured = false,
     required this.trackInventory,
     required this.active,
     required this.version,
@@ -21,6 +22,7 @@ class Ingredient {
   final String baseUnit;
   final String? description;
   final MenuPrice costPrice;
+  final bool costConfigured;
   final bool trackInventory;
   final bool active;
   final int version;

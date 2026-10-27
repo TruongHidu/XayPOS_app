@@ -209,6 +209,20 @@ class _SnapshotDetails extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _Info(value.status.label),
+      if (value.costSourceSnapshot != null)
+        Text('Nguồn được chốt khi gửi món: ${value.costSourceSnapshot!.label}')
+      else if (value.status == RecipeSnapshotStatus.notSubmitted)
+        const Text('Món chưa gửi, chưa chốt nguồn áp dụng.')
+      else
+        const Text('Dữ liệu lịch sử chưa ghi nhận nguồn'),
+      if (value.recipeEnabledSnapshot != null)
+        Text(
+          value.recipeEnabledSnapshot!
+              ? 'Sử dụng công thức tại thời điểm chấp nhận món.'
+              : 'Không sử dụng công thức tại thời điểm chấp nhận món.',
+        ),
+      if (value.costSourceSnapshot != null)
+        const Text('Quyết định nguồn không phải số tiền giá vốn lịch sử.'),
       Text(
         'Dòng món đã gọi: ${ingredientNumber(value.orderQuantity)} ${value.orderUnit}',
       ),

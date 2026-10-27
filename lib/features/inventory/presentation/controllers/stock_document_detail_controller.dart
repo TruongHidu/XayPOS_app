@@ -22,6 +22,7 @@ class StockDocumentDetailController extends InventoryController {
     required this.confirm,
     required this.cancel,
     required this.getWarehouse,
+    this.onReceiptApplied,
   });
   final String id;
   final GetStockDocument get;
@@ -32,6 +33,7 @@ class StockDocumentDetailController extends InventoryController {
   final ConfirmStockDocument confirm;
   final CancelStockDocument cancel;
   final GetWarehouse getWarehouse;
+  final void Function()? onReceiptApplied;
   StockDocumentDetail? document;
   Failure? failure;
   bool loading = false, needsRead = false;
@@ -62,6 +64,11 @@ class StockDocumentDetailController extends InventoryController {
           documentId: id,
         ),
       );
+      if (current &&
+          value.type == StockDocumentType.receipt &&
+          value.status == StockDocumentStatus.confirmed) {
+        onReceiptApplied?.call();
+      }
     }
   }
 

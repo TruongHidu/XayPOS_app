@@ -283,7 +283,7 @@ void main() {
           await _tap(tester, find.text('Chi phí theo nguyên liệu (2)'));
           expect(tester.takeException(), isNull);
           await _tap(tester, find.text('Đóng'));
-          await _tap(tester, find.text('Đang áp dụng').first);
+          await _tap(tester, find.text('Phiên bản hiện hành').first);
           expect(tester.takeException(), isNull);
         },
       );

@@ -22,6 +22,11 @@ abstract final class IngredientValidation {
     'baseUnit': baseUnit(input.baseUnit),
     'sku': sku(input.sku),
     'description': description(input.description),
+    'costPrice': MenuValidation.referenceCost(
+      input.costPrice,
+      input.costConfigured,
+      creating: true,
+    ),
   });
 
   static Map<String, String> patch(UpdateIngredientInput input) => _errors({
@@ -29,6 +34,11 @@ abstract final class IngredientValidation {
     'baseUnit': input.baseUnit == null ? null : baseUnit(input.baseUnit),
     'sku': sku(input.sku),
     'description': description(input.description),
+    'costPrice': MenuValidation.referenceCost(
+      input.costPrice,
+      input.costConfigured,
+      creating: false,
+    ),
     'expectedVersion': input.expectedVersion < 0
         ? 'Version không hợp lệ.'
         : null,

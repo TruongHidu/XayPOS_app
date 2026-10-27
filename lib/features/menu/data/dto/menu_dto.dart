@@ -54,6 +54,8 @@ class MenuItemDto {
         costPrice: json.containsKey('costPrice')
             ? MenuPrice.fromNumber((costPrice ?? 0) as num)
             : null,
+        costConfigured: _boolean(json, 'costConfigured'),
+        recipeEnabled: _boolean(json, 'recipeEnabled'),
         active: _boolean(json, 'active'),
         availabilityStatus: AvailabilityStatus.parse(
           _string(json, 'availabilityStatus'),

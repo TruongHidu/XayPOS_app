@@ -20,6 +20,20 @@ abstract final class MenuValidation {
   static String? optionalPrice(String? value) =>
       value == null || value.trim().isEmpty ? null : price(value);
 
+  static String? referenceCost(
+    MenuPrice? price,
+    bool? configured, {
+    required bool creating,
+  }) {
+    if (configured == false && price != null && price.minorUnits > 0) {
+      return 'Không thể vừa xóa cấu hình vừa đặt giá vốn lớn hơn 0.';
+    }
+    if (creating && configured == true && price == null) {
+      return 'Nhập giá vốn để xác nhận cấu hình.';
+    }
+    return null;
+  }
+
   static String? displayOrder(String value) {
     if (!RegExp(r'^\d+$').hasMatch(value.trim()) ||
         int.tryParse(value.trim()) == null) {
@@ -64,6 +78,14 @@ abstract final class MenuValidation {
     'sku': text(input.sku ?? '', max: 80),
     'description': text(input.description ?? '', max: 10000),
     'imageUrl': imageUrl(input.imageUrl),
+    'costPrice': referenceCost(
+      input.costPrice,
+      input.costConfigured,
+      creating: true,
+    ),
+    'recipeEnabled': input.recipeEnabled
+        ? 'Tạo món và công thức trước khi bật sử dụng công thức.'
+        : null,
     'groupId': input.groupId != null && input.groupId!.trim().isEmpty
         ? 'Nhóm không hợp lệ.'
         : null,
@@ -78,6 +100,11 @@ abstract final class MenuValidation {
     'sku': text(input.sku ?? '', max: 80),
     'description': text(input.description ?? '', max: 10000),
     'imageUrl': imageUrl(input.imageUrl),
+    'costPrice': referenceCost(
+      input.costPrice,
+      input.costConfigured,
+      creating: false,
+    ),
     'expectedVersion': input.expectedVersion < 0
         ? 'Version không hợp lệ.'
         : null,

@@ -17,9 +17,13 @@ enum AllocationSkipReason {
     'Chưa bật tính năng kho tại thời điểm chấp nhận món.',
   ),
   noRecipe('SNAPSHOT_NO_RECIPE', 'Khi gửi món chưa có công thức.'),
-  recipeDisabled(
+  recipeFeatureDisabled(
     'SNAPSHOT_FEATURE_DISABLED',
     'Khi gửi món chưa bật tính năng công thức.',
+  ),
+  recipeApplicationDisabled(
+    'SNAPSHOT_RECIPE_DISABLED',
+    'Khi gửi món không sử dụng công thức; không giữ nguyên liệu theo công thức.',
   ),
   noTrackedIngredients(
     'NO_TRACKED_INGREDIENTS',

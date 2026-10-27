@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/recipe_cost_estimate.dart';
@@ -26,7 +29,12 @@ class RecipeCostPanel extends ConsumerWidget {
     final value = cost.value, item = sale.menu;
     // Both resources are current reads in the same tenant scope. Menu prices
     // use the restaurant currency; the estimate supplies its authoritative code.
-    final comparison = value == null
+    final comparison =
+        value == null ||
+            cost.stale ||
+            cost.loading ||
+            cost.failure != null ||
+            sale.failure != null
         ? null
         : RecipeCostComparison.evaluate(
             value,
@@ -76,10 +84,22 @@ class RecipeCostPanel extends ConsumerWidget {
               RecipeNotice(
                 message: cost.failure!.message,
                 error: true,
-                action: TextButton(
-                  onPressed: cost.loading ? null : cost.load,
-                  child: const Text('Thử lại giá vốn'),
-                ),
+                action:
+                    cost.failure!.code == 'INGREDIENT_COST_NOT_CONFIGURED' &&
+                        AccessPolicy.canIngredient(
+                          ref.watch(authControllerProvider).state.session,
+                          'INGREDIENT_VIEW',
+                        ) &&
+                        GoRouter.maybeOf(context) != null
+                    ? TextButton(
+                        onPressed: () =>
+                            context.go('/app/menu?tab=ingredients'),
+                        child: const Text('Cấu hình giá nguyên liệu'),
+                      )
+                    : TextButton(
+                        onPressed: cost.loading ? null : cost.load,
+                        child: const Text('Thử lại giá vốn'),
+                      ),
               ),
             if (sale.failure != null)
               RecipeNotice(
@@ -96,7 +116,8 @@ class RecipeCostPanel extends ConsumerWidget {
               ),
             if (sale.stale)
               const RecipeNotice(
-                message: 'Giá bán có thay đổi. Hãy cập nhật trước khi so sánh.',
+                message:
+                    'Thông tin món hoặc giá tham chiếu đã thay đổi. Hãy cập nhật trước khi so sánh.',
               ),
             LayoutBuilder(
               builder: (context, box) {
@@ -121,6 +142,20 @@ class RecipeCostPanel extends ConsumerWidget {
                           ? 'Chưa xác định tiền tệ; chờ kết quả ước tính.'
                           : null,
                       icon: Icons.sell_outlined,
+                    ),
+                    _Metric(
+                      label: 'Giá vốn tham chiếu thủ công / dự phòng',
+                      value: item == null
+                          ? 'Chưa có dữ liệu'
+                          : !item.costConfigured || item.costPrice == null
+                          ? 'Chưa cấu hình giá vốn'
+                          : recipeCostCents(
+                              BigInt.from(item.costPrice!.minorUnits),
+                              value?.currencyCode ?? '',
+                            ),
+                      note:
+                          'Lưu riêng trên món; không thay thế ước tính công thức.',
+                      icon: Icons.edit_note_outlined,
                     ),
                     _Metric(
                       label:
@@ -186,7 +221,7 @@ class RecipeCostPanel extends ConsumerWidget {
                     'Sản lượng: ${recipeCostNumber(value.yieldQuantity)} ${value.yieldUnit}',
                   ),
                   Text(
-                    'Phiên bản ${value.recipeVersion} · ${value.recipeActive ? 'Đang áp dụng' : 'Đã ngừng áp dụng'}',
+                    'Phiên bản ${value.recipeVersion} · ${value.recipeActive ? 'Phiên bản hiện hành' : 'Đã lưu trữ'}',
                   ),
                 ],
               ),

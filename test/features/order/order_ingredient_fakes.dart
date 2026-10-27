@@ -20,10 +20,25 @@ Map<String, dynamic> snapshotJson({
   String order = 'o1',
   String line = 'line1',
   String status = 'CAPTURED',
+  bool legacyDecision = false,
 }) => {
   'orderId': order,
   'orderItemId': line,
   'snapshotStatus': status,
+  'recipeEnabledSnapshot': legacyDecision
+      ? null
+      : switch (status) {
+          'CAPTURED' || 'FEATURE_DISABLED' => true,
+          'RECIPE_DISABLED' => false,
+          _ => null,
+        },
+  'costSourceSnapshot': legacyDecision
+      ? null
+      : switch (status) {
+          'CAPTURED' || 'FEATURE_DISABLED' => 'RECIPE',
+          'RECIPE_DISABLED' => 'MANUAL',
+          _ => null,
+        },
   'recipeId': status == 'CAPTURED' ? 'recipe-2' : null,
   'recipeVersion': status == 'CAPTURED' ? 2 : null,
   'yieldQuantity': status == 'CAPTURED' ? 10.000 : null,

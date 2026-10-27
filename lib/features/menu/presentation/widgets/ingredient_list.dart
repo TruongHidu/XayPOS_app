@@ -278,7 +278,9 @@ class _IngredientListState extends State<IngredientList> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Giá vốn: ${item.costPrice} / ${item.baseUnit}',
+                item.costConfigured
+                    ? 'Giá vốn tham chiếu: ${item.costPrice} / ${item.baseUnit}'
+                    : 'Chưa cấu hình giá vốn',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
@@ -340,7 +342,13 @@ class _IngredientListState extends State<IngredientList> {
                   DataCell(Text(item.name)),
                   DataCell(Text(item.sku ?? '—')),
                   DataCell(Text(item.baseUnit)),
-                  DataCell(Text('${item.costPrice}')),
+                  DataCell(
+                    Text(
+                      item.costConfigured
+                          ? '${item.costPrice}'
+                          : 'Chưa cấu hình giá vốn',
+                    ),
+                  ),
                   DataCell(Text(item.trackInventory ? 'Có' : 'Không')),
                   DataCell(
                     Text(item.active ? 'Đang sử dụng' : 'Ngừng sử dụng'),

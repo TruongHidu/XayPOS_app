@@ -12,6 +12,7 @@ import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
 import '../providers/menu_providers.dart';
 import 'menu_dialogs.dart';
+import 'recipe_application_control.dart';
 
 /// Displays a menu item image with consistent aspect ratio and placeholder.
 ///
@@ -347,10 +348,12 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
                         ),
                       ],
                     ),
-                    if (_item.costPrice != null) ...[
+                    ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Giá vốn: ${_item.costPrice} / ${_item.baseUnit}',
+                        _item.costConfigured && _item.costPrice != null
+                            ? 'Giá vốn tham chiếu thủ công / dự phòng: ${_item.costPrice} / ${_item.baseUnit}'
+                            : 'Chưa cấu hình giá vốn',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -362,6 +365,10 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
               const SizedBox(height: 12),
               // Badges
               MenuItemBadges(item: _item),
+              RecipeApplicationControl(
+                menuItemId: _item.id,
+                initialMenuItem: _item,
+              ),
               const SizedBox(height: 16),
               // Details section
               _infoRow(

@@ -100,7 +100,9 @@ class _IngredientDetailsDialogState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Giá vốn: ${_item.costPrice} / ${_item.baseUnit}',
+                      _item.costConfigured
+                          ? 'Giá vốn tham chiếu: ${_item.costPrice} / ${_item.baseUnit} · Đã cấu hình'
+                          : 'Chưa cấu hình giá vốn',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colors.primary,
                         fontWeight: FontWeight.bold,

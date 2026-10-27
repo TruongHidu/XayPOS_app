@@ -114,7 +114,6 @@ void main() {
         'name': 'Thịt bò',
         'baseUnit': 'g',
         'sku': 'NL-BO',
-        'costPrice': 0,
         'trackInventory': false,
         'active': true,
       });
@@ -165,7 +164,6 @@ void main() {
         sku: ' nl-bo ',
         description: initial.description!,
         trackInventory: true,
-        costPrice: initial.costPrice,
       );
       expect(unchanged.isEmpty, isTrue);
       final clear = UpdateIngredientInput.changes(

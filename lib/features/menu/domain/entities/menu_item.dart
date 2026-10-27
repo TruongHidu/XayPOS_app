@@ -26,6 +26,8 @@ class MenuItem {
     required this.imageUrl,
     required this.salePrice,
     this.costPrice,
+    this.costConfigured = false,
+    this.recipeEnabled = false,
     required this.active,
     required this.availabilityStatus,
     required this.sellable,
@@ -45,6 +47,11 @@ class MenuItem {
   /// Null means the response omitted this field, so the stored cost is unknown.
   /// An explicit JSON null is normalized to zero by the DTO.
   final MenuPrice? costPrice;
+
+  /// Configuration of the manual reference price, including a confirmed zero.
+  /// It does not describe recipe ingredient cost completeness.
+  final bool costConfigured;
+  final bool recipeEnabled;
   final bool active;
   final AvailabilityStatus availabilityStatus;
   final bool sellable;

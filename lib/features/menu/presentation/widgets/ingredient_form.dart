@@ -10,6 +10,7 @@ import '../../domain/validation/ingredient_validation.dart';
 import '../providers/menu_providers.dart';
 import 'ingredient_dialogs.dart';
 import 'menu_dialogs.dart';
+import 'reference_cost_field.dart';
 
 class IngredientForm extends ConsumerStatefulWidget {
   const IngredientForm({
@@ -38,6 +39,7 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
   bool _active = true;
   bool _busy = false;
   bool _costPriceEdited = false;
+  bool? _costConfigured;
   Failure? _failure;
 
   @override
@@ -54,8 +56,11 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
     _fields['name']!.text = item?.name ?? '';
     _fields['sku']!.text = item?.sku ?? '';
     _fields['baseUnit']!.text = item?.baseUnit ?? '';
-    _fields['costPrice']!.text = item?.costPrice.toString() ?? '';
+    _fields['costPrice']!.text = item?.costConfigured == true
+        ? item!.costPrice.toString()
+        : '';
     _costPriceEdited = false;
+    _costConfigured = null;
     _fields['description']!.text = item?.description ?? '';
     _trackInventory = item?.trackInventory ?? false;
     _active = item?.active ?? true;
@@ -78,7 +83,11 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
   String _text(String key) => _fields[key]!.text;
 
   void _edited(String key) => setState(() {
-    if (key == 'costPrice') _costPriceEdited = true;
+    if (key == 'costPrice') {
+      _costPriceEdited = true;
+      _costConfigured = null;
+      _errors.remove('costConfigured');
+    }
     _errors.remove(key);
     if (_errors.isEmpty &&
         (_baseline == null || !ingredientNeedsReload(_failure))) {
@@ -92,11 +101,9 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
 
     final controller = ref.read(ingredientControllerProvider);
     final baseline = _baseline;
-    final costPrice = baseline == null
-        ? MenuPrice.parseOrZero(_text('costPrice'))
-        : (!_costPriceEdited
-              ? null
-              : MenuPrice.parseOrZero(_text('costPrice')));
+    final costPrice = _costPriceEdited && _text('costPrice').trim().isNotEmpty
+        ? MenuPrice.parse(_text('costPrice'))
+        : null;
 
     final result = baseline == null
         ? await controller.create(
@@ -104,7 +111,8 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
               name: _text('name'),
               sku: _text('sku'),
               baseUnit: _text('baseUnit'),
-              costPrice: costPrice ?? MenuPrice.zero,
+              costPrice: costPrice,
+              costConfigured: _costConfigured,
               description: _text('description'),
               trackInventory: _trackInventory,
               active: _active,
@@ -118,6 +126,7 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
               sku: _text('sku'),
               baseUnit: _text('baseUnit'),
               costPrice: costPrice,
+              costConfigured: _costConfigured,
               description: _text('description'),
               trackInventory: _trackInventory,
             ),
@@ -281,13 +290,39 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
           _buildSectionHeader('Giá vốn và theo dõi'),
           ResponsiveColumns(
             children: [
-              _field(
-                'costPrice',
-                'Giá vốn / đơn vị',
-                IngredientValidation.costPrice,
-                keyboard: const TextInputType.numberWithOptions(decimal: true),
-                helper:
-                    'Giá vốn tính cho 1 đơn vị cơ sở. Để trống là 0. Dùng dấu chấm, tối đa 2 chữ số thập phân.',
+              ReferenceCostField(
+                controller: _fields['costPrice']!,
+                fieldKey: 'ingredient-costPrice',
+                configured: _baseline?.costConfigured ?? false,
+                edited: _costPriceEdited,
+                creating: creating,
+                baseUnit: _text('baseUnit'),
+                configurationChange: _costConfigured,
+                errorText: _errors['costPrice'] ?? _errors['costConfigured'],
+                onChanged: (_) => _edited('costPrice'),
+                canConfirmZero:
+                    _baseline != null &&
+                    !_baseline!.costConfigured &&
+                    _baseline!.costPrice.minorUnits == 0,
+                onConfirmZero: () => setState(() {
+                  _costPriceEdited = false;
+                  _costConfigured = true;
+                  _fields['costPrice']!.text = '0';
+                  _errors.remove('costPrice');
+                  _errors.remove('costConfigured');
+                }),
+                onClear: () async {
+                  if (!await confirmReferenceCostClear(context) || !mounted) {
+                    return;
+                  }
+                  setState(() {
+                    _costPriceEdited = false;
+                    _costConfigured = false;
+                    _fields['costPrice']!.clear();
+                    _errors.remove('costPrice');
+                    _errors.remove('costConfigured');
+                  });
+                },
               ),
               SwitchListTile(
                 key: const ValueKey('ingredient-track-inventory'),

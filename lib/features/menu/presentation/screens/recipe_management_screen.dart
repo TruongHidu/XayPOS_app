@@ -16,6 +16,7 @@ import '../providers/recipe_providers.dart';
 import '../widgets/recipe_details.dart';
 import '../widgets/recipe_dialogs.dart';
 import '../widgets/recipe_form.dart';
+import '../widgets/recipe_application_control.dart';
 
 class RecipeManagementScreen extends ConsumerWidget {
   const RecipeManagementScreen({
@@ -110,7 +111,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
     if (controller.activeFailure != null || !controller.activeLoaded) {
       _message(
         controller.activeFailure?.message ??
-            'Chưa tải được công thức đang áp dụng.',
+            'Chưa tải được phiên bản hiện hành.',
       );
       setState(() => _opening = false);
       return;
@@ -120,7 +121,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
     if (!controller.can(permission)) {
       setState(() => _opening = false);
       _message(
-        'Bạn không có quyền ${baseline == null ? "thiết lập công thức" : "tạo phiên bản mới"} theo trạng thái đang áp dụng hiện tại.',
+        'Bạn không có quyền ${baseline == null ? "thiết lập công thức" : "tạo phiên bản mới"} theo trạng thái hiện hành hiện tại.',
       );
       return;
     }
@@ -148,25 +149,62 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
     if (_opening || _controller.busy || !_controller.can('RECIPE_DELETE')) {
       return;
     }
+    final application = ref.read(recipeApplicationProvider(widget.menuItemId));
+    // Reconcile the recipe identity independently from the menu lock version.
+    await _controller.loadActive();
+    if (!mounted || !_current) return;
+    if (_controller.active?.id != recipe.id ||
+        _controller.active?.version != recipe.version) {
+      _message(
+        'Phiên bản hiện hành đã thay đổi. Hãy kiểm tra lại trước khi lưu trữ.',
+      );
+      return;
+    }
+    if (application.canRead) {
+      await application.load();
+      if (!mounted || !_current) return;
+      if (application.failure != null || application.item == null) {
+        _message(
+          application.failure?.message ?? 'Chưa xác minh được cấu hình món.',
+        );
+        return;
+      }
+      if (application.item!.recipeEnabled && !application.canSet(false)) {
+        _message(
+          'Món đang sử dụng công thức. Cần người có quyền cập nhật món tắt sử dụng trước khi lưu trữ phiên bản.',
+        );
+        return;
+      }
+    }
+    final disabling = application.item?.recipeEnabled == true;
+    if (!mounted || !_current) return;
     if (!await confirmRecipeChange(
           context,
           ref,
           permission: 'RECIPE_DELETE',
-          title: 'Ngừng áp dụng công thức?',
-          message:
-              'Ngừng áp dụng phiên bản ${recipe.recipeVersion}? Công thức và lịch sử vẫn được lưu.',
-          confirmLabel: 'Ngừng áp dụng',
+          title: disabling
+              ? 'Tắt sử dụng và lưu trữ công thức?'
+              : 'Lưu trữ công thức?',
+          message: disabling
+              ? 'Tắt sử dụng công thức cho các lượt gửi món tiếp theo, sau đó lưu trữ phiên bản ${recipe.recipeVersion}. Dòng món đã chốt và lịch sử vẫn giữ nguyên.'
+              : 'Lưu trữ phiên bản ${recipe.recipeVersion}? Công thức và lịch sử vẫn được giữ. Nếu món đang bật sử dụng, cần tắt bằng quyền cập nhật món trước.',
+          confirmLabel: disabling ? 'Tắt và lưu trữ' : 'Lưu trữ',
           cancelLabel: 'Hủy',
         ) ||
         !_current) {
       return;
     }
-    final result = await _controller.deactivate(recipe);
+    setState(() => _opening = true);
+    final result = await application.disableAndArchive(
+      recipe,
+      () => _controller.deactivate(recipe),
+    );
     if (!mounted || !_current) return;
+    setState(() => _opening = false);
     switch (result) {
       case Success():
         _message(
-          'Đã ngừng áp dụng phiên bản ${recipe.recipeVersion}.${_controller.activeFailure == null ? "" : " Chưa xác minh được công thức đang áp dụng: ${_controller.activeFailure!.message}"}',
+          'Đã lưu trữ phiên bản ${recipe.recipeVersion}.${_controller.activeFailure == null ? "" : " Chưa xác minh được phiên bản hiện hành: ${_controller.activeFailure!.message}"}',
         );
       case Error(failure: final failure):
         _message(failure.message);
@@ -215,7 +253,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
             const Icon(Icons.menu_book_outlined, size: 40),
             const SizedBox(height: 12),
             Text(
-              'Món chưa có công thức đang áp dụng',
+              'Món chưa có phiên bản hiện hành',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -259,7 +297,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
                 itemBuilder: (_) => const [
                   PopupMenuItem(
                     value: 'deactivate',
-                    child: Text('Ngừng áp dụng'),
+                    child: Text('Lưu trữ công thức'),
                   ),
                 ],
               ),
@@ -379,7 +417,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
                         'Phiên bản ${row.recipeVersion}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(row.active ? 'Đang áp dụng' : 'Đã ngừng áp dụng'),
+                      Text(row.active ? 'Phiên bản hiện hành' : 'Đã lưu trữ'),
                       Text('Sản lượng: ${row.yieldQuantity} ${row.yieldUnit}'),
                       Text('${row.ingredientCount} nguyên liệu'),
                       Text('Cập nhật: ${formatLocalDate(row.updatedAt)}'),
@@ -498,12 +536,17 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
                               'Chưa tải được thông tin danh mục món: ${_menuFailure!.message}',
                         ),
                       const SizedBox(height: 16),
+                      if (_menu != null)
+                        RecipeApplicationControl(
+                          menuItemId: widget.menuItemId,
+                          initialMenuItem: _menu,
+                        ),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           ChoiceChip(
-                            label: const Text('Đang áp dụng'),
+                            label: const Text('Phiên bản hiện hành'),
                             selected: !_history,
                             onSelected: (_) => setState(() => _history = false),
                           ),

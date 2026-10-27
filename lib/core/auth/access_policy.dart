@@ -3,6 +3,13 @@ import '../../features/subscription/domain/entities/entitlement.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
+  static bool canSetRecipeApplication(
+    AppSession? session, {
+    required bool enabled,
+  }) =>
+      canMenu(session, 'MENU_UPDATE') &&
+      (!enabled || session!.features.contains('RECIPE_MANAGEMENT'));
+
   // Historical ingredient reads have their own effective capability intersection.
   static bool canViewOrderRecipeSnapshot(AppSession? session) =>
       canOrders(session, 'ORDER_VIEW') &&

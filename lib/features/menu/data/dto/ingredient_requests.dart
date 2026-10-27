@@ -1,6 +1,5 @@
 import '../../domain/entities/ingredient_inputs.dart';
 import '../../domain/entities/ingredient_query.dart';
-import '../../domain/entities/menu_price.dart';
 
 abstract final class IngredientRequests {
   static Map<String, dynamic> query(IngredientQuery q) => {
@@ -21,7 +20,8 @@ abstract final class IngredientRequests {
       'baseUnit': input.baseUnit.trim(),
       if (sku != null && sku.isNotEmpty) 'sku': sku,
       if (desc != null && desc.isNotEmpty) 'description': desc,
-      'costPrice': (input.costPrice ?? MenuPrice.zero).toNumber(),
+      if (input.costPrice != null) 'costPrice': input.costPrice!.toNumber(),
+      if (input.costConfigured != null) 'costConfigured': input.costConfigured,
       'trackInventory': input.trackInventory,
       'active': input.active,
     };
@@ -33,6 +33,7 @@ abstract final class IngredientRequests {
     if (input.sku != null) 'sku': input.sku!.trim().toUpperCase(),
     if (input.description != null) 'description': input.description!.trim(),
     if (input.costPrice != null) 'costPrice': input.costPrice!.toNumber(),
+    if (input.costConfigured != null) 'costConfigured': input.costConfigured,
     if (input.trackInventory != null) 'trackInventory': input.trackInventory,
     'expectedVersion': input.expectedVersion,
   };
