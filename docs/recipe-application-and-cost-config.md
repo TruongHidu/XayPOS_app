@@ -155,6 +155,7 @@ Sau receipt CONFIRMED hoặc xác minh confirmed response, composition phát
 `MenuCatalogEvents.ingredientChanged()` để reader hợp quyền đối soát giá/flag qua REST.
 Không phát từ GET thông thường hoặc ISSUE/ADJUSTMENT; không đọc chi tiết mọi nguyên
 liệu trong nền. Ingredient list/selector/estimate đang liên quan nhận tín hiệu.
+Dialog chi tiết nguyên liệu giữ thao tác **Làm mới** để đọc lại giá/flag khi đang mở.
 
 Tồn đầu dương với giá chưa cấu hình vẫn có thể receipt thành công và tiếp tục chưa
 cấu hình. Không giả tồn đầu giá 0, tính bình quân hay tự đặt configured=true ở FE.
@@ -201,3 +202,22 @@ workflow, snapshot/allocation lịch sử và receipt refresh. Chạy format fil
 flutter analyze, test liên quan rồi toàn bộ flutter test. Các assertion cũ về blank→0
 được đổi theo contract V37; nhãn definition đổi sang **Phiên bản hiện hành**. Không
 giảm assertion khác, bỏ test hoặc update golden để che hồi quy.
+
+Kết quả xác minh ngày 27/10/2026:
+
+- Dart format và `git diff --check`: đạt.
+- `flutter analyze --no-pub`: không có issue.
+- `flutter test --no-pub`: 1.070 test đạt, 6 test UI có sẵn bị lỗi; các test của
+  thay đổi công thức/giá vốn, snapshot và receipt đều đạt.
+- `flutter build apk --debug --no-pub`: thành công.
+
+Đã tái hiện đủ 6 lỗi trên bản archive độc lập của commit đầu phiên `9642c49`,
+trước thay đổi này (chạy hai file liên quan: 26 test đạt, 6 lỗi):
+
+- `qr_request_widget_test.dart`: 5 lỗi của giao diện QR cũ, gồm finder chưa khớp
+  button/switch/nhãn hiện tại và overflow ở kích thước 320 px.
+- `order_widget_test.dart`: popup gọi thêm món ở 320 px, bàn phím mở và chữ lớn
+  bị overflow 18 px sang phải.
+
+Các file QR và bố cục popup tương ứng không bị sửa trong thay đổi công thức/giá vốn.
+Không bỏ test hay giảm assertion để làm xanh bộ test.

@@ -74,7 +74,7 @@ void main() {
       for (final malformed in [
         {...recipeUseJson(), 'quantityChange': 2},
         {...recipeUseJson(), 'stockDocumentId': 'd1'},
-        {...recipeUseJson(), 'unitCost': 0},
+        {...recipeUseJson(), 'unitCost': -1},
         {...recipeUseJson(), 'orderItemId': null},
         {...recipeUseJson(), 'afterQuantity': 5},
         {...transactionJson(), 'unitCost': null},
@@ -91,6 +91,16 @@ void main() {
         }).unitCost!.cents,
         BigInt.zero,
       );
+      // V38: RECIPE_USE keeps its frozen reference price, including zero.
+      for (final cost in [0, 12.5]) {
+        expect(
+          StockDocumentDto.transaction({
+            ...recipeUseJson(),
+            'unitCost': cost,
+          }).unitCost,
+          isNotNull,
+        );
+      }
     },
   );
   test(

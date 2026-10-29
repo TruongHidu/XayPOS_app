@@ -210,6 +210,8 @@ abstract final class StockDocumentDto {
       throw const FormatException('Invalid stock movement');
     }
     final fromOrder = value.source == InventoryTransactionSource.orderItem;
+    // Since backend V38, RECIPE_USE carries the frozen reference price of its
+    // usage (known or configured zero); unknown/legacy usage stays null.
     if (fromOrder
         ? value.type != InventoryTransactionType.recipeUse ||
               value.orderId == null ||
@@ -218,8 +220,7 @@ abstract final class StockDocumentDto {
               value.recipeUsageId == null ||
               value.documentId != null ||
               value.documentCode != null ||
-              value.documentType != null ||
-              value.unitCost != null
+              value.documentType != null
         : value.type == InventoryTransactionType.recipeUse ||
               value.documentId == null ||
               value.documentCode == null ||

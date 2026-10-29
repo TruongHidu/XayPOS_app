@@ -110,7 +110,9 @@ class _StockDetailOverlayState extends ConsumerState<_StockDetailOverlay> {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.8),
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.8,
+                      ),
                       borderRadius: BorderRadius.circular(2.5),
                     ),
                   ),
@@ -129,9 +131,10 @@ class _StockDetailOverlayState extends ConsumerState<_StockDetailOverlay> {
                                   Flexible(
                                     child: Text(
                                       doc?.documentCode ?? 'Chi tiết chứng từ',
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -160,8 +163,10 @@ class _StockDetailOverlayState extends ConsumerState<_StockDetailOverlay> {
                           onPressed: detailState.loading || detailState.busy
                               ? null
                               : () => ref
-                                  .read(stockDocumentDetailProvider(widget.id))
-                                  .load(),
+                                    .read(
+                                      stockDocumentDetailProvider(widget.id),
+                                    )
+                                    .load(),
                           icon: const Icon(Icons.refresh),
                         ),
                         IconButton(
@@ -422,7 +427,7 @@ class _StockDetailBody extends ConsumerWidget {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Chưa xác minh dữ liệu mới nhất. Các thao tác lưu bị khóa cho đến khi tải lại đúng phiếu.',
+              'Chưa tải được dữ liệu mới nhất của phiếu. Hãy tải lại trước khi sửa hoặc xác nhận.',
             ),
           ),
         if (d != null) ...[

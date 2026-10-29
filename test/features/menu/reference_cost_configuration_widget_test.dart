@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
+import 'package:pos_saas_app/core/errors/failure.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/menu/data/dto/ingredient_dto.dart';
@@ -256,6 +257,41 @@ void main() {
         );
         expect(rig.items.lastUpdate, null);
         expect(rig.ingredients.lastUpdate, null);
+        expect(tester.takeException(), null);
+      },
+    );
+    testWidgets(
+      '${menu ? 'menu' : 'ingredient'} correcting price clears a server costConfigured field error',
+      (tester) async {
+        final rig = await _pump(tester, menu: menu);
+        const failure = Failure(
+          type: FailureType.validation,
+          code: 'INVALID_COST_CONFIGURATION',
+          message: 'Kiểm tra giá vốn.',
+          fieldErrors: {'costConfigured': 'Giá vốn chưa hợp lệ.'},
+        );
+        if (menu) {
+          rig.items.onWrite = () async => const Error(failure);
+        } else {
+          rig.ingredients.onWrite = () async => const Error(failure);
+        }
+        await tester.enterText(_field(menu, 'costPrice'), '200');
+        await _tap(tester, find.text(_submit(menu, false)));
+        expect(find.text('Giá vốn chưa hợp lệ.'), findsOneWidget);
+        await tester.enterText(_field(menu, 'costPrice'), '300');
+        await tester.pumpAndSettle();
+        expect(find.text('Giá vốn chưa hợp lệ.'), findsNothing);
+        rig.items.onWrite = null;
+        rig.ingredients.onWrite = null;
+        await _tap(tester, find.text(_submit(menu, false)));
+        expect(
+          (menu ? rig.items.writes : rig.ingredients.writes),
+          hasLength(2),
+        );
+        expect(_patchBody(rig, menu), {
+          'costPrice': 300,
+          'expectedVersion': menu ? 9 : 4,
+        });
         expect(tester.takeException(), null);
       },
     );

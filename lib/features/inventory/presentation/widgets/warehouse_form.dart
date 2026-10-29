@@ -200,7 +200,7 @@ class _WarehouseFormState extends ConsumerState<WarehouseForm> {
         InventoryFailurePanel(failure: _failure ?? verification),
         if (unknown)
           const Text(
-            'Chưa xác định kết quả lưu. Hãy kiểm tra dữ liệu máy chủ trước khi gửi lại.',
+            'Chưa rõ kho đã được lưu hay chưa. Hãy tải lại danh sách kho trước khi gửi lại.',
           ),
         if (verification != null && _creating) ...[
           OutlinedButton(

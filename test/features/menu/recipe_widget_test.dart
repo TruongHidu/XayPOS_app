@@ -13,6 +13,7 @@ import 'package:pos_saas_app/features/menu/domain/entities/menu_price.dart';
 import 'package:pos_saas_app/features/menu/presentation/providers/recipe_providers.dart';
 import 'package:pos_saas_app/features/menu/presentation/screens/recipe_management_screen.dart';
 import 'package:pos_saas_app/features/menu/presentation/widgets/recipe_dialogs.dart';
+import 'package:pos_saas_app/features/menu/presentation/widgets/recipe_form.dart';
 import '../../helpers/auth_fakes.dart';
 import 'ingredient_fakes.dart';
 import 'menu_fakes.dart';
@@ -168,7 +169,10 @@ void main() {
       expect(recipes.creates, hasLength(1));
       expect(items.writes, hasLength(1));
       expect(
-        find.textContaining('Đã lưu công thức, chưa bật sử dụng'),
+        find.descendant(
+          of: find.byType(RecipeForm),
+          matching: find.textContaining('Đã lưu công thức, chưa bật sử dụng'),
+        ),
         findsOneWidget,
       );
       expect(

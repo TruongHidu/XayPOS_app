@@ -136,7 +136,7 @@ class StockAuditDetailScreen extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Dữ liệu lúc bắt đầu không còn phù hợp do biến động vật lý. Số đếm được giữ để tham khảo. Hãy hủy phiên, tạo và bắt đầu phiên mới rồi đếm lại; không tự dùng lại số đếm cũ.',
+                  'Tồn kho đã thay đổi kể từ lúc bắt đầu nên phiên này không thể chốt. Số đếm được giữ để tham khảo; hãy hủy phiên và tạo phiên kiểm kê mới để đếm lại.',
                 ),
               ),
             ),
@@ -223,7 +223,7 @@ class StockAuditDetailScreen extends ConsumerWidget {
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
-                    'Có tín hiệu hoạt động kho/đơn hàng trong lúc đếm. Máy chủ sẽ kiểm tra snapshot khi chốt; tín hiệu giữ hoặc nhả hàng chưa có nghĩa phiên đã lỗi thời.',
+                    'Trong lúc đếm có đơn hàng hoặc phiếu kho mới. Bạn cứ đếm tiếp; hệ thống sẽ tự kiểm tra lại khi chốt.',
                   ),
                 ),
               if (a.status == StockAuditStatus.counting &&
@@ -306,7 +306,7 @@ class _AuditReview extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Bản nhập được giữ. Tải và kiểm tra kết quả trên máy chủ trước khi tiếp tục; hệ thống không tự thay version rồi ghi đè.',
+              'Số bạn đã nhập vẫn được giữ. Hãy tải lại để xem dữ liệu mới nhất trước khi tiếp tục.',
             ),
             Wrap(
               spacing: 8,

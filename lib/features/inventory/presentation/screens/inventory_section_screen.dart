@@ -60,7 +60,10 @@ enum InventorySection {
     'Theo dõi nguyên liệu đang chạm ngưỡng tồn thấp.',
   ),
   documents('Chứng từ kho', 'Theo dõi phiếu nhập, xuất và điều chỉnh tồn kho.'),
-  transactions('Biến động kho', 'Tra cứu lịch sử biến động nguyên liệu.'),
+  transactions(
+    'Biến động kho',
+    'Xem lại mọi lần nhập, xuất, điều chỉnh và tiêu thụ nguyên liệu.',
+  ),
   alerts('Cảnh báo tồn kho', 'Theo dõi và xử lý các đợt cảnh báo tồn kho.'),
   audits('Kiểm kê', 'Đối chiếu tồn thực tế và chốt kết quả kiểm kê.');
 
@@ -170,11 +173,18 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          IconButton(
-                            tooltip: 'Tải lại kho',
-                            onPressed: _refresh,
-                            icon: const Icon(Icons.refresh),
-                          ),
+                          // These lists carry their own reload button.
+                          if (!const {
+                            InventorySection.documents,
+                            InventorySection.transactions,
+                            InventorySection.alerts,
+                            InventorySection.audits,
+                          }.contains(_tab))
+                            IconButton(
+                              tooltip: 'Tải lại kho',
+                              onPressed: _refresh,
+                              icon: const Icon(Icons.refresh),
+                            ),
                           if (_tab == InventorySection.warehouses &&
                               AccessPolicy.canInventory(
                                 session,
@@ -287,7 +297,11 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                       child: Text(
                         selector?.loading == true
                             ? 'Đang tải danh sách kho…'
-                            : 'Chọn một kho để xem tồn. Nếu chưa có kho, hãy thêm kho đầu tiên.',
+                            : selector?.initial == false &&
+                                  selector?.totalElements == 0 &&
+                                  selector?.query.q.isEmpty == true
+                            ? 'Chưa có kho nào. Vào “Quản lý kho” để tạo kho đầu tiên.'
+                            : 'Bấm “Chọn kho” để xem tồn.',
                       ),
                     ),
             ),

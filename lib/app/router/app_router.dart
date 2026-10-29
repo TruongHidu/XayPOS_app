@@ -16,6 +16,7 @@ import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
+import '../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_documents_screen.dart';
@@ -43,6 +44,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     observers: [
       ref.read(kitchenRouteObserverProvider),
       ref.read(qrRequestsRouteObserverProvider),
+      ref.read(referenceMarginRouteObserverProvider),
     ],
     redirect: (context, state) => guard.redirect(state),
     routes: [
@@ -171,6 +173,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.reports,
         builder: (context, state) =>
             const AppShell(initialSection: 'reports', child: ReportsScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.referenceMargin,
+        builder: (context, state) => const AppShell(
+          initialSection: 'reference-margin-reports',
+          child: ReferenceMarginReportsScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.inventory,

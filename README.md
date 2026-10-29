@@ -30,9 +30,11 @@ flutter run
 ```
 
 Trong VS Code, chọn **Xây POS (.env)** ở Run and Debug và nhấn F5. App tự nạp
-`.env` lúc khởi động, trước khi tạo ProviderScope và các client API/realtime;
-không cần truyền `--dart-define-from-file`. Backend URL và các tùy chọn được đọc
-tập trung tại `lib/core/config/environment.dart`.
+`.env` lúc khởi động, trước khi tạo ProviderScope và các client API/realtime.
+Cấu hình F5 truyền sẵn `--dart-define-from-file=.env` để lấy cấu hình trực tiếp
+từ file khi build; không cần gõ lại tham số. Backend URL và các tùy chọn được đọc
+tập trung tại `lib/core/config/environment.dart`. Sau khi sửa `.env`, dừng hẳn
+phiên debug rồi nhấn F5; hot reload không thay đổi các giá trị compile-time.
 
 | Key | Ý nghĩa |
 | --- | --- |
@@ -95,6 +97,16 @@ Nhóm **Kho** trên sidebar có mũi tên mở rộng/thu gọn, gồm Tồn kho
 Chứng từ kho, Biến động kho, Tồn thấp hiện tại, Cảnh báo tồn kho và Kiểm kê.
 Mỗi chức năng có màn hình/đường dẫn riêng và chỉ hiển thị khi đủ quyền/feature.
 Xem [điều hướng Kho](docs/inventory-navigation.md) để biết cấu trúc và route.
+
+## Công thức và giá vốn
+
+Báo cáo **Giá vốn & lãi tham chiếu** có sidebar và route riêng `/app/reference-margin`,
+yêu cầu `ORDER_VIEW` + `REPORT_DETAIL_VIEW` và `ORDER_MANAGEMENT` + `DETAIL_REPORT`.
+Xem [tài liệu báo cáo giá vốn/lãi tham chiếu](docs/reference-margin-reports.md) về
+phạm vi đủ giá vốn, snapshot lịch sử, phân quyền theo gói và kiểm thử.
+
+Tham khảo [áp dụng công thức và cấu hình giá vốn](docs/recipe-application-and-cost-config.md)
+để phân biệt giá tham chiếu thủ công, giá ước tính công thức và quyết định đã chốt trên dòng đơn.
 
 ## Kiến trúc auth
 

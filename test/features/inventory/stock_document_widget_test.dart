@@ -223,6 +223,25 @@ void main() {
     expect(ledger.queries, hasLength(1));
     expect(tester.takeException(), isNull);
   });
+  testWidgets('ledger filters show names instead of raw IDs', (tester) async {
+    final ledger = FakeStockTransactions()
+      ..rows = [StockDocumentDto.transaction(transactionJson())];
+    await _pump(
+      tester,
+      ledger: ledger,
+      location:
+          '/app/inventory/transactions?warehouseId=w1&ingredientId=i1&documentId=d1',
+    );
+    expect(find.text('Kho: KHO-W1'), findsOneWidget);
+    expect(find.text('Nguyên liệu: Nguyên liệu i1'), findsOneWidget);
+    expect(find.text('Phiếu: ISS-d1'), findsOneWidget);
+    expect(find.textContaining('Kho: w1'), findsNothing);
+    await _tap(tester, find.text('Xóa bộ lọc'));
+    expect(ledger.queries.last.warehouseId, isNull);
+    expect(ledger.queries.last.documentId, isNull);
+    expect(find.text('Tất cả kho'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('invalid ledger source link makes no unfiltered request', (
     tester,
   ) async {
@@ -326,7 +345,7 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.byType(StockSelect), findsNothing);
-      await _tap(tester, find.text('Lọc và sắp xếp'));
+      await _tap(tester, find.text('Lọc thêm'));
       expect(find.byType(StockSelect), findsNWidgets(4));
 
       router.go('/app/inventory/stock-documents');
@@ -337,7 +356,7 @@ void main() {
       await tester.pumpAndSettle();
       // The ledger's auto-disposed controller starts a fresh filter identity.
       expect(find.byType(StockSelect), findsNothing);
-      await _tap(tester, find.text('Lọc và sắp xếp'));
+      await _tap(tester, find.text('Lọc thêm'));
       expect(find.byType(StockSelect), findsNWidgets(4));
       expect(tester.takeException(), isNull);
     },
@@ -491,7 +510,7 @@ void main() {
       expect(find.text('Xác nhận chứng từ'), findsNothing);
       router.go('/app/inventory/transactions?warehouseId=w1');
       await tester.pumpAndSettle();
-      await _tap(tester, find.text('Chọn nguyên liệu'));
+      await _tap(tester, find.text('Tất cả nguyên liệu'));
       expect(find.byKey(const ValueKey('stock-pick-i3')), findsOneWidget);
       expect(balances.queries.last.q.ingredientActive, isNull);
       expect(balances.lowCalls, 0);

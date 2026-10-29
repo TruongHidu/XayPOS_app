@@ -119,7 +119,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Yêu cầu đang chờ xác minh. Nội dung được khóa; thử lại sẽ dùng đúng mã đối chiếu và nội dung ban đầu. Không tự tạo phiếu khác.',
+                    'Chưa rõ phiếu đã được lưu hay chưa. Nội dung được giữ nguyên; bấm thử lại sẽ không tạo trùng phiếu.',
                   ),
                   TextButton(
                     onPressed: () =>

@@ -251,9 +251,11 @@ class StockDocumentList extends ConsumerWidget {
                             DataCell(Text(stockDay(row.createdAt))),
                             DataCell(
                               TextButton(
-                                onPressed: () =>
-                                    showStockDocumentDetailOverlay(
-                                      context, ref, documentId: row.id),
+                                onPressed: () => showStockDocumentDetailOverlay(
+                                  context,
+                                  ref,
+                                  documentId: row.id,
+                                ),
                                 child: const Text('Chi tiết'),
                               ),
                             ),
@@ -305,9 +307,11 @@ class StockDocumentList extends ConsumerWidget {
                             ),
                           const SizedBox(height: 8),
                           TextButton(
-                            onPressed: () =>
-                                showStockDocumentDetailOverlay(
-                                  context, ref, documentId: row.id),
+                            onPressed: () => showStockDocumentDetailOverlay(
+                              context,
+                              ref,
+                              documentId: row.id,
+                            ),
                             child: const Text('Chi tiết'),
                           ),
                         ],

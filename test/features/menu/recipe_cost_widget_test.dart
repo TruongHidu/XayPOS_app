@@ -117,7 +117,7 @@ void main() {
       expect(recipes.costCalls.last, ('i1', 'r2'));
       expect(find.textContaining('không phải giá vốn lịch sử'), findsOneWidget);
       await _tap(tester, find.text('Đóng'));
-      await _tap(tester, find.text('Đang áp dụng').first);
+      await _tap(tester, find.text('Phiên bản hiện hành').first);
       expect(recipes.costCalls.last, ('i1', 'r7'));
       expect(recipes.costCalls, hasLength(4));
       expect(tester.takeException(), isNull);

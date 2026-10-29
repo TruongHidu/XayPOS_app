@@ -124,7 +124,11 @@ class WarehouseSelectorController extends InventoryController {
         totalPages = data.totalPages;
         totalElements = data.totalElements;
         if (initial) {
-          selected ??= rows.where((r) => r.isDefault).firstOrNull;
+          // Skip the picker when the choice is obvious: the default
+          // warehouse, or the only warehouse there is.
+          selected ??=
+              rows.where((r) => r.isDefault).firstOrNull ??
+              (data.totalElements == 1 ? rows.single : null);
           initial = false;
         }
       case Error(failure: final error):

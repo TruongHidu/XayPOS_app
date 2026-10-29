@@ -191,7 +191,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const Text(
-                      'Số dư ở lần tải gần nhất. Cảnh báo tồn thấp dựa trên tồn vật lý; hàng đang giữ làm giảm khả dụng.',
+                      'Số tồn ở lần tải gần nhất. Cảnh báo dựa trên tồn thực tế; hàng đang giữ cho đơn làm giảm số khả dụng.',
                     ),
                     const SizedBox(height: 12),
                     if (row.currentQuantity == null)

@@ -20,6 +20,9 @@ class InventoryTransactionController extends InventoryController {
   final GetInventoryTransactions get;
   InventoryTransactionQuery query;
   List<InventoryTransaction> rows = const [];
+
+  /// Display names for filter IDs: set from pickers, else learned from rows.
+  final names = <String, String>{};
   int totalElements = 0, totalPages = 0, _generation = 0, _revision = 0;
   bool loading = false, hasLoaded = false, _scheduled = false;
   Failure? failure;
@@ -97,6 +100,13 @@ class InventoryTransactionController extends InventoryController {
           return;
         }
         rows = data.content;
+        for (final row in rows) {
+          names.putIfAbsent(row.warehouseId, () => row.warehouseCode);
+          names.putIfAbsent(row.ingredientId, () => row.ingredientName);
+          if (row.documentId case final id?) {
+            names.putIfAbsent(id, () => row.documentCode!);
+          }
+        }
         totalElements = data.totalElements;
         totalPages = data.totalPages;
         hasLoaded = true;

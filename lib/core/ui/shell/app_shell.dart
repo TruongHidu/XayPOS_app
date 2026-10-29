@@ -18,6 +18,7 @@ import '../../../features/menu/presentation/screens/menu_management_screen.dart'
 import '../../../features/tables/presentation/screens/tables_management_screen.dart';
 import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../../features/reports/presentation/screens/reports_screen.dart';
+import '../../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_documents_screen.dart';
@@ -102,6 +103,7 @@ class _AppShellState extends ConsumerState<AppShell>
       'dish-status',
       'daily-revenue',
       'reports',
+      'reference-margin-reports',
       'inventory',
       'inventory-warehouses',
       'inventory-documents',
@@ -300,6 +302,11 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (selected.id == 'reports') {
       return ReportsScreen(key: ValueKey(AccessPolicy.reportScope(session)));
+    }
+    if (selected.id == 'reference-margin-reports') {
+      return ReferenceMarginReportsScreen(
+        key: ValueKey(AccessPolicy.referenceMarginScope(session)),
+      );
     }
     if (selected.id == 'inventory') {
       return const InventoryBalancesScreen();

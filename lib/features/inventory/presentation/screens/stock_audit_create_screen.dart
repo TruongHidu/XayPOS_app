@@ -65,7 +65,7 @@ class StockAuditCreateScreen extends ConsumerWidget {
           InventoryFailurePanel(failure: c.failure),
           if (c.uncertain) ...[
             const Text(
-              'Kết quả tạo chưa được xác minh. Nội dung được khóa; thử lại giữ đúng mã đối chiếu và nội dung ban đầu, kể cả khi bạn rời rồi quay lại màn hình.',
+              'Chưa rõ phiên kiểm kê đã được tạo hay chưa. Nội dung được giữ nguyên; bấm thử lại sẽ không tạo trùng phiên.',
             ),
             TextButton(
               onPressed: () => context.go('/app/inventory/audits'),

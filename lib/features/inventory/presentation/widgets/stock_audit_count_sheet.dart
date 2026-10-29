@@ -19,7 +19,7 @@ class StockAuditCountSheet extends ConsumerWidget {
         Text('Bảng số đếm', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         const Text(
-          'Số đếm là tồn vật lý, bao gồm hàng đang giữ chỗ. Không cộng hoặc trừ phần đang giữ một lần nữa. Tên, đơn vị, tồn hệ thống và giá tham chiếu được chốt lúc bắt đầu.',
+          'Nhập đúng số lượng đếm được trên kệ, gồm cả hàng đang giữ cho đơn. Tên, đơn vị, tồn hệ thống và giá được lấy tại lúc bắt đầu kiểm kê.',
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
@@ -105,9 +105,7 @@ class StockAuditCountSheet extends ConsumerWidget {
         if (c.itemsLoaded && c.rows.isEmpty && c.itemFailure == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'Không có dòng phù hợp bộ lọc. Tiến độ toàn phiên ở đầu màn hình vẫn là dữ liệu máy chủ.',
-            ),
+            child: Text('Không có nguyên liệu nào khớp bộ lọc.'),
           ),
         LayoutBuilder(
           builder: (context, box) {

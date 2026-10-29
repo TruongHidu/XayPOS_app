@@ -52,6 +52,9 @@ List<SidebarMenuItem> filterMenuItems(
     if (item.id == 'reports') {
       return AccessPolicy.canDetailReport(session);
     }
+    if (item.id == 'reference-margin-reports') {
+      return AccessPolicy.canViewReferenceMarginReports(session);
+    }
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),
     );

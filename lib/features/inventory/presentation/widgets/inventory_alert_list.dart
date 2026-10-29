@@ -42,7 +42,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
       children: [
         const InventoryAlertSyncStatus(),
         const Text(
-          'Các đợt cảnh báo đã lưu, gồm cả lịch sử. “Đã xem” không có nghĩa đã hết thiếu. Xem “Tồn thấp hiện tại” để kiểm tra số dư đang dưới ngưỡng.',
+          'Danh sách các lần nguyên liệu chạm ngưỡng tồn thấp, kể cả đã xử lý. Đánh dấu “Đã xem” không bổ sung hàng; mở “Tồn thấp hiện tại” để xem hàng đang thiếu.',
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
@@ -164,9 +164,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
           retry: c.loading ? null : c.load,
         ),
         if (c.failure != null && c.hasLoaded)
-          const Text(
-            'Đang hiển thị dữ liệu lần tải trước. Hãy tải lại để đối chiếu.',
-          ),
+          const Text('Đang hiển thị kết quả lần tải trước.'),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 32),

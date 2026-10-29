@@ -53,505 +53,516 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
             maxWidth: 760,
             maxHeight: MediaQuery.sizeOf(context).height * .9,
           ),
-          child: Column(
-            children: [
-              // ── Header ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.qr_code_2, color: colors.primary, size: 28),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'QR · ${widget.tableName}',
-                        style: theme.textTheme.titleLarge,
-                      ),
+          child: _ReviewLayout(
+            // ── Header ──
+            header: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+              child: Row(
+                children: [
+                  Icon(Icons.qr_code_2, color: colors.primary, size: 28),
+                  const SizedBox(width: 8),
+                  // Wrap lets the status chip drop below a long title on
+                  // narrow screens or large system text.
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'QR · ${widget.tableName}',
+                          style: theme.textTheme.titleLarge,
+                        ),
+                        if (row != null) _StatusChip(status: row.status),
+                      ],
                     ),
-                    if (row != null)
-                      _StatusChip(status: row.status),
-                    const SizedBox(width: 4),
-                    IconButton(
-                      tooltip: 'Đóng chi tiết QR',
-                      onPressed: c.busy || c.uncertain
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              if (c.loading || c.busy) const LinearProgressIndicator(),
-
-              // ── Body ──
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  children: [
-                    if (row != null) ...[
-                      // ── Info card ──
-                      _SectionCard(
-                        icon: Icons.info_outline,
-                        title: 'Thông tin yêu cầu',
-                        children: [
-                          _InfoRow(
-                            icon: Icons.tag,
-                            label: 'Mã',
-                            value: shortQrId(row.id),
-                          ),
-                          _InfoRow(
-                            icon: Icons.schedule,
-                            label: 'Gửi lúc',
-                            value: qrRequestTime(row.createdAt),
-                          ),
-                          _InfoRow(
-                            icon: Icons.timer_outlined,
-                            label: 'Hạn duyệt',
-                            value: qrRequestTime(row.expiresAt),
-                          ),
-                          if (row.customerName?.isNotEmpty == true)
-                            _InfoRow(
-                              icon: Icons.person_outline,
-                              label: 'Khách',
-                              value: row.customerName!,
-                            ),
-                          if (row.customerPhone?.isNotEmpty == true)
-                            _InfoRow(
-                              icon: Icons.phone_outlined,
-                              label: 'SĐT',
-                              value: row.customerPhone!,
-                            ),
-                          if (row.note?.isNotEmpty == true)
-                            _InfoRow(
-                              icon: Icons.notes,
-                              label: 'Ghi chú',
-                              value: row.note!,
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // ── Items card ──
-                      _SectionCard(
-                        icon: Icons.restaurant_menu,
-                        title: 'Món khách yêu cầu (${row.items.length})',
-                        children: [
-                          for (final line in row.items)
-                            _ItemTile(line: line, currency: row.currency),
-                          const Divider(height: 1),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Giá lúc gửi',
-                                  style: theme.textTheme.titleSmall,
-                                ),
-                                Text(
-                                  _money(row.estimatedAmount.minorUnits, row.currency),
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // ── Quote card (current price) ──
-                      if (review!.quote != null) ...[
-                        const SizedBox(height: 12),
-                        _SectionCard(
-                          icon: Icons.receipt_long,
-                          title: 'Giá hiện tại khi duyệt',
-                          borderColor: review.quoteChanged
-                              ? colors.error.withValues(alpha: .5)
-                              : null,
-                          children: [
-                            for (final line in review.quote!.lines)
-                              _ItemTile(
-                                line: line,
-                                currency: review.quote!.currency,
-                              ),
-                            const Divider(height: 1),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 10),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Tổng duyệt',
-                                    style: theme.textTheme.titleSmall,
-                                  ),
-                                  Text(
-                                    _money(
-                                      review.quote!.amount.minorUnits,
-                                      review.quote!.currency,
-                                    ),
-                                    style:
-                                        theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: review.quoteChanged
-                                          ? colors.error
-                                          : null,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (review.quoteChanged) ...[
-                              const SizedBox(height: 8),
-                              _WarningBanner(
-                                icon: Icons.price_change,
-                                message:
-                                    'Giá đã thay đổi so với lúc khách gửi. Hãy đối chiếu với khách trước khi duyệt.',
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-
-                      // ── Pending-specific actions ──
-                      if (row.status == QrRequestStatus.pending) ...[
-                        const SizedBox(height: 12),
-
-                        // Context info card
-                        _SectionCard(
-                          icon: Icons.table_restaurant,
-                          title: 'Thao tác khi duyệt',
-                          children: [
-                            _InfoRow(
-                              icon: Icons.play_circle_outline,
-                              label: 'Hành động',
-                              value: review.context?.sessionId == null
-                                  ? 'Mở phiên bàn mới và tạo đơn'
-                                  : review.context?.order == null
-                                      ? 'Tạo đơn cho phiên bàn hiện tại'
-                                      : 'Thêm món vào đơn hiện tại (giữ món cũ)',
-                            ),
-                            if (review.context?.sessionId != null)
-                              _InfoRow(
-                                icon: Icons.groups_outlined,
-                                label: 'Phiên bàn',
-                                value:
-                                    '${widget.tableName}${review.context!.guestCount == null ? '' : ' · ${review.context!.guestCount} khách'}',
-                              ),
-                            if (review.context?.order != null)
-                              _InfoRow(
-                                icon: Icons.receipt_outlined,
-                                label: 'Đơn hiện tại',
-                                value:
-                                    '${review.context!.order!.status.label} · ${_money(review.context!.order!.total.minorUnits, review.context!.order!.currency)}',
-                              ),
-                          ],
-                        ),
-
-                        // Warnings
-                        if (row.observedSessionId == null &&
-                            review.context?.sessionId != null) ...[
-                          const SizedBox(height: 8),
-                          _WarningBanner(
-                            icon: Icons.warning_amber,
-                            message:
-                                'Khi khách gửi chưa có phiên bàn. Cần xác nhận yêu cầu này thuộc đúng lượt khách hiện tại.',
-                          ),
-                        ],
-                        if (!c.pending) ...[
-                          const SizedBox(height: 8),
-                          _WarningBanner(
-                            icon: Icons.timer_off,
-                            message:
-                                'Yêu cầu đã hết hạn, không thể duyệt.',
-                            isError: true,
-                          ),
-                        ],
-                        if (!review.canApprove ||
-                            review.reasonCode != null) ...[
-                          const SizedBox(height: 8),
-                          _WarningBanner(
-                            icon: Icons.block,
-                            message: qrReviewReason(review.reasonCode),
-                            isError: true,
-                          ),
-                        ],
-                        if (c.localBlocked) ...[
-                          const SizedBox(height: 8),
-                          _WarningBanner(
-                            icon: Icons.lock_outline,
-                            message:
-                                'Đơn hoặc phiên bàn đang có thao tác khác cần xử lý. Hãy kiểm tra lại sau.',
-                          ),
-                        ],
-                        if (!c.canApprove &&
-                            review.canApprove &&
-                            !c.busy &&
-                            !c.loading &&
-                            !c.needsReload &&
-                            c.pending &&
-                            !c.localBlocked) ...[
-                          const SizedBox(height: 8),
-                          _WarningBanner(
-                            icon: Icons.no_accounts,
-                            message:
-                                'Bạn chưa có đủ quyền hoặc tính năng để duyệt yêu cầu này.',
-                            isError: true,
-                          ),
-                        ],
-
-                        // ── Confirm switch (replaces checkbox) ──
-                        if (!_rejecting) ...[
-                          const SizedBox(height: 12),
-                          Card(
-                            color: _confirmed
-                                ? colors.primaryContainer
-                                : colors.surfaceContainerHighest,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: _confirmed
-                                    ? colors.primary
-                                    : colors.outlineVariant,
-                                width: _confirmed ? 1.5 : 1,
-                              ),
-                            ),
-                            child: SwitchListTile.adaptive(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              value: _confirmed,
-                              onChanged: c.canApprove
-                                  ? (v) =>
-                                      setState(() => _confirmed = v)
-                                  : null,
-                              secondary: Icon(
-                                _confirmed
-                                    ? Icons.check_circle
-                                    : Icons.circle_outlined,
-                                color: _confirmed
-                                    ? colors.primary
-                                    : colors.outline,
-                              ),
-                              title: Text(
-                                review.context?.sessionId == null
-                                    ? 'Đã kiểm tra món, giá và đúng khách; đồng ý mở phiên'
-                                    : 'Đã kiểm tra món, giá và đúng phiên bàn',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        // ── Reject reason ──
-                        if (_rejecting) ...[
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _reason,
-                            enabled: !c.busy,
-                            minLines: 2,
-                            maxLines: 4,
-                            maxLength: 1000,
-                            decoration: const InputDecoration(
-                              labelText: 'Lý do từ chối',
-                              hintText: 'Ví dụ: món đã hết, khách đổi ý',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ],
-                      ],
-
-                      if (row.rejectionReason != null) ...[
-                        const SizedBox(height: 8),
-                        _WarningBanner(
-                          icon: Icons.do_not_disturb,
-                          message:
-                              'Lý do từ chối: ${row.rejectionReason}',
-                          isError: true,
-                        ),
-                      ],
-                      if (row.cancellationReason != null) ...[
-                        const SizedBox(height: 8),
-                        _WarningBanner(
-                          icon: Icons.cancel_outlined,
-                          message:
-                              'Lý do hủy: ${qrReviewReason(row.cancellationReason)}',
-                          isError: true,
-                        ),
-                      ],
-                    ],
-
-                    // ── Uncertain / reload ──
-                    if (c.uncertain) ...[
-                      const SizedBox(height: 8),
-                      _WarningBanner(
-                        icon: Icons.help_outline,
-                        message:
-                            'Chưa xác định kết quả. Tải lại đúng yêu cầu này để kiểm tra; không gửi lại hoặc tạo đơn thay thế.',
-                        isError: true,
-                      ),
-                    ],
-                    if (c.needsReload && !c.uncertain) ...[
-                      const SizedBox(height: 8),
-                      _WarningBanner(
-                        icon: Icons.sync_problem,
-                        message:
-                            'Hãy tải lại yêu cầu, kiểm tra thay đổi rồi xác nhận lại trước khi gửi.',
-                      ),
-                    ],
-                    OrderFailurePanel(failure: c.failure),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: c.busy || c.loading || c.coolingDown
-                          ? null
-                          : c.load,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Tải lại yêu cầu QR'),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Bottom action bar ──
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: colors.outlineVariant, width: .5),
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Đóng chi tiết QR',
+                    onPressed: c.busy || c.uncertain
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            progress: c.loading || c.busy,
+
+            // ── Body ──
+            body: [
+              if (row != null) ...[
+                // ── Info card ──
+                _SectionCard(
+                  icon: Icons.info_outline,
+                  title: 'Thông tin yêu cầu',
                   children: [
-                    // Reject button row
-                    if (row?.status == QrRequestStatus.pending) ...[
-                      if (_rejecting) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: c.busy
-                                    ? null
-                                    : () => setState(
-                                        () => _rejecting = false),
-                                icon: const Icon(Icons.arrow_back),
-                                label: const Text('Quay lại'),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: !c.canReject
-                                    ? null
-                                    : () async {
-                                        final success = await c.reject(
-                                          review!,
-                                          _reason.text,
-                                        );
-                                        if (success &&
-                                            context.mounted &&
-                                            c.current) {
-                                          Navigator.of(context).pop();
-                                        }
-                                      },
-                                icon: const Icon(Icons.close),
-                                label: const Text('Xác nhận từ chối'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: colors.error,
-                                  foregroundColor: colors.onError,
-                                  minimumSize:
-                                      const Size.fromHeight(48),
-                                ),
-                              ),
-                            ),
-                          ],
+                    _InfoRow(
+                      icon: Icons.tag,
+                      label: 'Mã',
+                      value: shortQrId(row.id),
+                    ),
+                    _InfoRow(
+                      icon: Icons.schedule,
+                      label: 'Gửi lúc',
+                      value: qrRequestTime(row.createdAt),
+                    ),
+                    _InfoRow(
+                      icon: Icons.timer_outlined,
+                      label: 'Hạn duyệt',
+                      value: qrRequestTime(row.expiresAt),
+                    ),
+                    if (row.customerName?.isNotEmpty == true)
+                      _InfoRow(
+                        icon: Icons.person_outline,
+                        label: 'Khách',
+                        value: row.customerName!,
+                      ),
+                    if (row.customerPhone?.isNotEmpty == true)
+                      _InfoRow(
+                        icon: Icons.phone_outlined,
+                        label: 'SĐT',
+                        value: row.customerPhone!,
+                      ),
+                    if (row.note?.isNotEmpty == true)
+                      _InfoRow(
+                        icon: Icons.notes,
+                        label: 'Ghi chú',
+                        value: row.note!,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // ── Items card ──
+                _SectionCard(
+                  icon: Icons.restaurant_menu,
+                  title: 'Món khách yêu cầu (${row.items.length})',
+                  children: [
+                    for (final line in row.items)
+                      _ItemTile(line: line, currency: row.currency),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: _TotalRow(
+                        label: 'Giá lúc gửi',
+                        value: _money(
+                          row.estimatedAmount.minorUnits,
+                          row.currency,
                         ),
-                      ] else ...[
-                        // Approve button (full width, prominent)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: FilledButton.icon(
-                            onPressed: !c.canApprove || !_confirmed
-                                ? null
-                                : () async {
-                                    final success = await c.approve(
-                                      review!,
-                                      confirmed: _confirmed,
-                                    );
-                                    if (success &&
-                                        context.mounted &&
-                                        c.current) {
-                                      Navigator.of(context).pop();
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Đã duyệt yêu cầu QR và cập nhật đơn.',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                            icon: const Icon(Icons.check_circle, size: 22),
-                            label: const Text(
-                              'Duyệt yêu cầu',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Quote card (current price) ──
+                if (review!.quote != null) ...[
+                  const SizedBox(height: 12),
+                  _SectionCard(
+                    icon: Icons.receipt_long,
+                    title: 'Giá hiện tại khi duyệt',
+                    borderColor: review.quoteChanged
+                        ? colors.error.withValues(alpha: .5)
+                        : null,
+                    children: [
+                      for (final line in review.quote!.lines)
+                        _ItemTile(line: line, currency: review.quote!.currency),
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: _TotalRow(
+                          label: 'Tổng duyệt',
+                          value: _money(
+                            review.quote!.amount.minorUnits,
+                            review.quote!.currency,
                           ),
+                          color: review.quoteChanged ? colors.error : null,
                         ),
+                      ),
+                      if (review.quoteChanged) ...[
                         const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 44,
-                          child: OutlinedButton.icon(
-                            onPressed: !c.canReject
-                                ? null
-                                : () =>
-                                    setState(() => _rejecting = true),
-                            icon: Icon(
-                              Icons.block,
-                              size: 18,
-                              color: c.canReject
-                                  ? colors.error
-                                  : null,
-                            ),
-                            label: Text(
-                              'Từ chối yêu cầu',
-                              style: TextStyle(
-                                color: c.canReject
-                                    ? colors.error
-                                    : null,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: c.canReject
-                                    ? colors.error.withValues(alpha: .5)
-                                    : colors.outlineVariant,
-                              ),
-                            ),
-                          ),
+                        _WarningBanner(
+                          icon: Icons.price_change,
+                          message:
+                              'Giá đã thay đổi so với lúc khách gửi. Hãy đối chiếu với khách trước khi duyệt.',
                         ),
                       ],
                     ],
+                  ),
+                ],
+
+                // ── Pending-specific actions ──
+                if (row.status == QrRequestStatus.pending) ...[
+                  const SizedBox(height: 12),
+
+                  // Context info card
+                  _SectionCard(
+                    icon: Icons.table_restaurant,
+                    title: 'Thao tác khi duyệt',
+                    children: [
+                      _InfoRow(
+                        icon: Icons.play_circle_outline,
+                        label: 'Hành động',
+                        value: review.context?.sessionId == null
+                            ? 'Mở phiên bàn mới và tạo đơn'
+                            : review.context?.order == null
+                            ? 'Tạo đơn cho phiên bàn hiện tại'
+                            : 'Thêm món vào đơn hiện tại (giữ món cũ)',
+                      ),
+                      if (review.context?.sessionId != null)
+                        _InfoRow(
+                          icon: Icons.groups_outlined,
+                          label: 'Phiên bàn',
+                          value:
+                              '${widget.tableName}${review.context!.guestCount == null ? '' : ' · ${review.context!.guestCount} khách'}',
+                        ),
+                      if (review.context?.order != null)
+                        _InfoRow(
+                          icon: Icons.receipt_outlined,
+                          label: 'Đơn hiện tại',
+                          value:
+                              '${review.context!.order!.status.label} · ${_money(review.context!.order!.total.minorUnits, review.context!.order!.currency)}',
+                        ),
+                    ],
+                  ),
+
+                  // Warnings
+                  if (row.observedSessionId == null &&
+                      review.context?.sessionId != null) ...[
+                    const SizedBox(height: 8),
+                    _WarningBanner(
+                      icon: Icons.warning_amber,
+                      message:
+                          'Khi khách gửi chưa có phiên bàn. Cần xác nhận yêu cầu này thuộc đúng lượt khách hiện tại.',
+                    ),
                   ],
+                  if (!c.pending) ...[
+                    const SizedBox(height: 8),
+                    _WarningBanner(
+                      icon: Icons.timer_off,
+                      message: 'Yêu cầu đã hết hạn, không thể duyệt.',
+                      isError: true,
+                    ),
+                  ],
+                  if (!review.canApprove || review.reasonCode != null) ...[
+                    const SizedBox(height: 8),
+                    _WarningBanner(
+                      icon: Icons.block,
+                      message: qrReviewReason(review.reasonCode),
+                      isError: true,
+                    ),
+                  ],
+                  if (c.localBlocked) ...[
+                    const SizedBox(height: 8),
+                    _WarningBanner(
+                      icon: Icons.lock_outline,
+                      message:
+                          'Đơn hoặc phiên bàn đang có thao tác khác cần xử lý. Hãy kiểm tra lại sau.',
+                    ),
+                  ],
+                  if (!c.canApprove &&
+                      review.canApprove &&
+                      !c.busy &&
+                      !c.loading &&
+                      !c.needsReload &&
+                      c.pending &&
+                      !c.localBlocked) ...[
+                    const SizedBox(height: 8),
+                    _WarningBanner(
+                      icon: Icons.no_accounts,
+                      message:
+                          'Bạn chưa có đủ quyền hoặc tính năng để duyệt yêu cầu này.',
+                      isError: true,
+                    ),
+                  ],
+
+                  // ── Confirm switch (replaces checkbox) ──
+                  if (!_rejecting) ...[
+                    const SizedBox(height: 12),
+                    Card(
+                      color: _confirmed
+                          ? colors.primaryContainer
+                          : colors.surfaceContainerHighest,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: _confirmed
+                              ? colors.primary
+                              : colors.outlineVariant,
+                          width: _confirmed ? 1.5 : 1,
+                        ),
+                      ),
+                      child: SwitchListTile.adaptive(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        value: _confirmed,
+                        onChanged: c.canApprove
+                            ? (v) => setState(() => _confirmed = v)
+                            : null,
+                        secondary: Icon(
+                          _confirmed
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: _confirmed ? colors.primary : colors.outline,
+                        ),
+                        title: Text(
+                          review.context?.sessionId == null
+                              ? 'Đã kiểm tra món, giá và đúng khách; đồng ý mở phiên'
+                              : 'Đã kiểm tra món, giá và đúng phiên bàn',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // ── Reject reason ──
+                  if (_rejecting) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _reason,
+                      enabled: !c.busy,
+                      minLines: 2,
+                      maxLines: 4,
+                      maxLength: 1000,
+                      decoration: const InputDecoration(
+                        labelText: 'Lý do từ chối',
+                        hintText: 'Ví dụ: món đã hết, khách đổi ý',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+
+                if (row.rejectionReason != null) ...[
+                  const SizedBox(height: 8),
+                  _WarningBanner(
+                    icon: Icons.do_not_disturb,
+                    message: 'Lý do từ chối: ${row.rejectionReason}',
+                    isError: true,
+                  ),
+                ],
+                if (row.cancellationReason != null) ...[
+                  const SizedBox(height: 8),
+                  _WarningBanner(
+                    icon: Icons.cancel_outlined,
+                    message:
+                        'Lý do hủy: ${qrReviewReason(row.cancellationReason)}',
+                    isError: true,
+                  ),
+                ],
+              ],
+
+              // ── Uncertain / reload ──
+              if (c.uncertain) ...[
+                const SizedBox(height: 8),
+                _WarningBanner(
+                  icon: Icons.help_outline,
+                  message:
+                      'Chưa xác định kết quả. Tải lại đúng yêu cầu này để kiểm tra; không gửi lại hoặc tạo đơn thay thế.',
+                  isError: true,
                 ),
+              ],
+              if (c.needsReload && !c.uncertain) ...[
+                const SizedBox(height: 8),
+                _WarningBanner(
+                  icon: Icons.sync_problem,
+                  message:
+                      'Hãy tải lại yêu cầu, kiểm tra thay đổi rồi xác nhận lại trước khi gửi.',
+                ),
+              ],
+              OrderFailurePanel(failure: c.failure),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: c.busy || c.loading || c.coolingDown ? null : c.load,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tải lại yêu cầu QR'),
               ),
             ],
+
+            // ── Bottom action bar ──
+            footer: Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: colors.outlineVariant, width: .5),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Reject button row
+                  if (row?.status == QrRequestStatus.pending) ...[
+                    if (_rejecting) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: c.busy
+                                  ? null
+                                  : () => setState(() => _rejecting = false),
+                              icon: const Icon(Icons.arrow_back),
+                              label: const Text('Quay lại'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: !c.canReject
+                                  ? null
+                                  : () async {
+                                      final success = await c.reject(
+                                        review!,
+                                        _reason.text,
+                                      );
+                                      if (success &&
+                                          context.mounted &&
+                                          c.current) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                              icon: const Icon(Icons.close),
+                              label: const Text('Xác nhận từ chối'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: colors.error,
+                                foregroundColor: colors.onError,
+                                minimumSize: const Size.fromHeight(48),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      // Approve button (full width, prominent)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
+                          onPressed: !c.canApprove || !_confirmed
+                              ? null
+                              : () async {
+                                  final success = await c.approve(
+                                    review!,
+                                    confirmed: _confirmed,
+                                  );
+                                  if (success && context.mounted && c.current) {
+                                    Navigator.of(context).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Đã duyệt yêu cầu QR và cập nhật đơn.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                          icon: const Icon(Icons.check_circle, size: 22),
+                          label: const Text(
+                            'Duyệt yêu cầu',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: OutlinedButton.icon(
+                          onPressed: !c.canReject
+                              ? null
+                              : () => setState(() => _rejecting = true),
+                          icon: Icon(
+                            Icons.block,
+                            size: 18,
+                            color: c.canReject ? colors.error : null,
+                          ),
+                          label: Text(
+                            'Từ chối yêu cầu',
+                            style: TextStyle(
+                              color: c.canReject ? colors.error : null,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: c.canReject
+                                  ? colors.error.withValues(alpha: .5)
+                                  : colors.outlineVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Pins header and actions around a scrolling body when there is room; when
+/// height is short (keyboard open, large system text) everything scrolls so
+/// the fixed parts never squeeze the content away.
+class _ReviewLayout extends StatelessWidget {
+  const _ReviewLayout({
+    required this.header,
+    required this.progress,
+    required this.body,
+    required this.footer,
+  });
+  final Widget header, footer;
+  final bool progress;
+  final List<Widget> body;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      const padding = EdgeInsets.fromLTRB(16, 8, 16, 16);
+      // Header and actions grow with system text, so the threshold does too.
+      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      if (box.maxHeight < 360 * scale) {
+        // Not lazy: the action buttons must exist even while scrolled away.
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              header,
+              if (progress) const LinearProgressIndicator(),
+              Padding(
+                padding: padding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: body,
+                ),
+              ),
+              footer,
+            ],
+          ),
+        );
+      }
+      return Column(
+        children: [
+          header,
+          if (progress) const LinearProgressIndicator(),
+          Expanded(
+            child: ListView(padding: padding, children: body),
+          ),
+          footer,
+        ],
+      );
+    },
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -570,21 +581,18 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (Color bg, Color fg) = switch (status) {
       QrRequestStatus.pending => (
-          Theme.of(context).colorScheme.tertiaryContainer,
-          Theme.of(context).colorScheme.onTertiaryContainer,
-        ),
-      QrRequestStatus.approved => (
-          const Color(0xFF16A34A),
-          Colors.white,
-        ),
+        Theme.of(context).colorScheme.tertiaryContainer,
+        Theme.of(context).colorScheme.onTertiaryContainer,
+      ),
+      QrRequestStatus.approved => (const Color(0xFF16A34A), Colors.white),
       QrRequestStatus.rejected => (
-          Theme.of(context).colorScheme.errorContainer,
-          Theme.of(context).colorScheme.onErrorContainer,
-        ),
+        Theme.of(context).colorScheme.errorContainer,
+        Theme.of(context).colorScheme.onErrorContainer,
+      ),
       QrRequestStatus.cancelled => (
-          Theme.of(context).colorScheme.surfaceContainerHighest,
-          Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+        Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -594,11 +602,7 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         status.label,
-        style: TextStyle(
-          color: fg,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -624,9 +628,7 @@ class _SectionCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: borderColor ?? colors.outlineVariant,
-        ),
+        side: BorderSide(color: borderColor ?? colors.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -637,10 +639,12 @@ class _SectionCard extends StatelessWidget {
               children: [
                 Icon(icon, size: 18, color: colors.primary),
                 const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -649,6 +653,33 @@ class _SectionCard extends StatelessWidget {
             ...children,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A label/amount pair that wraps the amount below on narrow widths.
+class _TotalRow extends StatelessWidget {
+  const _TotalRow({required this.label, required this.value, this.color});
+  final String label, value;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleSmall;
+    // Full width so spaceBetween pushes the amount to the right edge.
+    return SizedBox(
+      width: double.infinity,
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        spacing: 12,
+        children: [
+          Text(label, style: style),
+          Text(
+            value,
+            style: style?.copyWith(fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
       ),
     );
   }
@@ -745,8 +776,11 @@ class _ItemTile extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 2),
                     child: Row(
                       children: [
-                        Icon(Icons.sticky_note_2_outlined,
-                            size: 13, color: colors.outline),
+                        Icon(
+                          Icons.sticky_note_2_outlined,
+                          size: 13,
+                          color: colors.outline,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -784,11 +818,8 @@ class _WarningBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final bg =
-        isError ? colors.errorContainer : colors.tertiaryContainer;
-    final fg = isError
-        ? colors.onErrorContainer
-        : colors.onTertiaryContainer;
+    final bg = isError ? colors.errorContainer : colors.tertiaryContainer;
+    final fg = isError ? colors.onErrorContainer : colors.onTertiaryContainer;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -801,10 +832,7 @@ class _WarningBanner extends StatelessWidget {
           Icon(icon, size: 18, color: fg),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(fontSize: 13, color: fg),
-            ),
+            child: Text(message, style: TextStyle(fontSize: 13, color: fg)),
           ),
         ],
       ),

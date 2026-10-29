@@ -200,6 +200,20 @@ abstract final class AccessPolicy {
 
   static Object? reportScope(AppSession? session) => menuScope(session);
 
+  static Object? referenceMarginScope(AppSession? session) =>
+      menuScope(session);
+
+  /// Historical reference-cost reporting is its own effective capability.
+  /// Do not compose ordinary report/order helpers: those retain legacy role gates.
+  static bool canViewReferenceMarginReports(AppSession? session) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.permissions.contains('ORDER_VIEW') &&
+      session.permissions.contains('REPORT_DETAIL_VIEW') &&
+      session.features.contains('ORDER_MANAGEMENT') &&
+      session.features.contains('DETAIL_REPORT');
+
   static bool canDailyReport(AppSession? session) =>
       session != null &&
       session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
@@ -378,9 +392,12 @@ abstract final class AccessPolicy {
       return '/admin-web-only';
     }
 
-    // Cashier uses a separate web-based system.
+    // Existing cashier operations remain web-only. This separately granted
+    // read capability can enter its own Flutter report without opening them.
     if (user.role == UserRole.cashier) {
-      return '/cashier-web-only';
+      return canViewReferenceMarginReports(session)
+          ? '/app/reference-margin'
+          : '/cashier-web-only';
     }
 
     // Unsupported roles.
@@ -493,6 +510,9 @@ abstract final class AccessPolicy {
       return canInventory(session, 'INVENTORY_VIEW');
     }
     if (path == '/app/reports') return canDetailReport(session);
+    if (path == '/app/reference-margin') {
+      return canViewReferenceMarginReports(session);
+    }
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (path == '/app/menu') return canMenuWorkspace(session);
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
@@ -504,7 +524,7 @@ abstract final class AccessPolicy {
           user.role == UserRole.manager ||
           user.role == UserRole.waiter ||
           user.role == UserRole.kitchen;
-      return isRestaurantRole &&
+      return (isRestaurantRole || canViewReferenceMarginReports(session)) &&
           session.subscriptionStatus == SubscriptionStatus.active &&
           _hasAnyAccessibleFeature(session);
     }
@@ -542,6 +562,7 @@ abstract final class AccessPolicy {
         canRecipe(session, 'RECIPE_VIEW') ||
         canDailyReport(session) ||
         canDetailReport(session) ||
+        canViewReferenceMarginReports(session) ||
         canAccessAny(session, const [
           (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),
           (permission: 'ORDER_CREATE', feature: 'ORDER_MANAGEMENT'),

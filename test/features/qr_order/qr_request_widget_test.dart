@@ -39,6 +39,12 @@ Future<void> _reveal(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// `FilledButton.icon` builds a subclass, so match by `is` rather than exact type.
+Finder _filled(String text) => find.ancestor(
+  of: find.text(text),
+  matching: find.byWidgetPredicate((w) => w is FilledButton),
+);
+
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await _reveal(tester, finder);
   await tester.tap(finder.first);
@@ -82,9 +88,9 @@ void main() {
       await _open(tester);
       expect(find.byType(QrRequestReviewDialog), findsOneWidget);
       expect(qr.approvals, isEmpty);
-      final approve = find.widgetWithText(FilledButton, 'Duyệt yêu cầu');
+      final approve = _filled('Duyệt yêu cầu');
       expect(tester.widget<FilledButton>(approve).onPressed, isNull);
-      await _tap(tester, find.byType(CheckboxListTile));
+      await _tap(tester, find.byType(SwitchListTile));
       await _tap(tester, approve);
       expect(qr.approvals, hasLength(1));
       expect(qr.approvals.single.$2.requestVersion, 3);
@@ -131,14 +137,10 @@ void main() {
       );
       await _open(tester);
       expect(
-        tester
-            .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Duyệt yêu cầu'),
-            )
-            .onPressed,
+        tester.widget<FilledButton>(_filled('Duyệt yêu cầu')).onPressed,
         isNull,
       );
-      await _tap(tester, find.text('Từ chối'));
+      await _tap(tester, find.text('Từ chối yêu cầu'));
       await _tap(tester, find.text('Xác nhận từ chối'));
       expect(qr.rejections, isEmpty);
       await _reveal(tester, find.byType(TextField));
@@ -162,7 +164,7 @@ void main() {
         features: qrFeatures,
       );
       await _open(tester);
-      await _tap(tester, find.byType(CheckboxListTile));
+      await _tap(tester, find.byType(SwitchListTile));
       await _tap(tester, find.text('Duyệt yêu cầu'));
       expect(qr.approvals, hasLength(1));
       expect(
@@ -328,7 +330,7 @@ void main() {
         expect(tester.takeException(), isNull);
         await _open(tester);
         expect(tester.takeException(), isNull);
-        await _tap(tester, find.text('Từ chối'));
+        await _tap(tester, find.text('Từ chối yêu cầu'));
         tester.view.viewInsets = const FakeViewPadding(bottom: 280);
         addTearDown(tester.view.resetViewInsets);
         await tester.pumpAndSettle();

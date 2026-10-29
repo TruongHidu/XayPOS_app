@@ -64,15 +64,17 @@ class OrderMenuItemCard extends StatelessWidget {
             : null,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ── Thumbnail ──────────────────────────────────────────
-              ClipRRect(
+          // Narrow cards (phones, large text) move the stepper below the
+          // name/price so the text column never gets squeezed to zero.
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final narrow = box.maxWidth < 300;
+              final thumbSize = narrow ? 48.0 : 72.0;
+              final thumbnail = ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
-                  width: 72,
-                  height: 72,
+                  width: thumbSize,
+                  height: thumbSize,
                   child: item.imageUrl != null && item.imageUrl!.isNotEmpty
                       ? Image.network(
                           item.imageUrl!,
@@ -81,150 +83,141 @@ class OrderMenuItemCard extends StatelessWidget {
                         )
                       : _placeholder(),
                 ),
-              ),
-              const SizedBox(width: 10),
+              );
+              final info = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Item Name
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
 
-              // ── Info: Name, Description, Status, Price ─────────────
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Item Name
+                  // Short Description
+                  if (item.description != null &&
+                      item.description!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      item.name,
+                      item.description!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-
-                    // Short Description
-                    if (item.description != null &&
-                        item.description!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        item.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 4),
-
-                    // Availability stays separate from temporarily disabled actions.
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 2,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (outOfStock)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              statusLabel,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: statusColor,
-                              ),
-                            ),
-                          )
-                        else
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: statusColor,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  statusLabel,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: statusColor,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (item.baseUnit.isNotEmpty)
-                          Text(
-                            '• ${item.baseUnit}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                        if (hasMultipleConfigurations)
-                          InkWell(
-                            onTap: canInteract ? onEdit : null,
-                            borderRadius: BorderRadius.circular(4),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: OrderPalette.white,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Nhiều ghi chú',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.brown,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // Price
-                    Text(
-                      orderMoney(
-                        BigInt.from(item.salePrice.minorUnits),
-                        currency: currencyCode ?? 'Đ',
-                      ),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: OrderPalette.orange,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        height: 1.25,
                       ),
                     ),
                   ],
-                ),
-              ),
 
-              const SizedBox(width: 8),
+                  const SizedBox(height: 4),
 
-              // ── Stepper: [ - ]  qty  [ + ] ── (right side) ─────────
-              Row(
+                  // Availability stays separate from temporarily disabled actions.
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (outOfStock)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
+                          ),
+                        )
+                      else
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: statusColor,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                statusLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (item.baseUnit.isNotEmpty)
+                        Text(
+                          '• ${item.baseUnit}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      if (hasMultipleConfigurations)
+                        InkWell(
+                          onTap: canInteract ? onEdit : null,
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: OrderPalette.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Nhiều ghi chú',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.brown,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Price
+                  Text(
+                    orderMoney(
+                      BigInt.from(item.salePrice.minorUnits),
+                      currency: currencyCode ?? 'Đ',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: OrderPalette.orange,
+                    ),
+                  ),
+                ],
+              );
+              final stepper = Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Minus button
@@ -315,8 +308,35 @@ class OrderMenuItemCard extends StatelessWidget {
                     icon: const Icon(Icons.add, size: 22),
                   ),
                 ],
-              ),
-            ],
+              );
+              if (narrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        thumbnail,
+                        const SizedBox(width: 10),
+                        Expanded(child: info),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Align(alignment: Alignment.centerRight, child: stepper),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  thumbnail,
+                  const SizedBox(width: 10),
+                  Expanded(child: info),
+                  const SizedBox(width: 8),
+                  stepper,
+                ],
+              );
+            },
           ),
         ),
       ),
