@@ -4,6 +4,7 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/formatters/money_format.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/order_quantity.dart';
 
@@ -13,15 +14,8 @@ abstract final class OrderPalette {
   static const grey = Color(0xFFD0D0D0);
 }
 
-String orderMoney(BigInt minor, {String? currency}) {
-  final whole = (minor ~/ BigInt.from(100)).toString();
-  final grouped = whole.replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => '.',
-  );
-  final fraction = (minor % BigInt.from(100)).toString().padLeft(2, '0');
-  return '$grouped${fraction == '00' ? '' : ',$fraction'}${currency == null ? '' : ' $currency'}';
-}
+String orderMoney(BigInt minor, {String? currency}) =>
+    formatMinorUnits(minor, currency: currency);
 
 class OrderFailurePanel extends StatelessWidget {
   const OrderFailurePanel({
@@ -56,39 +50,6 @@ class OrderFailurePanel extends StatelessWidget {
             ),
           ),
         );
-}
-
-class OrderPaging extends StatelessWidget {
-  const OrderPaging({
-    super.key,
-    required this.page,
-    required this.totalPages,
-    required this.loading,
-    required this.onPage,
-  });
-  final int page, totalPages;
-  final bool loading;
-  final void Function(int) onPage;
-  @override
-  Widget build(BuildContext context) => Wrap(
-    alignment: WrapAlignment.center,
-    crossAxisAlignment: WrapCrossAlignment.center,
-    children: [
-      IconButton(
-        tooltip: 'Trang trước',
-        onPressed: loading || page == 0 ? null : () => onPage(page - 1),
-        icon: const Icon(Icons.chevron_left),
-      ),
-      Text('Trang ${totalPages == 0 ? 0 : page + 1}/$totalPages'),
-      IconButton(
-        tooltip: 'Trang sau',
-        onPressed: loading || page + 1 >= totalPages
-            ? null
-            : () => onPage(page + 1),
-        icon: const Icon(Icons.chevron_right),
-      ),
-    ],
-  );
 }
 
 Future<T?> showOrderDialog<T>(

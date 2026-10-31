@@ -16,6 +16,7 @@ import '../controllers/order_draft_controller.dart';
 import '../widgets/order_exit_guard.dart';
 import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
+import '../widgets/takeaway_submitted_view.dart';
 import 'order_detail_screen.dart';
 import 'order_list_screen.dart';
 
@@ -171,6 +172,20 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
   OrderDraftController? _draft;
   OrderExitGuard? _exit;
 
+  /// Takeaway is a quick counter sale: no guest count, customer details on
+  /// the menu tab, and drafts tucked into the overflow menu.
+  bool get _takeaway => widget.contextInput.serviceType == ServiceType.takeaway;
+  bool _moreInfo = false;
+
+  void _startNew() {
+    for (final c in [_name, _phone, _note]) {
+      c.clear();
+    }
+    _tabController.index = 0;
+    setState(() => _moreInfo = false);
+    ref.invalidate(orderDraftProvider(widget.contextInput));
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -286,9 +301,90 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
     if (!mounted || !allowed) return;
     if (context.canPop()) {
       context.pop();
+    } else if (_takeaway &&
+        AccessPolicy.canTakeawayOrders(
+          ref.read(authControllerProvider).state.session,
+        )) {
+      context.go('/app/takeaway');
     } else {
       context.go('/app/order-create');
     }
+  }
+
+  /// Name first (used to call the customer at pickup); phone and note fold away.
+  Widget _takeawayCustomer(OrderDraftController d) {
+    final expanded =
+        _moreInfo || _phone.text.isNotEmpty || _note.text.isNotEmpty;
+    InputDecoration field(String hint, IconData icon) => InputDecoration(
+      isDense: true,
+      counterText: '',
+      hintText: hint,
+      prefixIcon: Icon(icon, size: 20),
+      filled: true,
+      fillColor: const Color(0xFFF9FAFB),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    );
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('takeaway-customer-name'),
+                  controller: _name,
+                  readOnly: d.frozen,
+                  maxLength: 100,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => _fields(d),
+                  decoration: field(
+                    'Tên khách (để gọi khi lấy món)',
+                    Icons.person_outline,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: expanded ? 'Ẩn SĐT và ghi chú' : 'Thêm SĐT, ghi chú',
+                onPressed: () => setState(() => _moreInfo = !expanded),
+                icon: Icon(
+                  expanded ? Icons.expand_less : Icons.add_comment_outlined,
+                ),
+              ),
+            ],
+          ),
+          if (expanded) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: TextField(
+                controller: _phone,
+                readOnly: d.frozen,
+                maxLength: 30,
+                keyboardType: TextInputType.phone,
+                onChanged: (_) => _fields(d),
+                decoration: field('Số điện thoại', Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: TextField(
+                controller: _note,
+                readOnly: d.frozen,
+                maxLength: 2000,
+                minLines: 1,
+                maxLines: 2,
+                onChanged: (_) => _fields(d),
+                decoration: field('Ghi chú đơn', Icons.notes),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -298,6 +394,12 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
     _draft = d;
     _exit = ref.read(orderExitGuardProvider);
     _exit!.draft = d;
+    if (d.result != null && _takeaway) {
+      return TakeawaySubmittedView(
+        order: d.result!,
+        onCreateAnother: d.canCreate ? _startNew : null,
+      );
+    }
     if (d.result != null) {
       return OrderDetailScreen(
         id: d.result!.id,
@@ -362,50 +464,53 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                             color: Color(0xFF111827),
                           ),
                         ),
-                        Container(
-                          margin: const EdgeInsets.only(top: 2),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: widget.contextInput.sessionAlreadyOpen
-                                ? const Color(0xFFFFF0EB)
-                                : const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: TextStyle(
-                              fontSize: 11,
+                        if (!_takeaway)
+                          Container(
+                            margin: const EdgeInsets.only(top: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
                               color: widget.contextInput.sessionAlreadyOpen
-                                  ? OrderPalette.orange
-                                  : Colors.grey.shade700,
-                              fontWeight: FontWeight.w600,
+                                  ? const Color(0xFFFFF0EB)
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: widget.contextInput.sessionAlreadyOpen
+                                    ? OrderPalette.orange
+                                    : Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.search, size: 18),
-                      tooltip: 'Tìm kiếm',
-                      onPressed: () => _tabController.animateTo(0),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 38,
-                        minHeight: 38,
+                  if (!_takeaway) ...[
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.search, size: 18),
+                        tooltip: 'Tìm kiếm',
+                        onPressed: () => _tabController.animateTo(0),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 38,
+                          minHeight: 38,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
+                  ],
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -421,6 +526,17 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                         minHeight: 38,
                       ),
                       itemBuilder: (context) => [
+                        if (_takeaway && d.canDraft && d.canSubmit)
+                          PopupMenuItem(
+                            value: 'draft',
+                            enabled:
+                                !d.busy &&
+                                !d.uncertain &&
+                                d.canPick &&
+                                d.lines.isNotEmpty,
+                            onTap: () => _submit(d, OrderSubmissionMode.draft),
+                            child: const Text('Lưu nháp (chưa gửi bếp)'),
+                          ),
                         if (widget.contextInput.tableId != null &&
                             d.can('ORDER_VIEW'))
                           PopupMenuItem(
@@ -466,7 +582,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
             OrderFailurePanel(
               failure: d.failure,
               retry: d.canRetry ? d.retry : null,
-              label: 'Kiểm tra bằng yêu cầu tạo ban đầu',
+              label: 'Kiểm tra lại lần gửi này',
             ),
             if (d.needsTableReview && d.can('ORDER_VIEW'))
               Padding(
@@ -480,7 +596,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
               const Padding(
                 padding: EdgeInsets.all(8),
                 child: Text(
-                  'Key xung đột. Không tạo key mới; cần đối chiếu với người quản lý.',
+                  'Lần gửi này trùng với một lần gửi trước nhưng nội dung khác. Đừng gửi lại, hãy nhờ người quản lý kiểm tra đơn.',
                 ),
               ),
             if (d.uncertain)
@@ -497,14 +613,22 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                 controller: _tabController,
                 children: [
                   // Tab 1: Menu Picker with Item Steppers
-                  OrderMenuPicker(
-                    permission: 'ORDER_CREATE',
-                    cartLines: d.lines,
-                    onSelect: d.add,
-                    onIncrement: (item) => _increment(d, item),
-                    onDecrement: (item) => _decrement(d, item),
-                    onEditLine: (item) => _tabController.animateTo(1),
-                    enabled: !d.frozen && d.canPick,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_takeaway) _takeawayCustomer(d),
+                      Expanded(
+                        child: OrderMenuPicker(
+                          permission: 'ORDER_CREATE',
+                          cartLines: d.lines,
+                          onSelect: d.add,
+                          onIncrement: (item) => _increment(d, item),
+                          onDecrement: (item) => _decrement(d, item),
+                          onEditLine: (item) => _tabController.animateTo(1),
+                          enabled: !d.frozen && d.canPick,
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Tab 2: Cart Review & Details
@@ -613,81 +737,84 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                               ),
                             ),
                           ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _name,
-                          readOnly: d.frozen,
-                          maxLength: 100,
-                          onChanged: (_) => _fields(d),
-                          decoration: InputDecoration(
-                            labelText: 'Tên khách (không bắt buộc)',
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        if (!_takeaway) ...[
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _name,
+                            readOnly: d.frozen,
+                            maxLength: 100,
+                            onChanged: (_) => _fields(d),
+                            decoration: InputDecoration(
+                              labelText: 'Tên khách (không bắt buộc)',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _phone,
-                          readOnly: d.frozen,
-                          maxLength: 30,
-                          onChanged: (_) => _fields(d),
-                          keyboardType: TextInputType.phone,
-                          decoration: InputDecoration(
-                            labelText: 'Số điện thoại (không bắt buộc)',
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _phone,
+                            readOnly: d.frozen,
+                            maxLength: 30,
+                            onChanged: (_) => _fields(d),
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: 'Số điện thoại (không bắt buộc)',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _guests,
-                          readOnly: d.frozen,
-                          keyboardType: TextInputType.number,
-                          onChanged: (_) => _fields(d),
-                          decoration: InputDecoration(
-                            labelText: widget.contextInput.fromTable
-                                ? 'Số khách (không bắt buộc)'
-                                : 'Số khách',
-                            hintText: widget.contextInput.guestCount.toString(),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _guests,
+                            readOnly: d.frozen,
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => _fields(d),
+                            decoration: InputDecoration(
+                              labelText: widget.contextInput.fromTable
+                                  ? 'Số khách (không bắt buộc)'
+                                  : 'Số khách',
+                              hintText: widget.contextInput.guestCount
+                                  .toString(),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            validator: (v) {
+                              if (widget.contextInput.fromTable &&
+                                  (v?.trim().isEmpty ?? true)) {
+                                return null;
+                              }
+                              final n = int.tryParse(v ?? '');
+                              return n == null || n < 1 || n > 32767
+                                  ? 'Nhập số từ 1 đến 32767'
+                                  : null;
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _note,
+                            readOnly: d.frozen,
+                            maxLength: 2000,
+                            maxLines: 3,
+                            onChanged: (_) => _fields(d),
+                            decoration: InputDecoration(
+                              labelText: 'Ghi chú đơn',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                           ),
-                          validator: (v) {
-                            if (widget.contextInput.fromTable &&
-                                (v?.trim().isEmpty ?? true)) {
-                              return null;
-                            }
-                            final n = int.tryParse(v ?? '');
-                            return n == null || n < 1 || n > 32767
-                                ? 'Nhập số từ 1 đến 32767'
-                                : null;
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _note,
-                          readOnly: d.frozen,
-                          maxLength: 2000,
-                          maxLines: 3,
-                          onChanged: (_) => _fields(d),
-                          decoration: InputDecoration(
-                            labelText: 'Ghi chú đơn',
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -802,7 +929,10 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                         ),
                       ],
                     ),
-                    if (d.canDraft || (!d.canSubmit && d.canCreate))
+                    // Takeaway keeps drafts in the "⋮" menu unless sending
+                    // is not allowed, in which case drafting is the only way.
+                    if ((d.canDraft && !(_takeaway && d.canSubmit)) ||
+                        (!d.canSubmit && d.canCreate))
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Row(
@@ -812,8 +942,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                               Expanded(
                                 child: Text(
                                   widget.contextInput.fromTable
-                                      ? 'Cần quyền gửi đơn và TABLE_OPEN nếu phải mở phiên mới.'
-                                      : 'Cần ORDER_UPDATE để gửi đơn. Bạn có thể tạo nháp.',
+                                      ? 'Bạn chưa có quyền gửi đơn hoặc mở bàn, nhưng vẫn có thể lưu nháp.'
+                                      : 'Bạn chưa có quyền gửi đơn, nhưng vẫn có thể lưu nháp.',
                                   style: const TextStyle(fontSize: 11),
                                 ),
                               ),

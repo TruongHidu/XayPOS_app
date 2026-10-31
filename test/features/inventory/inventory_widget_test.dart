@@ -196,14 +196,13 @@ void main() {
           expect(find.text('Chưa cấu hình'), findsOneWidget);
           expect(balances.details, 0); // no N+1 detail requests
           expect(tester.takeException(), isNull);
-          if (find.byType(ExpansionTile).evaluate().isNotEmpty) {
-            await _tap(tester, find.text('Lọc và sắp xếp'));
-            expect(
-              find.byType(DropdownButtonFormField<String>),
-              findsNWidgets(4),
-            );
-            expect(tester.takeException(), isNull);
-          }
+          await _tap(tester, find.byTooltip('Bộ lọc'));
+          expect(
+            find.byType(DropdownButtonFormField<String>),
+            findsNWidgets(3),
+          );
+          expect(tester.takeException(), isNull);
+          await _tap(tester, find.byTooltip('Đóng').last);
           await _pump(
             tester,
             wh: wh,

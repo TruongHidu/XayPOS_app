@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/order/presentation/screens/order_list_screen.dart';
 import '../../../features/order/presentation/screens/order_service_context_screen.dart';
+import '../../../features/order/presentation/screens/takeaway_orders_screen.dart';
 import '../../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
 
 import '../../../app/providers.dart';
@@ -15,9 +16,11 @@ import '../sidebar/sidebar_menu_item.dart';
 
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
 import '../../../features/menu/presentation/screens/menu_management_screen.dart';
+import '../../../features/menu/presentation/widgets/menu_filter_panel.dart';
 import '../../../features/tables/presentation/screens/tables_management_screen.dart';
 import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../../features/reports/presentation/screens/reports_screen.dart';
+import '../../../features/reports/presentation/widgets/report_filter_panel.dart';
 import '../../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
@@ -39,12 +42,38 @@ class AppShell extends ConsumerStatefulWidget {
     this.initialSection,
     this.child,
     this.showAppBar = true,
-  });
+    this.actions,
+  }) : innerTitle = null,
+       backFallback = null;
+
+  /// A screen opened from another one: it replaces the sidebar with a titled
+  /// app bar whose back button returns to the previous screen.
+  const AppShell.inner({
+    super.key,
+    required String title,
+    required String this.backFallback,
+    required Widget this.child,
+    this.actions,
+  }) : innerTitle = title,
+       initialSection = null,
+       showAppBar = true;
+
   final Widget? child;
 
   /// Optional initial section id, used when navigating from a route.
   final String? initialSection;
   final bool showAppBar;
+
+  /// App bar actions contributed by the routed [child].
+  final List<Widget>? actions;
+
+  /// App bar title of an inner screen; null for a sidebar screen.
+  final String? innerTitle;
+
+  /// Where back leads when there is no previous screen, as after a deep link.
+  final String? backFallback;
+
+  bool get isInner => innerTitle != null;
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -84,11 +113,21 @@ class _AppShellState extends ConsumerState<AppShell>
       _sidebarController.reverse();
     } else {
       _sidebarController.forward();
-      if (AccessPolicy.canViewInventoryAlerts(
-        ref.read(authControllerProvider).state.session,
-      )) {
+      final session = ref.read(authControllerProvider).state.session;
+      if (AccessPolicy.canViewInventoryAlerts(session)) {
         ref.read(inventoryLowStockCountProvider).load();
       }
+      if (AccessPolicy.canTakeawayOrders(session)) {
+        ref.read(takeawayCountRefreshProvider)();
+      }
+    }
+  }
+
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(widget.backFallback!);
     }
   }
 
@@ -96,6 +135,7 @@ class _AppShellState extends ConsumerState<AppShell>
     if (const {
       'orders',
       'order-create',
+      'takeaway-orders',
       'tables',
       'menu',
       'staff',
@@ -104,6 +144,7 @@ class _AppShellState extends ConsumerState<AppShell>
       'daily-revenue',
       'reports',
       'reference-margin-reports',
+      'cashbook',
       'inventory',
       'inventory-warehouses',
       'inventory-documents',
@@ -149,6 +190,9 @@ class _AppShellState extends ConsumerState<AppShell>
             inventoryLowStockCountProvider.select((counter) => counter.count),
           )
         : null;
+    final takeawayCount = AccessPolicy.canTakeawayOrders(session)
+        ? ref.watch(takeawayCountProvider)
+        : null;
 
     // Flatten all visible items to pick a default selection.
     final allVisibleItems = visibleCategories.expand((c) => c.items).toList();
@@ -186,22 +230,34 @@ class _AppShellState extends ConsumerState<AppShell>
                 child: SizedBox.square(
                   dimension: menuButtonSize,
                   child: IconButton(
-                    onPressed: _toggleSidebar,
-                    tooltip: 'Menu',
+                    onPressed: widget.isInner ? _goBack : _toggleSidebar,
+                    tooltip: widget.isInner ? 'Quay lại' : 'Menu',
                     iconSize: menuIconSize,
                     style: IconButton.styleFrom(
                       fixedSize: Size.square(menuButtonSize),
                       padding: EdgeInsets.zero,
                     ),
-                    icon: AnimatedIcon(
-                      icon: AnimatedIcons.menu_close,
-                      progress: _sidebarController,
-                      size: menuIconSize,
-                    ),
+                    icon: widget.isInner
+                        ? Icon(Icons.arrow_back, size: menuIconSize)
+                        : AnimatedIcon(
+                            icon: AnimatedIcons.menu_close,
+                            progress: _sidebarController,
+                            size: menuIconSize,
+                          ),
                   ),
                 ),
               ),
-              title: Text(_currentTitle(allVisibleItems)),
+              title: Text(widget.innerTitle ?? _currentTitle(allVisibleItems)),
+              actionsIconTheme: IconThemeData(size: menuIconSize),
+              actions: [
+                ...?widget.actions,
+                // Mirrors _buildContent, which mounts these screens itself.
+                if (widget.child == null && _selectedId == 'reports')
+                  const ReportFilterAction(),
+                if (widget.child == null && _selectedId == 'menu')
+                  const MenuFilterAction(),
+                SizedBox(width: mediumScreen ? 16 : 8),
+              ],
               // actions: [
               //   IconButton(
               //     onPressed: controller.logout,
@@ -218,21 +274,24 @@ class _AppShellState extends ConsumerState<AppShell>
           Positioned.fill(child: _buildContent(session, allVisibleItems)),
 
           // Sidebar overlay
-          AppSidebar(
-            animation: _sidebarController,
-            categories: visibleCategories,
-            itemBadges: {
-              if (lowStockCount != null && lowStockCount > 0)
-                'inventory-low-stock': lowStockCount,
-            },
-            selectedId: _selectedId,
-            onItemTap: _onItemTap,
-            onLogout: controller.logout,
-            userName: session.authenticatedUser.name,
-            userRole: _roleName(session),
-            restaurantName: session.authenticatedUser.restaurantName,
-            packageCode: session.packageCode,
-          ),
+          if (!widget.isInner)
+            AppSidebar(
+              animation: _sidebarController,
+              categories: visibleCategories,
+              itemBadges: {
+                if (lowStockCount != null && lowStockCount > 0)
+                  'inventory-low-stock': lowStockCount,
+                if (takeawayCount != null && takeawayCount > 0)
+                  'takeaway-orders': takeawayCount,
+              },
+              selectedId: _selectedId,
+              onItemTap: _onItemTap,
+              onLogout: controller.logout,
+              userName: session.authenticatedUser.name,
+              userRole: _roleName(session),
+              restaurantName: session.authenticatedUser.restaurantName,
+              packageCode: session.packageCode,
+            ),
         ],
       ),
     );
@@ -276,6 +335,7 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     if (selected.id == 'orders') return const OrderListScreen();
     if (selected.id == 'order-create') return const OrderServiceContextScreen();
+    if (selected.id == 'takeaway-orders') return const TakeawayOrdersScreen();
     if (selected.id == 'kitchen-display' || selected.id == 'dish-status') {
       return KitchenDisplayScreen(
         key: ValueKey(AccessPolicy.kitchenScope(session)),

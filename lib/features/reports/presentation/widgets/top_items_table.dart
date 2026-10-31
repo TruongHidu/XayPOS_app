@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_page.dart';
 import '../../domain/entities/top_item_report_row.dart';
@@ -11,8 +12,8 @@ class TopItemsTable extends StatelessWidget {
   final ReportSortDirection direction;
   final ValueChanged<TopItemSortBy> onSortByChanged;
   final VoidCallback onToggleDirection;
-  final ValueChanged<int> onPageChanged;
-  final ValueChanged<int> onSizeChanged;
+  final VoidCallback onLoadMore;
+  final String? loadMoreFailure;
 
   const TopItemsTable({
     super.key,
@@ -22,8 +23,8 @@ class TopItemsTable extends StatelessWidget {
     required this.direction,
     required this.onSortByChanged,
     required this.onToggleDirection,
-    required this.onPageChanged,
-    required this.onSizeChanged,
+    required this.onLoadMore,
+    this.loadMoreFailure,
   });
 
   @override
@@ -103,18 +104,6 @@ class TopItemsTable extends StatelessWidget {
                       ),
                       onPressed: onToggleDirection,
                     ),
-                    // Size selector
-                    DropdownButton<int>(
-                      value: page.size,
-                      items: const [
-                        DropdownMenuItem(value: 10, child: Text('10 / trang')),
-                        DropdownMenuItem(value: 20, child: Text('20 / trang')),
-                        DropdownMenuItem(value: 50, child: Text('50 / trang')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) onSizeChanged(val);
-                      },
-                    ),
                   ],
                 ),
               ],
@@ -138,10 +127,13 @@ class TopItemsTable extends StatelessWidget {
             else
               _buildDesktopTable(theme),
 
-            const SizedBox(height: 16),
-
-            // Pagination Footer
-            _buildPaginationFooter(theme),
+            if (page.content.isNotEmpty)
+              EndlessListFooter(
+                hasMore: page.hasNextPage,
+                failureMessage: loadMoreFailure,
+                endLabel: 'Đã hiển thị tất cả ${page.totalElements} món',
+                onLoadMore: onLoadMore,
+              ),
 
             const SizedBox(height: 8),
             // Disclaimer
@@ -179,7 +171,7 @@ class TopItemsTable extends StatelessWidget {
   }
 
   Widget _buildDesktopTable(ThemeData theme) {
-    final startRank = page.number * page.size + 1;
+    const startRank = 1;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -246,7 +238,7 @@ class TopItemsTable extends StatelessWidget {
   }
 
   Widget _buildMobileList(ThemeData theme) {
-    final startRank = page.number * page.size + 1;
+    const startRank = 1;
 
     return ListView.separated(
       shrinkWrap: true,
@@ -316,43 +308,6 @@ class TopItemsTable extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildPaginationFooter(ThemeData theme) {
-    final currentPage = page.number;
-    final totalPages = page.totalPages;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Tổng: ${page.totalElements} món (Trang ${currentPage + 1}/${totalPages > 0 ? totalPages : 1})',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
-          ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton.outlined(
-              icon: const Icon(Icons.chevron_left, size: 20),
-              tooltip: 'Trang trước',
-              onPressed: currentPage > 0
-                  ? () => onPageChanged(currentPage - 1)
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              icon: const Icon(Icons.chevron_right, size: 20),
-              tooltip: 'Trang sau',
-              onPressed: currentPage + 1 < totalPages
-                  ? () => onPageChanged(currentPage + 1)
-                  : null,
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

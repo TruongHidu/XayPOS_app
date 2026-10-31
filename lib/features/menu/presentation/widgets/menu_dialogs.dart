@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/formatters/money_format.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../domain/entities/menu_price.dart';
 
 Future<T?> showMenuDialog<T>(
   BuildContext context,
@@ -217,3 +219,6 @@ InputDecoration menuField(String label, {String? helper, String? error}) =>
     );
 
 String menuDate(DateTime value) => formatLocalDate(value);
+
+String menuMoney(MenuPrice value) =>
+    formatMoney(value.toString(), currency: defaultCurrencySymbol);

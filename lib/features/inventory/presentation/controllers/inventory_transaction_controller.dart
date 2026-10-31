@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_queries.dart';
@@ -26,6 +27,8 @@ class InventoryTransactionController extends InventoryController {
   int totalElements = 0, totalPages = 0, _generation = 0, _revision = 0;
   bool loading = false, hasLoaded = false, _scheduled = false;
   Failure? failure;
+  final endless = EndlessPages<InventoryTransaction>((row) => row.id);
+  bool get hasMore => query.page < totalPages - 1;
   void _event() {
     if (_revision == events.revision) return;
     _revision = events.revision;
@@ -88,25 +91,29 @@ class InventoryTransactionController extends InventoryController {
     loading = true;
     failure = null;
     changed();
-    final result = await read('transactions', () => get(q));
+    final result = await endless.read(
+      page: q.page,
+      fetch: (page) => read('transactions', () => get(q.copyWith(page: page))),
+      content: (data) => data.content,
+      totalPages: (data) => data.totalPages,
+      active: () => current && generation == _generation,
+    );
     if (!current || generation != _generation) return;
     switch (result) {
-      case Success(value: final data):
-        if (q.page > 0 && data.content.isEmpty && data.totalPages <= q.page) {
+      case Success(value: final pages):
+        final data = pages.last;
+        if (q.page > 0 && pages.rows.isEmpty && data.totalPages <= q.page) {
           query = q.copyWith(
             page: data.totalPages == 0 ? 0 : data.totalPages - 1,
           );
           await load();
           return;
         }
-        rows = data.content;
-        for (final row in rows) {
-          names.putIfAbsent(row.warehouseId, () => row.warehouseCode);
-          names.putIfAbsent(row.ingredientId, () => row.ingredientName);
-          if (row.documentId case final id?) {
-            names.putIfAbsent(id, () => row.documentCode!);
-          }
+        if (pages.lastPage != q.page) {
+          query = query.copyWith(page: pages.lastPage);
         }
+        rows = pages.rows;
+        _learnNames(rows);
         totalElements = data.totalElements;
         totalPages = data.totalPages;
         hasLoaded = true;
@@ -115,6 +122,40 @@ class InventoryTransactionController extends InventoryController {
     }
     loading = false;
     changed();
+  }
+
+  /// Appends the next page; a failure keeps the rows already shown.
+  Future<void> loadMore() async {
+    if (!can('INVENTORY_VIEW') || loading || endless.loadingMore || !hasMore) {
+      return;
+    }
+    final generation = ++_generation;
+    final next = query.copyWith(page: query.page + 1);
+    endless.begin();
+    changed();
+    final result = await read('transactions', () => get(next));
+    if (!current || generation != _generation) return;
+    switch (result) {
+      case Success(value: final data):
+        query = next;
+        rows = endless.append(rows, data.content);
+        _learnNames(data.content);
+        totalElements = data.totalElements;
+        totalPages = data.totalPages;
+      case Error(failure: final error):
+        endless.fail(error);
+    }
+    changed();
+  }
+
+  void _learnNames(List<InventoryTransaction> values) {
+    for (final row in values) {
+      names.putIfAbsent(row.warehouseId, () => row.warehouseCode);
+      names.putIfAbsent(row.ingredientId, () => row.ingredientName);
+      if (row.documentId case final id?) {
+        names.putIfAbsent(id, () => row.documentCode!);
+      }
+    }
   }
 
   @override

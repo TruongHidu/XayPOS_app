@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/result/result.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../menu/domain/use_cases/menu_item_use_cases.dart';
 import '../../../menu/domain/use_cases/menu_group_use_cases.dart';
@@ -28,6 +29,7 @@ import '../controllers/order_settlement_controller.dart';
 import '../controllers/order_draft_controller.dart';
 import '../controllers/order_menu_picker_controller.dart';
 import '../controllers/order_service_context_controller.dart';
+import '../controllers/takeaway_orders_controller.dart';
 import '../widgets/order_exit_guard.dart';
 
 final orderExitGuardProvider = Provider((ref) {
@@ -98,6 +100,45 @@ final orderListProvider = ChangeNotifierProvider.autoDispose
       Future.microtask(controller.load);
       return controller;
     });
+
+/// Last known number of active takeaway orders, for the sidebar badge. Kept
+/// separate from the board so showing the badge never starts background reads.
+final takeawayCountProvider = StateProvider<int?>((ref) {
+  ref.watch(orderScopeProvider);
+  return null;
+});
+
+/// One-shot count refresh, run when the sidebar opens.
+final takeawayCountRefreshProvider = Provider<Future<void> Function()>((ref) {
+  return () async {
+    final auth = ref.read(authControllerProvider);
+    final scope = AccessPolicy.orderScope(auth.state.session);
+    bool current() =>
+        AccessPolicy.orderScope(auth.state.session) == scope &&
+        AccessPolicy.canTakeawayOrders(auth.state.session);
+    if (!current()) return;
+    final result = await GetActiveTakeawayOrders(
+      GetOrders(ref.read(orderRepositoryProvider)),
+    )(isCurrent: current);
+    if (result case Success(value: final rows) when current()) {
+      ref.read(takeawayCountProvider.notifier).state = rows.length;
+    }
+  };
+});
+
+final takeawayOrdersProvider = ChangeNotifierProvider.autoDispose((ref) {
+  ref.watch(orderScopeProvider);
+  final auth = ref.read(authControllerProvider);
+  final controller = TakeawayOrdersController(
+    session: () => auth.state.session,
+    events: ref.read(orderEventsProvider),
+    onAccessDenied: ref.read(orderRecoveryProvider).handle,
+    get: GetActiveTakeawayOrders(GetOrders(ref.watch(orderRepositoryProvider))),
+    onCount: (count) => ref.read(takeawayCountProvider.notifier).state = count,
+  );
+  Future.microtask(controller.load);
+  return controller;
+});
 final orderDetailProvider = ChangeNotifierProvider.autoDispose
     .family<OrderDetailController, String>((ref, id) {
       ref.watch(orderScopeProvider);

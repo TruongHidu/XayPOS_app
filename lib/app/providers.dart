@@ -15,6 +15,7 @@ export '../features/inventory/presentation/providers/inventory_alert_polling_pro
 export '../features/inventory/presentation/providers/stock_audit_providers.dart';
 export '../features/reports/presentation/providers/report_providers.dart';
 export '../features/reference_margin_reports/presentation/providers/reference_margin_providers.dart';
+export '../features/cashbook/presentation/providers/cashbook_providers.dart';
 
 import '../core/auth/session_events.dart';
 import '../core/auth/access_policy.dart';

@@ -222,10 +222,6 @@ class _StockDetailWorkspace extends ConsumerWidget {
       title: c.document?.documentCode ?? 'Chi tiết chứng từ',
       onRefresh: c.load,
       actions: [
-        OutlinedButton(
-          onPressed: () => context.go('/app/inventory/stock-documents'),
-          child: const Text('Danh sách chứng từ'),
-        ),
         IconButton(
           tooltip: 'Tải lại chi tiết',
           onPressed: c.loading || c.busy ? null : c.load,
@@ -471,7 +467,7 @@ class _StockDetailBody extends ConsumerWidget {
               ref.watch(authControllerProvider).state.session,
             ))
               TextButton.icon(
-                onPressed: () => context.go(
+                onPressed: () => context.push(
                   '/app/inventory/audits/${Uri.encodeComponent(d.stockAuditId!)}',
                 ),
                 icon: const Icon(Icons.fact_check_outlined),
@@ -515,7 +511,7 @@ class _StockDetailBody extends ConsumerWidget {
               ],
               if (d.status == StockDocumentStatus.confirmed)
                 OutlinedButton.icon(
-                  onPressed: () => context.go(
+                  onPressed: () => context.push(
                     stockHistoryLocation(
                       documentId: d.id,
                       warehouseId: d.warehouseId,

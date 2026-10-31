@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/formatters/money_format.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
 import 'order_widgets.dart';
@@ -207,7 +208,7 @@ class OrderMenuItemCard extends StatelessWidget {
                   Text(
                     orderMoney(
                       BigInt.from(item.salePrice.minorUnits),
-                      currency: currencyCode ?? 'Đ',
+                      currency: currencyCode ?? defaultCurrencySymbol,
                     ),
                     style: const TextStyle(
                       fontSize: 15,

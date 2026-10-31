@@ -276,7 +276,15 @@ void main() {
       );
       expect(find.byType(ReferenceMarginReportsScreen), findsOneWidget);
       expect(find.text('Màn hình trước khi mở báo cáo'), findsNothing);
-      expect(rig.server.paths, hasLength(2));
+      // Opening the sidebar refreshes the "Đơn mang đi" badge with order
+      // reads; the report itself loads only its own two endpoints.
+      expect(
+        rig.server.paths.where((path) => path != '/api/v1/orders'),
+        unorderedEquals([
+          '/api/v1/reports/reference-margin/summary',
+          '/api/v1/reports/reference-margin/series',
+        ]),
+      );
       expect(tester.takeException(), isNull);
     },
   );

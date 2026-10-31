@@ -6,6 +6,7 @@ import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
+import 'package:pos_saas_app/features/menu/presentation/screens/menu_management_screen.dart';
 
 import 'helpers/auth_fakes.dart';
 import 'features/menu/menu_fakes.dart';
@@ -95,7 +96,7 @@ void main() {
     await _pumpApp(tester, controller);
 
     expect(find.byType(AppShell), findsOneWidget);
-    expect(find.text('Quản lý thực đơn'), findsOneWidget);
+    expect(find.byType(MenuManagementScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

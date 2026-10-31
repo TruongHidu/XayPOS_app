@@ -138,7 +138,7 @@ void main() {
       expect(items.detailCalls, 0);
       expect(recipes.costCalls, hasLength(1));
       expect(find.text('36.900 VND'), findsOneWidget);
-      expect(find.textContaining('MENU_VIEW'), findsOneWidget);
+      expect(find.text('Bạn chưa có quyền xem thực đơn.'), findsOneWidget);
       expect(find.text('23.100 VND'), findsNothing);
     },
   );

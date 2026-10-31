@@ -260,11 +260,9 @@ class _MarginWorkspaceState extends ConsumerState<_MarginWorkspace>
                         onRetry: c.loadOrders,
                         placeholderHeight: 280,
                         builder: (value) => MarginOrders(
-                          filter: c.ordersFilter,
                           value: value,
-                          busy: c.orders.loading,
-                          onPage: c.setPage,
-                          onSize: c.setPageSize,
+                          onLoadMore: c.loadMoreOrders,
+                          loadMoreFailure: c.ordersLoadMoreFailure?.message,
                         ),
                       ),
                     ],

@@ -19,7 +19,11 @@ class TableAreaController extends TableListController<TableArea> {
     required this.updateArea,
     required this.statusArea,
     required this.deleteArea,
-  }) : super(kind: TableQueryKind.areas, list: list.call) {
+  }) : super(
+         kind: TableQueryKind.areas,
+         list: list.call,
+         idOf: (area) => area.id,
+       ) {
     _eventRevision = events.revision;
     events.addListener(_event);
   }
@@ -103,6 +107,7 @@ class TableAreaSelectorController extends TableListController<TableArea> {
   }) : super(
          kind: TableQueryKind.areas,
          list: list.call,
+         idOf: (area) => area.id,
          query: TableQuery(
            active: activeOnly ? true : null,
            sortBy: 'name',

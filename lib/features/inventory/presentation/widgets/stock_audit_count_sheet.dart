@@ -23,7 +23,11 @@ class StockAuditCountSheet extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
-          identity: ('audit-items', c),
+          listenable: c,
+          title: 'Bộ lọc dòng kiểm kê',
+          activeCount: () =>
+              (c.query.counted == null ? 0 : 1) +
+              (c.query.differenceOnly ? 1 : 0),
           search: TextFormField(
             key: ValueKey(('audit-item-search', c)),
             initialValue: q.q,
@@ -33,57 +37,61 @@ class StockAuditCountSheet extends ConsumerWidget {
             ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
             onChanged: c.search,
           ),
-          children: [
-            StockSelect(
-              label: 'Số đếm',
-              value: q.counted?.toString() ?? 'all',
-              items: const {
-                'all': 'Tất cả',
-                'true': 'Đã đếm',
-                'false': 'Chưa đếm',
-              },
-              changed: (v) => c.filter(
-                q.copyWith(counted: () => v == 'all' ? null : v == 'true'),
+          filters: () {
+            final q = c.query;
+            return [
+              StockSelect(
+                label: 'Số đếm',
+                value: q.counted?.toString() ?? 'all',
+                items: const {
+                  'all': 'Tất cả',
+                  'true': 'Đã đếm',
+                  'false': 'Chưa đếm',
+                },
+                changed: (v) => c.filter(
+                  q.copyWith(counted: () => v == 'all' ? null : v == 'true'),
+                ),
               ),
-            ),
-            StockSelect(
-              label: 'Chênh lệch',
-              value: q.differenceOnly.toString(),
-              items: const {
-                'false': 'Tất cả dòng',
-                'true': 'Chỉ có chênh lệch',
-              },
-              changed: (v) => c.filter(q.copyWith(differenceOnly: v == 'true')),
-            ),
-            StockSelect(
-              label: 'Sắp xếp',
-              value: q.sortBy,
-              items: const {
-                'name': 'Tên nguyên liệu',
-                'sku': 'SKU',
-                'systemQuantity': 'Tồn lúc bắt đầu',
-                'countedQuantity': 'Số đếm đã lưu',
-                'differenceQuantity': 'Chênh lệch đã lưu',
-              },
-              changed: (v) => c.filter(q.copyWith(sortBy: v)),
-            ),
-            StockSelect(
-              label: 'Thứ tự',
-              value: q.direction,
-              items: const {'asc': 'Tăng dần', 'desc': 'Giảm dần'},
-              changed: (v) => c.filter(q.copyWith(direction: v)),
-            ),
-            StockSelect(
-              label: 'Mỗi trang',
-              value: '${q.size}',
-              items: const {
-                '20': '20 dòng',
-                '50': '50 dòng',
-                '100': '100 dòng',
-              },
-              changed: (v) => c.filter(q.copyWith(size: int.parse(v))),
-            ),
-          ],
+              StockSelect(
+                label: 'Chênh lệch',
+                value: q.differenceOnly.toString(),
+                items: const {
+                  'false': 'Tất cả dòng',
+                  'true': 'Chỉ có chênh lệch',
+                },
+                changed: (v) =>
+                    c.filter(q.copyWith(differenceOnly: v == 'true')),
+              ),
+              StockSelect(
+                label: 'Sắp xếp',
+                value: q.sortBy,
+                items: const {
+                  'name': 'Tên nguyên liệu',
+                  'sku': 'SKU',
+                  'systemQuantity': 'Tồn lúc bắt đầu',
+                  'countedQuantity': 'Số đếm đã lưu',
+                  'differenceQuantity': 'Chênh lệch đã lưu',
+                },
+                changed: (v) => c.filter(q.copyWith(sortBy: v)),
+              ),
+              StockSelect(
+                label: 'Thứ tự',
+                value: q.direction,
+                items: const {'asc': 'Tăng dần', 'desc': 'Giảm dần'},
+                changed: (v) => c.filter(q.copyWith(direction: v)),
+              ),
+              StockSelect(
+                label: 'Mỗi trang',
+                value: '${q.size}',
+                items: const {
+                  '20': '20 dòng',
+                  '50': '50 dòng',
+                  '100': '100 dòng',
+                },
+                changed: (v) => c.filter(q.copyWith(size: int.parse(v))),
+              ),
+            ];
+          },
         ),
         const SizedBox(height: 12),
         if (c.hasCountDrafts)

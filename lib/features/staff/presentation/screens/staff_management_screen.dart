@@ -5,6 +5,7 @@ import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../domain/entities/staff_member.dart';
 import '../widgets/create_staff_dialog.dart';
 import '../widgets/staff_filter_panel.dart';
@@ -388,38 +389,13 @@ class StaffManagementScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          _StaffPanel(
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              spacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  'Tổng ${state.totalElements} nhân viên • Trang ${state.page + 1}/${state.totalPages == 0 ? 1 : state.totalPages}',
-                ),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    IconButton.outlined(
-                      tooltip: 'Trang trước',
-                      onPressed: state.isLoading || state.page == 0
-                          ? null
-                          : () => controller.setPage(state.page - 1),
-                      icon: const Icon(Icons.chevron_left),
-                    ),
-                    IconButton.outlined(
-                      tooltip: 'Trang sau',
-                      onPressed:
-                          state.isLoading || state.page >= state.totalPages - 1
-                          ? null
-                          : () => controller.setPage(state.page + 1),
-                      icon: const Icon(Icons.chevron_right),
-                    ),
-                  ],
-                ),
-              ],
+          if (state.staffList.isNotEmpty)
+            EndlessListFooter(
+              hasMore: state.page < state.totalPages - 1,
+              failureMessage: controller.endless.failure?.message,
+              endLabel: 'Đã hiển thị tất cả ${state.totalElements} nhân viên',
+              onLoadMore: controller.loadMore,
             ),
-          ),
         ],
       ),
     );

@@ -15,6 +15,7 @@ import 'package:pos_saas_app/features/reports/presentation/screens/daily_revenue
 import 'package:pos_saas_app/features/reports/presentation/screens/reports_screen.dart';
 import 'package:pos_saas_app/features/reports/presentation/widgets/payment_methods_card.dart';
 import 'package:pos_saas_app/features/reports/presentation/widgets/report_kpi_card.dart';
+import 'package:pos_saas_app/features/reports/presentation/widgets/report_filter_panel.dart';
 import 'package:pos_saas_app/features/reports/presentation/widgets/report_kpi_grid.dart';
 import 'package:pos_saas_app/features/reports/presentation/widgets/revenue_series_chart.dart';
 
@@ -101,7 +102,6 @@ void main() {
       await tester.pumpWidget(buildTestApp(child: const ReportsScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Báo cáo doanh thu'), findsOneWidget);
       expect(find.text('Tổng quan'), findsOneWidget);
       expect(find.text('Món bán chạy'), findsOneWidget);
       expect(find.text('Đơn đối chiếu'), findsOneWidget);
@@ -126,6 +126,47 @@ void main() {
       expect(find.text('ORD-20261015-001'), findsOneWidget);
       expect(find.text('ORD-20261015-002'), findsOneWidget);
     });
+  });
+
+  testWidgets('app bar filter overlay applies filters to opened tabs', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildTestApp(
+        child: Scaffold(
+          appBar: AppBar(actions: const [ReportFilterAction()]),
+          body: const ReportsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bộ lọc báo cáo'), findsNothing);
+
+    await tester.tap(find.text('Món bán chạy'));
+    await tester.pumpAndSettle();
+    expect(fakeRepo.topItemsCalls, 1);
+    expect(fakeRepo.summaryCalls, 1);
+
+    await tester.tap(find.byType(ReportFilterAction));
+    await tester.pumpAndSettle();
+    expect(find.text('Bộ lọc báo cáo'), findsOneWidget);
+
+    await tester.tap(find.text('Hôm qua'));
+    await tester.pump();
+    await tester.tap(find.text('Áp dụng'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bộ lọc báo cáo'), findsNothing);
+    expect(fakeRepo.summaryCalls, 2);
+    expect(fakeRepo.topItemsCalls, 2);
+    expect(fakeRepo.ordersCalls, 0);
+    // Tab bar stays visible above the content.
+    expect(find.text('Tổng quan'), findsOneWidget);
   });
 
   for (final width in [320.0, 800.0, 1200.0]) {

@@ -11,9 +11,11 @@ abstract final class AppRoutes {
   static const orders = '/app/orders';
   static const orderCreate = '/app/order-create';
   static const orderCreateBill = '/app/order-create/bill';
+  static const takeaway = '/app/takeaway';
   static const dailyRevenue = '/app/daily-revenue';
   static const reports = '/app/reports';
   static const referenceMargin = '/app/reference-margin';
+  static const cashbook = '/app/cashbook';
   static const inventory = '/app/inventory';
   static const inventoryBalances = '/app/inventory/balances';
   static const inventoryWarehouses = '/app/inventory/warehouses';

@@ -58,7 +58,7 @@ void main() {
     },
   );
 
-  testWidgets('4. Route detail from orders history retains Orders section', (
+  testWidgets('4. Route detail from orders history is an inner screen', (
     tester,
   ) async {
     final orders = FakeOrders()..current = serving(id: 'o1');
@@ -69,7 +69,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(OrderDetailScreen), findsOneWidget);
-    expect(find.text('Đơn hàng'), findsWidgets);
+    expect(find.text('Chi tiết đơn hàng'), findsOneWidget);
+    expect(find.byTooltip('Quay lại'), findsOneWidget);
+    expect(find.byTooltip('Menu'), findsNothing);
   });
 
   testWidgets('5. VIEW-only sees bill without CREATE or MENU permissions', (

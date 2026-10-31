@@ -121,11 +121,26 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Cần KITCHEN_VIEW và KITCHEN_DISPLAY để xem màn hình bếp.',
+            'Bạn chưa có quyền xem màn hình bếp, hoặc gói đang dùng chưa có tính năng này. Liên hệ người quản lý để được hỗ trợ.',
           ),
         ),
       );
     }
+    ref.listen(
+      kitchenDisplayProvider.select((value) => value.newItemRevision),
+      (previous, next) {
+        if (previous == null || next <= previous) return;
+        final current = ref.read(kitchenDisplayProvider);
+        if (current.soundEnabled) {
+          unawaited(ref.read(alertSoundProvider).play());
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Có ${current.newItemCount} món mới vào bếp.'),
+          ),
+        );
+      },
+    );
     final rows = display.visibleItems;
     final groups = display.visibleOrders.values.toList();
     return ColoredBox(
@@ -159,132 +174,117 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Wrap(
-                        alignment: WrapAlignment.spaceBetween,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 16,
-                        runSpacing: 8,
+                      Row(
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                display.lastUpdated == null
-                                    ? 'Đang tải hàng đợi'
-                                    : (display.loading
-                                          ? 'Đang đồng bộ...'
-                                          : 'Cập nhật ${_time(display.lastUpdated!)}'),
-                                style: TextStyle(
-                                  color: Colors.blueGrey.shade700,
+                          Expanded(
+                            child: TextField(
+                              controller: _search,
+                              onChanged: display.setSearch,
+                              maxLength: 100,
+                              decoration: InputDecoration(
+                                hintText: 'Tìm món, mã đơn, tên bàn…',
+                                prefixIcon: const Icon(Icons.search, size: 20),
+                                counterText: '',
+                                isDense: true,
+                                filled: true,
+                                fillColor: Colors.white,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
                                 ),
                               ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: display.soundEnabled
+                                ? 'Tắt âm báo món mới'
+                                : 'Bật âm báo món mới',
+                            onPressed: display.toggleSound,
+                            icon: Icon(
+                              display.soundEnabled
+                                  ? Icons.volume_up_outlined
+                                  : Icons.volume_off_outlined,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Tải lại hàng đợi',
+                            onPressed: display.loading ? null : display.refresh,
+                            icon: display.loading && display.items.isNotEmpty
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.refresh),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final mode in KitchenViewMode.values) ...[
+                              ChoiceChip(
+                                label: Text(
+                                  mode == KitchenViewMode.items
+                                      ? 'Theo món'
+                                      : 'Theo đơn',
+                                ),
+                                selected: display.mode == mode,
+                                onSelected: (_) => display.setMode(mode),
+                              ),
+                              const SizedBox(width: 6),
                             ],
-                          ),
-                          Wrap(
-                            children: [
-                              IconButton(
-                                tooltip: 'Tải lại hàng đợi',
-                                onPressed: display.loading
-                                    ? null
-                                    : display.refresh,
-                                icon:
-                                    display.loading && display.items.isNotEmpty
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.refresh),
-                              ),
-                              const IconButton(
-                                tooltip: 'Âm thanh · Sắp có',
-                                onPressed: null,
-                                icon: Icon(Icons.volume_up_outlined),
-                              ),
-                              const IconButton(
-                                tooltip: 'In phiếu bếp · Sắp có',
-                                onPressed: null,
-                                icon: Icon(Icons.print_outlined),
-                              ),
-                              const IconButton(
-                                tooltip: 'Thiết lập bếp · Sắp có',
-                                onPressed: null,
-                                icon: Icon(Icons.settings_outlined),
+                            Container(
+                              width: 1,
+                              height: 24,
+                              margin: const EdgeInsets.symmetric(horizontal: 6),
+                              color: Colors.grey.shade300,
+                            ),
+                            ChoiceChip(
+                              label: Text('Tất cả (${display.items.length})'),
+                              selected: display.filter == null,
+                              onSelected: (_) => display.setFilter(null),
+                            ),
+                            for (final status in kitchenStatuses) ...[
+                              const SizedBox(width: 6),
+                              ChoiceChip(
+                                label: Text(
+                                  '${KitchenStyle.label(status)} (${display.items.where((r) => r.itemStatus == status).length})',
+                                ),
+                                selected: display.filter == status,
+                                onSelected: (_) => display.setFilter(status),
                               ),
                             ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final mode in KitchenViewMode.values)
-                            ChoiceChip(
-                              label: Text(
-                                mode == KitchenViewMode.items
-                                    ? 'Theo món'
-                                    : 'Theo đơn',
-                              ),
-                              selected: display.mode == mode,
-                              onSelected: (_) => display.setMode(mode),
-                            ),
-                          const Tooltip(
-                            message: 'Theo nhóm · Sắp có',
-                            child: ChoiceChip(
-                              label: Text('Theo nhóm'),
-                              selected: false,
-                              onSelected: null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: Text('Tất cả (${display.items.length})'),
-                            selected: display.filter == null,
-                            onSelected: (_) => display.setFilter(null),
-                          ),
-                          for (final status in kitchenStatuses)
-                            ChoiceChip(
-                              label: Text(
-                                '${KitchenStyle.label(status)} (${display.items.where((r) => r.itemStatus == status).length})',
-                              ),
-                              selected: display.filter == status,
-                              onSelected: (_) => display.setFilter(status),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _search,
-                        onChanged: display.setSearch,
-                        maxLength: 100,
-                        decoration: InputDecoration(
-                          hintText: 'Tìm món, mã đơn, tên bàn…',
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          counterText: '',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
+                      const SizedBox(height: 6),
+                      Text(
+                        display.lastUpdated == null
+                            ? 'Đang tải hàng đợi'
+                            : (display.loading
+                                  ? 'Đang đồng bộ...'
+                                  : 'Cập nhật ${_time(display.lastUpdated!)}'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blueGrey.shade700,
                         ),
                       ),
                       if (display.loading && display.items.isEmpty) ...[

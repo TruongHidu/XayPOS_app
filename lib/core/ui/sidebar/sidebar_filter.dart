@@ -27,6 +27,9 @@ List<SidebarMenuItem> filterMenuItems(
     if (item.id == 'order-create') {
       return AccessPolicy.canOrderWorkspace(session);
     }
+    if (item.id == 'takeaway-orders') {
+      return AccessPolicy.canTakeawayOrders(session);
+    }
     if (item.id == 'tables') {
       return AccessPolicy.canTables(session, 'TABLE_VIEW');
     }
@@ -54,6 +57,9 @@ List<SidebarMenuItem> filterMenuItems(
     }
     if (item.id == 'reference-margin-reports') {
       return AccessPolicy.canViewReferenceMarginReports(session);
+    }
+    if (item.id == 'cashbook') {
+      return AccessPolicy.canCashbook(session, 'CASHBOOK_VIEW');
     }
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),

@@ -2,7 +2,45 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Xây POS qua USB (.env)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "debug",
+      "preLaunchTask": "POS: prepare Android USB",
+      "toolArgs": [
+        "--dart-define-from-file=.env",
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8080",
+        "--dart-define=REALTIME_URL="
+      ]
+    },
+    {
       "name": "Xây POS (.env)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "debug",
+      "preLaunchTask": "POS: prepare Android USB",
+      "toolArgs": [
+        "--dart-define-from-file=.env",
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8080",
+        "--dart-define=REALTIME_URL="
+      ]
+    },
+    {
+      "name": "Xây POS qua Wi-Fi (tự cập nhật IP)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}",
+      "flutterMode": "debug",
+      "preLaunchTask": "POS: prepare Android Wi-Fi",
+      "toolArgs": ["--dart-define-from-file=.env"]
+    },
+    {
+      "name": "Xây POS theo URL (.env)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",

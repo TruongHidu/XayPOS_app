@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../../order/domain/entities/order_entities.dart' show ServiceType;
 import '../../../order/presentation/controllers/order_events.dart';
@@ -95,6 +96,10 @@ class ReferenceMarginReportsController extends ChangeNotifier {
       allowed ? _series : const MarginPanel();
   MarginPanel<ReportPage<ReferenceMarginOrderRow>> get orders =>
       allowed ? _orders : const MarginPanel();
+  final _orderPages = EndlessPages<ReferenceMarginOrderRow>(
+    (row) => row.orderId,
+  );
+  Failure? get ordersLoadMoreFailure => _orderPages.failure;
   bool _disposed = false, _initialized = false, _ordersOpened = false;
   bool _visible = true, _foreground = true, _refreshNeeded = false;
   bool _reportedDenial = false, _checkingAccess = false;
@@ -282,11 +287,71 @@ class ReferenceMarginReportsController extends ChangeNotifier {
     _orders = _orders.start(key);
     _changed();
     await _run<ReportPage<ReferenceMarginOrderRow>>(
-      fetch: () => _getOrders(filter),
+      fetch: () async {
+        final result = await _orderPages.read(
+          page: filter.page,
+          fetch: (page) => _getOrders(filter.copyWith(page: page)),
+          content: (value) => value.data.content,
+          totalPages: (value) => value.data.totalPages,
+          active: () => allowed && generation == _ordersGeneration,
+        );
+        return switch (result) {
+          Success(value: final pages) => Success(
+            ReportEnvelope(
+              meta: pages.last.meta,
+              data: pages.last.data.withRows(pages.rows, pages.lastPage),
+            ),
+          ),
+          Error(failure: final failure) => Error(failure),
+        };
+      },
       key: key,
       valid: () => generation == _ordersGeneration,
       read: () => _orders,
       write: (panel) => _orders = panel,
+    );
+  }
+
+  /// Appends the next page; a failure keeps the orders already shown.
+  Future<void> loadMoreOrders() async {
+    final shown = _orders.value;
+    if (shown == null ||
+        !shown.data.hasNextPage ||
+        !_ordersOpened ||
+        !_canFetch ||
+        _orders.loading ||
+        _orderPages.loadingMore) {
+      return;
+    }
+    final next = _ordersFilter.copyWith(page: shown.data.page + 1);
+    final key = next.queryKey();
+    final generation = ++_ordersGeneration;
+    _orderPages.begin();
+    _changed();
+    await _run<ReportPage<ReferenceMarginOrderRow>>(
+      fetch: () async => switch (await _getOrders(next)) {
+        Success(value: final value) => Success(
+          ReportEnvelope(
+            meta: value.meta,
+            data: value.data.withRows(
+              _orderPages.append(shown.data.content, value.data.content),
+              next.page,
+            ),
+          ),
+        ),
+        Error(failure: final failure) => Error(failure),
+      },
+      key: key,
+      valid: () => generation == _ordersGeneration,
+      read: () => _orders,
+      write: (panel) {
+        if (panel.failure case final failure?) {
+          _orderPages.fail(failure);
+        } else {
+          _ordersFilter = next;
+          _orders = panel;
+        }
+      },
     );
   }
 

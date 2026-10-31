@@ -101,7 +101,7 @@ class _IngredientDetailsDialogState
                   Expanded(
                     child: Text(
                       _item.costConfigured
-                          ? 'Giá vốn tham chiếu: ${_item.costPrice} / ${_item.baseUnit} · Đã cấu hình'
+                          ? 'Giá vốn tham chiếu: ${menuMoney(_item.costPrice)} / ${_item.baseUnit} · Đã cấu hình'
                           : 'Chưa cấu hình giá vốn',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colors.primary,

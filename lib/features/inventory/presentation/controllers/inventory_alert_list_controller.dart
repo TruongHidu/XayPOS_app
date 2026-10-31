@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/inventory_alert.dart';
 import '../../domain/entities/inventory_alert_query.dart';
@@ -24,6 +25,8 @@ class InventoryAlertListController extends InventoryController {
   bool loading = false, hasLoaded = false, _scheduled = false;
   bool _refreshPending = false;
   Failure? failure;
+  final endless = EndlessPages<InventoryAlert>((row) => row.id);
+  bool get hasMore => query.page < totalPages - 1;
   Timer? _debounce;
   bool get allowed => current && AccessPolicy.canViewInventoryAlerts(session());
   void _event() {
@@ -99,18 +102,28 @@ class InventoryAlertListController extends InventoryController {
     loading = true;
     failure = null;
     changed();
-    final result = await read('alerts', () => get(q));
+    final result = await endless.read(
+      page: q.page,
+      fetch: (page) => read('alerts', () => get(q.copyWith(page: page))),
+      content: (data) => data.content,
+      totalPages: (data) => data.totalPages,
+      active: () => allowed && generation == _generation,
+    );
     if (!allowed || generation != _generation) return;
     switch (result) {
-      case Success(value: final data):
-        if (q.page > 0 && data.content.isEmpty && data.totalPages <= q.page) {
+      case Success(value: final pages):
+        final data = pages.last;
+        if (q.page > 0 && pages.rows.isEmpty && data.totalPages <= q.page) {
           query = q.copyWith(
             page: data.totalPages == 0 ? 0 : data.totalPages - 1,
           );
           await load();
           return;
         }
-        rows = data.content;
+        if (pages.lastPage != q.page) {
+          query = query.copyWith(page: pages.lastPage);
+        }
+        rows = pages.rows;
         totalElements = data.totalElements;
         totalPages = data.totalPages;
         hasLoaded = true;
@@ -120,6 +133,33 @@ class InventoryAlertListController extends InventoryController {
     loading = false;
     changed();
     _scheduleRefresh();
+  }
+
+  /// Appends the next page; a failure keeps the rows already shown.
+  Future<void> loadMore() async {
+    if (!allowed ||
+        loading ||
+        endless.loadingMore ||
+        !hasMore ||
+        _debounce?.isActive == true) {
+      return;
+    }
+    final generation = ++_generation;
+    final next = query.copyWith(page: query.page + 1);
+    endless.begin();
+    changed();
+    final result = await read('alerts', () => get(next));
+    if (!allowed || generation != _generation) return;
+    switch (result) {
+      case Success(value: final data):
+        query = next;
+        rows = endless.append(rows, data.content);
+        totalElements = data.totalElements;
+        totalPages = data.totalPages;
+      case Error(failure: final error):
+        endless.fail(error);
+    }
+    changed();
   }
 
   @override

@@ -109,12 +109,12 @@ class _InventoryThresholdDialogState
             'Kho: ${c.warehouse?.name ?? row.warehouseCode} · ${row.warehouseCode}',
           ),
           const SizedBox(height: 12),
-          Text('Tồn vật lý: ${inventoryAmount(row.quantity, row.baseUnit)}'),
+          Text('Trong kho: ${inventoryAmount(row.quantity, row.baseUnit)}'),
           Text(
             'Đang giữ: ${inventoryAmount(row.reservedQuantity, row.baseUnit)}',
           ),
           Text(
-            'Khả dụng: ${inventoryAmount(row.availableQuantity, row.baseUnit)}',
+            'Có thể dùng: ${inventoryAmount(row.availableQuantity, row.baseUnit)}',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           Text(

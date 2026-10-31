@@ -375,7 +375,7 @@ void main() {
       await tester.ensureVisible(find.text('Lịch sử giao dịch'));
       await tester.tap(find.text('Lịch sử giao dịch'));
       await tester.pumpAndSettle();
-      expect(router.routeInformationProvider.value.uri.queryParameters, {
+      expect(router.state.uri.queryParameters, {
         'warehouseId': 'w1',
         'ingredientId': 'i1',
       });
@@ -498,6 +498,8 @@ void main() {
       );
       final repo = FakeInventoryAlerts();
       await _pump(tester, repo, auth: auth);
+      await tester.tap(find.byTooltip('Bộ lọc'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byType(InventoryAlertDateFilter));
       await tester.tap(find.text('Ngày phát cảnh báo'));
       await tester.pumpAndSettle();
@@ -513,6 +515,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(DateRangePickerDialog), findsNothing);
+      expect(find.text('Bộ lọc cảnh báo'), findsNothing);
       expect(tester.takeException(), null);
     },
   );

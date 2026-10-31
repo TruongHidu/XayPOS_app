@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../reports/domain/entities/report_enums.dart';
 import '../../../reports/domain/entities/report_meta.dart';
@@ -119,16 +120,13 @@ class MarginOrdersFilters extends StatelessWidget {
 class MarginOrders extends StatelessWidget {
   const MarginOrders({
     super.key,
-    required this.filter,
     required this.value,
-    required this.busy,
-    required this.onPage,
-    required this.onSize,
+    required this.onLoadMore,
+    this.loadMoreFailure,
   });
-  final ReferenceMarginOrdersFilter filter;
   final ReportEnvelope<ReportPage<ReferenceMarginOrderRow>> value;
-  final bool busy;
-  final ValueChanged<int> onPage, onSize;
+  final VoidCallback onLoadMore;
+  final String? loadMoreFailure;
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +134,6 @@ class MarginOrders extends StatelessWidget {
     final page = value.data;
     final currency = value.meta.currencyCode;
     final scale = marginTextScale(context);
-    final first = page.content.isEmpty ? 0 : page.page * page.size + 1;
-    final last = page.page * page.size + page.content.length;
     return MarginSectionCard(
       title: 'Đơn đối chiếu ($currency)',
       icon: Icons.fact_check_outlined,
@@ -168,80 +164,13 @@ class MarginOrders extends StatelessWidget {
                 return _table(context);
               },
             ),
-          const Divider(height: 24),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Text(
-                page.totalElements == 0
-                    ? 'Không có đơn'
-                    : 'Hiển thị $first–$last / ${page.totalElements} đơn',
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 140 * scale.clamp(1.0, 2.0),
-                    child: DropdownButtonFormField<int>(
-                      value: filter.size,
-                      isExpanded: true,
-                      isDense: true,
-                      itemHeight: null,
-                      decoration: const InputDecoration(
-                        labelText: 'Đơn / trang',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: [
-                        for (final size in {
-                          10,
-                          20,
-                          50,
-                          100,
-                          filter.size,
-                        }.toList()..sort())
-                          DropdownMenuItem(value: size, child: Text('$size')),
-                      ],
-                      onChanged: busy
-                          ? null
-                          : (size) {
-                              if (size != null) onSize(size);
-                            },
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('margin-previous-page'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                    ),
-                    onPressed: busy || !page.hasPreviousPage
-                        ? null
-                        : () => onPage(page.page - 1),
-                    icon: const Icon(Icons.chevron_left),
-                    label: const Text('Trước'),
-                  ),
-                  Text(
-                    'Trang ${page.totalPages == 0 ? 0 : page.page + 1}/${page.totalPages}',
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('margin-next-page'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                    ),
-                    onPressed: busy || !page.hasNextPage
-                        ? null
-                        : () => onPage(page.page + 1),
-                    icon: const Icon(Icons.chevron_right),
-                    label: const Text('Sau'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          if (page.content.isNotEmpty)
+            EndlessListFooter(
+              hasMore: page.hasNextPage,
+              failureMessage: loadMoreFailure,
+              endLabel: 'Đã hiển thị tất cả ${page.totalElements} đơn',
+              onLoadMore: onLoadMore,
+            ),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import '../../../qr_order/presentation/widgets/qr_request_inbox.dart';
 import '../../../qr_order/presentation/widgets/qr_inbox_visibility.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/entities/order_table_workspace.dart';
+import '../controllers/takeaway_orders_controller.dart';
 import '../widgets/order_widgets.dart';
 
 class OrderServiceContextScreen extends ConsumerWidget {
@@ -157,7 +158,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.all(12),
               child: Text(
-                'Cần MENU_VIEW và MENU_MANAGEMENT để chọn món; vẫn xem đơn nếu có ORDER_VIEW.',
+                'Bạn chưa có quyền xem thực đơn nên chưa chọn được món. Liên hệ người quản lý để được cấp quyền.',
               ),
             ),
           if (!c.tableAccess)
@@ -215,15 +216,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     itemCount: tables.length + (takeaway ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (takeaway && index == 0) {
-                        return OrderContextCard(
-                          name: 'Mang đi',
-                          icon: Icons.shopping_cart_outlined,
-                          onTap: menuAllowed
-                              ? () => context.push(
-                                  '/app/order-create?serviceType=TAKEAWAY',
-                                )
-                              : null,
-                        );
+                        return _TakeawayCard(menuAllowed: menuAllowed);
                       }
                       final table = tables[index - (takeaway ? 1 : 0)];
                       final tile = c.tile(table);
@@ -292,6 +285,57 @@ class OrderServiceContextScreen extends ConsumerWidget {
   }
 }
 
+/// Entry to takeaway orders: shows how many are in progress and opens the
+/// takeaway board; the "+" button still starts a new order in one tap.
+class _TakeawayCard extends ConsumerWidget {
+  const _TakeawayCard({required this.menuAllowed});
+  final bool menuAllowed;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(authControllerProvider).state.session;
+    final canView = AccessPolicy.canTakeawayOrders(session);
+    final counts = canView
+        ? ref.watch(
+            takeawayOrdersProvider.select(
+              (board) => board.hasLoaded
+                  ? (
+                      board.activeCount,
+                      board.stage(TakeawayStage.waiting).length,
+                    )
+                  : null,
+            ),
+          )
+        : null;
+    void create() => context.push('/app/order-create?serviceType=TAKEAWAY');
+    return OrderContextCard(
+      name: 'Mang đi',
+      icon: Icons.shopping_bag_outlined,
+      hasOrder: (counts?.$1 ?? 0) > 0,
+      hasUnconfirmedOrder: (counts?.$2 ?? 0) > 0,
+      subtitle: counts == null
+          ? null
+          : counts.$1 == 0
+          ? 'Chưa có đơn đang chờ'
+          : '${counts.$1} đơn đang chờ',
+      onTap: canView
+          ? () => context.push('/app/takeaway')
+          : menuAllowed
+          ? create
+          : null,
+      action: canView && menuAllowed
+          ? IconButton(
+              key: const ValueKey('takeaway-create'),
+              tooltip: 'Tạo đơn mang đi',
+              visualDensity: VisualDensity.compact,
+              onPressed: create,
+              icon: const Icon(Icons.add_circle_outline),
+            )
+          : null,
+    );
+  }
+}
+
 class OrderContextCard extends StatelessWidget {
   const OrderContextCard({
     super.key,
@@ -304,6 +348,7 @@ class OrderContextCard extends StatelessWidget {
     this.subtitle,
     this.amount,
     this.onTap,
+    this.action,
   });
   final String name;
   final IconData icon;
@@ -313,6 +358,9 @@ class OrderContextCard extends StatelessWidget {
   final VoidCallback? onQrTap;
   final String? subtitle, amount;
   final VoidCallback? onTap;
+
+  /// Optional secondary button in the bottom row (e.g. create a new order).
+  final Widget? action;
   @override
   Widget build(BuildContext context) {
     final accent = hasUnconfirmedOrder
@@ -432,6 +480,8 @@ class OrderContextCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    if (amount == null && action != null) const Spacer(),
+                    if (action != null) action!,
                     if (onTap == null) const Icon(Icons.lock_outline, size: 16),
                   ],
                 ),

@@ -37,6 +37,7 @@ class StockAuditCreateScreen extends ConsumerWidget {
     }
     return StockAuditPageFrame(
       title: 'Tạo kiểm kê',
+      showTitle: false,
       actions: [
         FilledButton.icon(
           onPressed: c.busy

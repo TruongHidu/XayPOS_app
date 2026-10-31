@@ -13,6 +13,15 @@ class ReportPage<T> {
   final int totalElements;
   final int totalPages;
 
+  /// The same totals over [rows], for lists that join several pages.
+  ReportPage<T> withRows(List<T> rows, int page) => ReportPage(
+    content: rows,
+    page: page,
+    size: size,
+    totalElements: totalElements,
+    totalPages: totalPages,
+  );
+
   bool get isEmpty => content.isEmpty;
   bool get isNotEmpty => content.isNotEmpty;
   bool get hasNextPage => page < totalPages - 1;

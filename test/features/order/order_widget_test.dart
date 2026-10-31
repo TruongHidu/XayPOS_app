@@ -560,8 +560,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(orders.submissions, isEmpty);
       expect(orders.creates, isEmpty);
-      await tester.tap(find.byTooltip('Trang sau'));
-      await tester.pumpAndSettle();
       expect(orders.queries.last.page, 1);
       expect(orders.queries.last.tableSessionId, sessionId);
       await tester.tap(find.text('OD-SELECTED'));
@@ -753,7 +751,7 @@ void main() {
       await pumpOrder(tester, tables: server, permissions: {'ORDER_CREATE'});
       expect(server.requests, isEmpty);
       expect(find.text('Mang đi'), findsOneWidget);
-      expect(find.textContaining('Cần MENU_VIEW'), findsOneWidget);
+      expect(find.textContaining('chưa có quyền xem thực đơn'), findsOneWidget);
     },
   );
   testWidgets('cancelled detail snapshot read only, no payment/KDS mutations', (

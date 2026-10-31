@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/report_date.dart';
@@ -37,6 +38,7 @@ class ReportOrdersController extends ChangeNotifier {
   bool _isRefreshing = false;
   ReportEnvelope<ReportPage<ReportOrderRow>>? _data;
   Failure? _failure;
+  final _pages = EndlessPages<ReportOrderRow>((row) => row.id);
   int _generation = 0;
   bool _disposed = false;
 
@@ -58,6 +60,10 @@ class ReportOrdersController extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   ReportEnvelope<ReportPage<ReportOrderRow>>? get data => _data;
   Failure? get failure => _failure;
+  Failure? get loadMoreFailure => _pages.failure;
+
+  /// Whether this report has been requested at least once (its tab opened).
+  bool get hasRequested => _data != null || _isLoading || _failure != null;
 
   void updateParentFilter(ReportRangeFilter parentFilter) {
     final changed =
@@ -162,12 +168,23 @@ class ReportOrdersController extends ChangeNotifier {
     }
     notifyListeners();
 
-    final result = await _getReportOrders(_filter);
+    final filter = _filter;
+    final result = await _pages.read(
+      page: filter.page,
+      fetch: (page) => _getReportOrders(filter.copyWith(page: page)),
+      content: (value) => value.data.content,
+      totalPages: (value) => value.data.totalPages,
+      active: () => _generation == gen,
+    );
     if (_generation != gen) return;
 
     switch (result) {
       case Success(:final value):
-        _data = value;
+        _filter = _filter.copyWith(page: value.lastPage);
+        _data = ReportEnvelope(
+          meta: value.last.meta,
+          data: value.last.data.withRows(value.rows, value.lastPage),
+        );
         _failure = null;
         _isLoading = false;
         _isRefreshing = false;
@@ -178,5 +195,37 @@ class ReportOrdersController extends ChangeNotifier {
         _isRefreshing = false;
         notifyListeners();
     }
+  }
+
+  /// Appends the next page; a failure keeps the rows already shown.
+  Future<void> loadMore() async {
+    final shown = _data;
+    if (shown == null ||
+        !shown.data.hasNextPage ||
+        _isLoading ||
+        _isRefreshing ||
+        _pages.loadingMore) {
+      return;
+    }
+    final gen = ++_generation;
+    final next = _filter.copyWith(page: shown.data.page + 1);
+    _pages.begin();
+    notifyListeners();
+    final result = await _getReportOrders(next);
+    if (_generation != gen) return;
+    switch (result) {
+      case Success(:final value):
+        _filter = next;
+        _data = ReportEnvelope(
+          meta: value.meta,
+          data: value.data.withRows(
+            _pages.append(shown.data.content, value.data.content),
+            next.page,
+          ),
+        );
+      case Error(:final failure):
+        _pages.fail(failure);
+    }
+    notifyListeners();
   }
 }

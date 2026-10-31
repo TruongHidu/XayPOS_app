@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/entities/order_inputs.dart';
@@ -20,6 +21,8 @@ class OrderListController extends OrderController {
   OrderQuery query;
   OrderPage? page;
   Failure? failure;
+  final endless = EndlessPages<OrderSummary>((order) => order.id);
+  bool get hasMore => query.page < (page?.totalPages ?? 0) - 1;
   bool loading = false;
   int _generation = 0, _revision = 0;
   Future<void>? _reading;
@@ -99,18 +102,27 @@ class OrderListController extends OrderController {
     loading = true;
     failure = null;
     changed();
-    final response = await invoke('ORDER_VIEW', () => get(query));
+    final q = query;
+    final response = await endless.read(
+      page: q.page,
+      fetch: (index) =>
+          invoke('ORDER_VIEW', () => get(q.copyWith(page: index))),
+      content: (value) => value.content,
+      totalPages: (value) => value.totalPages,
+      active: () => current && g == _generation,
+    );
     if (!current || g != _generation) return;
     switch (response) {
-      case Success(value: final value):
-        page = value;
-        if (query.page > 0 &&
-            value.content.isEmpty &&
-            query.page >= value.totalPages) {
+      case Success(value: final pages):
+        final value = pages.last;
+        page = _pageOf(pages.rows, value);
+        if (q.page > 0 && pages.rows.isEmpty && q.page >= value.totalPages) {
           query = query.copyWith(
             page: value.totalPages > 0 ? value.totalPages - 1 : 0,
           );
           _reloadRequested = true;
+        } else if (pages.lastPage != q.page) {
+          query = query.copyWith(page: pages.lastPage);
         }
       case Error(failure: final f):
         failure = f;
@@ -118,6 +130,41 @@ class OrderListController extends OrderController {
     loading = false;
     changed();
   }
+
+  /// Appends the next page; a failure keeps the orders already shown.
+  Future<void> loadMore() async {
+    final shown = page;
+    if (shown == null ||
+        !hasMore ||
+        _reading != null ||
+        endless.loadingMore ||
+        _debounce?.isActive == true ||
+        !can('ORDER_VIEW')) {
+      return;
+    }
+    final g = ++_generation;
+    final next = query.copyWith(page: query.page + 1);
+    endless.begin();
+    changed();
+    final response = await invoke('ORDER_VIEW', () => get(next));
+    if (!current || g != _generation) return;
+    switch (response) {
+      case Success(value: final value):
+        query = next;
+        page = _pageOf(endless.append(shown.content, value.content), value);
+      case Error(failure: final f):
+        endless.fail(f);
+    }
+    changed();
+  }
+
+  OrderPage _pageOf(List<OrderSummary> rows, OrderPage value) => OrderPage(
+    content: rows,
+    page: value.page,
+    size: value.size,
+    totalElements: value.totalElements,
+    totalPages: value.totalPages,
+  );
 
   @override
   void dispose() {

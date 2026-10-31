@@ -25,6 +25,7 @@ class TableSessionController extends TableListController<TableSession> {
   }) : super(
          kind: TableQueryKind.sessions,
          list: list.call,
+         idOf: (session) => session.id,
          query: TableQuery(
            tableId: tableId.isEmpty ? null : tableId,
            sortBy: 'openedAt',

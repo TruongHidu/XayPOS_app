@@ -120,6 +120,10 @@ abstract final class AccessPolicy {
         takeaway ? 'POS_QUICK_ORDER' : 'TABLE_MANAGEMENT',
       );
 
+  /// The takeaway board only reads orders; each shortcut checks its own grant.
+  static bool canTakeawayOrders(AppSession? session) =>
+      canOrders(session, 'ORDER_VIEW');
+
   static Object? tableScope(AppSession? session) => menuScope(session);
   static bool canOrderWorkspace(AppSession? session) =>
       canOrders(session, 'ORDER_VIEW') || canOrders(session, 'ORDER_CREATE');
@@ -237,6 +241,33 @@ abstract final class AccessPolicy {
       session.subscriptionStatus == SubscriptionStatus.active &&
       session.features.contains('DETAIL_REPORT') &&
       session.permissions.contains('REPORT_DETAIL_VIEW');
+
+  static Object? cashbookScope(AppSession? session) => menuScope(session);
+
+  static bool canCashbook(AppSession? session, String permission) =>
+      session != null &&
+      session.authenticatedUser.restaurantId?.trim().isNotEmpty == true &&
+      !const {
+        UserRole.cashier,
+        UserRole.superAdmin,
+        UserRole.unsupported,
+      }.contains(session.authenticatedUser.role) &&
+      session.subscriptionStatus == SubscriptionStatus.active &&
+      session.features.contains('DETAIL_REPORT') &&
+      const {
+        'CASHBOOK_VIEW',
+        'CASHBOOK_CREATE',
+        'CASHBOOK_VOID',
+      }.contains(permission) &&
+      session.permissions.contains(permission);
+
+  /// Receipt links read inventory documents, so both grants are required.
+  static bool canLinkCashbookStockReceipt(AppSession? session) =>
+      canCashbook(session, 'CASHBOOK_CREATE') &&
+      canInventory(session, 'INVENTORY_VIEW');
+  static bool canReconcileCashbookReceipts(AppSession? session) =>
+      canCashbook(session, 'CASHBOOK_VIEW') &&
+      canInventory(session, 'INVENTORY_VIEW');
 
   static bool canMenu(AppSession? session, String permission) =>
       session != null &&
@@ -439,6 +470,9 @@ abstract final class AccessPolicy {
     if (path == '/app/orders' || path.startsWith('/app/orders/')) {
       return canOrders(session, 'ORDER_VIEW');
     }
+    if (path == '/app/takeaway' || path.startsWith('/app/takeaway/')) {
+      return canTakeawayOrders(session);
+    }
     final billMatch = RegExp(
       r'^/app/order-create/bill/([^/]+)$',
     ).firstMatch(path);
@@ -510,6 +544,7 @@ abstract final class AccessPolicy {
       return canInventory(session, 'INVENTORY_VIEW');
     }
     if (path == '/app/reports') return canDetailReport(session);
+    if (path == '/app/cashbook') return canCashbook(session, 'CASHBOOK_VIEW');
     if (path == '/app/reference-margin') {
       return canViewReferenceMarginReports(session);
     }
@@ -562,6 +597,7 @@ abstract final class AccessPolicy {
         canRecipe(session, 'RECIPE_VIEW') ||
         canDailyReport(session) ||
         canDetailReport(session) ||
+        canCashbook(session, 'CASHBOOK_VIEW') ||
         canViewReferenceMarginReports(session) ||
         canAccessAny(session, const [
           (permission: 'ORDER_VIEW', feature: 'ORDER_MANAGEMENT'),

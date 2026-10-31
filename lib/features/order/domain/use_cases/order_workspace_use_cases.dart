@@ -103,68 +103,115 @@ class GetActiveOrderAreas {
   }
 }
 
+/// The list API filters one status per call, so every serving status is read
+/// (all pages) with at most three requests in flight.
+Future<Result<List<OrderSummary>>> _servingOrders(
+  GetOrders get,
+  ServiceType type, {
+  bool Function()? isCurrent,
+}) async {
+  final statuses = OrderTablePolicy.servingStatuses.toList(growable: false);
+  final outcomes = List<Result<List<OrderSummary>>?>.filled(
+    statuses.length,
+    null,
+  );
+  var next = 0;
+  Future<void> worker() async {
+    while (next < statuses.length) {
+      final index = next++;
+      outcomes[index] = await _servingStatus(
+        get,
+        type,
+        statuses[index],
+        isCurrent,
+      );
+    }
+  }
+
+  await Future.wait(List.generate(3, (_) => worker()));
+  final rows = <OrderSummary>[];
+  for (final outcome in outcomes) {
+    switch (outcome!) {
+      case Error(failure: final failure):
+        return Error(failure);
+      case Success(value: final values):
+        rows.addAll(values);
+    }
+  }
+  return Success(rows);
+}
+
+Future<Result<List<OrderSummary>>> _servingStatus(
+  GetOrders get,
+  ServiceType type,
+  OrderStatus status,
+  bool Function()? isCurrent,
+) async {
+  final rows = <OrderSummary>[];
+  var pages = 1;
+  for (var index = 0; index < pages; index++) {
+    if (isCurrent?.call() == false) return const Error(_staleWorkspace);
+    final response = await get(
+      OrderQuery(serviceType: type, status: status, page: index, size: 100),
+    );
+    if (isCurrent?.call() == false) return const Error(_staleWorkspace);
+    switch (response) {
+      case Error(failure: final failure):
+        return Error(failure);
+      case Success(value: final page):
+        if (page.page != index ||
+            page.totalPages < 0 ||
+            page.totalPages > 21474836) {
+          return const Error(_invalidWorkspace);
+        }
+        if (index == 0) pages = page.totalPages;
+        rows.addAll(page.content);
+    }
+  }
+  return Success(rows);
+}
+
 class GetServingOrderSummaries {
   const GetServingOrderSummaries(this.get);
   final GetOrders get;
   Future<Result<ServingOrderSnapshot>> call({
     bool Function()? isCurrent,
-  }) async {
-    final statuses = OrderTablePolicy.servingStatuses.toList(growable: false);
-    final outcomes = List<Result<List<OrderSummary>>?>.filled(
-      statuses.length,
-      null,
-    );
-    var next = 0;
-    Future<void> worker() async {
-      while (next < statuses.length) {
-        final index = next++;
-        outcomes[index] = await _status(statuses[index], isCurrent);
-      }
-    }
+  }) async => switch (await _servingOrders(
+    get,
+    ServiceType.dineIn,
+    isCurrent: isCurrent,
+  )) {
+    Error(failure: final failure) => Error(failure),
+    Success(value: final rows) => Success(
+      ServingOrderSnapshot.fromOrders(rows),
+    ),
+  };
+}
 
-    await Future.wait(List.generate(3, (_) => worker()));
-    final rows = <OrderSummary>[];
-    for (final outcome in outcomes) {
-      switch (outcome!) {
-        case Error(failure: final failure):
-          return Error(failure);
-        case Success(value: final values):
-          rows.addAll(values);
-      }
+/// Takeaway orders still being handled, oldest first (first come, first served).
+class GetActiveTakeawayOrders {
+  const GetActiveTakeawayOrders(this.get);
+  final GetOrders get;
+  Future<Result<List<OrderSummary>>> call({bool Function()? isCurrent}) async {
+    switch (await _servingOrders(
+      get,
+      ServiceType.takeaway,
+      isCurrent: isCurrent,
+    )) {
+      case Error(failure: final failure):
+        return Error(failure);
+      case Success(value: final rows):
+        // An order can move status between per-status reads; keep its newest copy.
+        final latest = <String, OrderSummary>{};
+        for (final row in rows) {
+          if (row.serviceType != ServiceType.takeaway) continue;
+          final seen = latest[row.id];
+          if (seen == null || row.version > seen.version) latest[row.id] = row;
+        }
+        return Success(
+          latest.values.toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        );
     }
-    return Success(ServingOrderSnapshot.fromOrders(rows));
-  }
-
-  Future<Result<List<OrderSummary>>> _status(
-    OrderStatus status,
-    bool Function()? isCurrent,
-  ) async {
-    final rows = <OrderSummary>[];
-    var pages = 1;
-    for (var index = 0; index < pages; index++) {
-      if (isCurrent?.call() == false) return const Error(_staleWorkspace);
-      final response = await get(
-        OrderQuery(
-          serviceType: ServiceType.dineIn,
-          status: status,
-          page: index,
-          size: 100,
-        ),
-      );
-      if (isCurrent?.call() == false) return const Error(_staleWorkspace);
-      switch (response) {
-        case Error(failure: final failure):
-          return Error(failure);
-        case Success(value: final page):
-          if (page.page != index ||
-              page.totalPages < 0 ||
-              page.totalPages > 21474836) {
-            return const Error(_invalidWorkspace);
-          }
-          if (index == 0) pages = page.totalPages;
-          rows.addAll(page.content);
-      }
-    }
-    return Success(rows);
   }
 }

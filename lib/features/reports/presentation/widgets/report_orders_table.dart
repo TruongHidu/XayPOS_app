@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_order_row.dart';
@@ -20,8 +21,8 @@ class ReportOrdersTable extends StatelessWidget {
   final ValueChanged<OrderPaymentStatus?> onPaymentStatusChanged;
   final ValueChanged<ReportOrderSortBy> onSortByChanged;
   final VoidCallback onToggleDirection;
-  final ValueChanged<int> onPageChanged;
-  final ValueChanged<int> onSizeChanged;
+  final VoidCallback onLoadMore;
+  final String? loadMoreFailure;
 
   const ReportOrdersTable({
     super.key,
@@ -38,8 +39,8 @@ class ReportOrdersTable extends StatelessWidget {
     required this.onPaymentStatusChanged,
     required this.onSortByChanged,
     required this.onToggleDirection,
-    required this.onPageChanged,
-    required this.onSizeChanged,
+    required this.onLoadMore,
+    this.loadMoreFailure,
   });
 
   @override
@@ -187,18 +188,6 @@ class ReportOrdersTable extends StatelessWidget {
                       ),
                       onPressed: onToggleDirection,
                     ),
-                    // Size selector
-                    DropdownButton<int>(
-                      value: page.size,
-                      items: const [
-                        DropdownMenuItem(value: 10, child: Text('10 / trang')),
-                        DropdownMenuItem(value: 20, child: Text('20 / trang')),
-                        DropdownMenuItem(value: 50, child: Text('50 / trang')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) onSizeChanged(val);
-                      },
-                    ),
                   ],
                 ),
               ],
@@ -222,10 +211,13 @@ class ReportOrdersTable extends StatelessWidget {
             else
               _buildDesktopTable(context),
 
-            const SizedBox(height: 16),
-
-            // Pagination Footer
-            _buildPaginationFooter(theme),
+            if (page.content.isNotEmpty)
+              EndlessListFooter(
+                hasMore: page.hasNextPage,
+                failureMessage: loadMoreFailure,
+                endLabel: 'Đã hiển thị tất cả ${page.totalElements} đơn',
+                onLoadMore: onLoadMore,
+              ),
           ],
         ),
       ),
@@ -512,43 +504,6 @@ class ReportOrdersTable extends StatelessWidget {
         text,
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
       ),
-    );
-  }
-
-  Widget _buildPaginationFooter(ThemeData theme) {
-    final currentPage = page.number;
-    final totalPages = page.totalPages;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Tổng: ${page.totalElements} đơn (Trang ${currentPage + 1}/${totalPages > 0 ? totalPages : 1})',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.outline,
-          ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton.outlined(
-              icon: const Icon(Icons.chevron_left, size: 20),
-              tooltip: 'Trang trước',
-              onPressed: currentPage > 0
-                  ? () => onPageChanged(currentPage - 1)
-                  : null,
-            ),
-            const SizedBox(width: 8),
-            IconButton.outlined(
-              icon: const Icon(Icons.chevron_right, size: 20),
-              tooltip: 'Trang sau',
-              onPressed: currentPage + 1 < totalPages
-                  ? () => onPageChanged(currentPage + 1)
-                  : null,
-            ),
-          ],
-        ),
-      ],
     );
   }
 

@@ -82,6 +82,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
     if (c.allowedTypes.isEmpty) {
       return const StockPageFrame(
         title: 'Tạo chứng từ',
+        showTitle: false,
         child: Text(
           'Bạn cần quyền nhập, xuất hoặc điều chỉnh kho để tạo phiếu.',
         ),
@@ -89,6 +90,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
     }
     return StockPageFrame(
       title: 'Tạo chứng từ',
+      showTitle: false,
       actions: [
         FilledButton.icon(
           onPressed: c.busy

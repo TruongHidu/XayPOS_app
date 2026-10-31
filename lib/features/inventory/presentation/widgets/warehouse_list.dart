@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/inventory_entities.dart';
@@ -94,23 +95,22 @@ class WarehouseList extends ConsumerWidget {
       children: [
         InventoryFilters(
           identity: c,
+          listenable: c,
           search: q.q,
           onSearch: c.search,
-          active: q.active,
+          active: () => c.query.active,
           warehouses: true,
           onActive: (v) => c.filter(active: v),
-          sortBy: q.sortBy,
-          direction: q.direction,
+          sortBy: () => c.query.sortBy,
+          direction: () => c.query.direction,
           sorts: const {
             'createdAt': 'Ngày tạo',
             'name': 'Tên kho',
             'code': 'Mã kho',
             'updatedAt': 'Cập nhật',
           },
-          onSort: (v) => c.filter(active: q.active, sortBy: v),
-          onDirection: (v) => c.filter(active: q.active, direction: v),
-          size: q.size,
-          onSize: (v) => c.filter(active: q.active, size: v),
+          onSort: (v) => c.filter(active: c.query.active, sortBy: v),
+          onDirection: (v) => c.filter(active: c.query.active, direction: v),
         ),
         const SizedBox(height: 16),
         if (c.loading) const LinearProgressIndicator(),
@@ -225,13 +225,12 @@ class WarehouseList extends ConsumerWidget {
             );
           },
         ),
-        if (c.hasLoaded)
-          InventoryPaging(
-            page: q.page,
-            totalPages: c.totalPages,
-            totalElements: c.totalElements,
-            loading: c.loading,
-            changed: c.page,
+        if (c.hasLoaded && c.rows.isNotEmpty)
+          EndlessListFooter(
+            hasMore: c.hasMore,
+            failureMessage: c.endless.failure?.message,
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} kho',
+            onLoadMore: c.loadMore,
           ),
       ],
     );

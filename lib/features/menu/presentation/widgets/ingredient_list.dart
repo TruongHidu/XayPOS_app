@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/ingredient.dart';
-import '../../domain/entities/ingredient_query.dart';
 import '../controllers/ingredient_controller.dart';
 import 'menu_dialogs.dart';
 
@@ -27,28 +26,7 @@ class IngredientList extends StatefulWidget {
 }
 
 class _IngredientListState extends State<IngredientList> {
-  int _searchReset = 0;
   IngredientController get controller => widget.controller;
-
-  Widget _select(
-    String label,
-    String value,
-    Map<String, String> choices,
-    ValueChanged<String> changed,
-  ) => DropdownButtonFormField<String>(
-    key: ValueKey((label, value, _searchReset)),
-    value: value,
-    isExpanded: true,
-    itemHeight: null,
-    decoration: menuField(label),
-    items: [
-      for (final entry in choices.entries)
-        DropdownMenuItem(value: entry.key, child: Text(entry.value)),
-    ],
-    onChanged: (value) {
-      if (value != null) changed(value);
-    },
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -60,78 +38,6 @@ class _IngredientListState extends State<IngredientList> {
       builder: (context, constraints) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextFormField(
-            key: ValueKey(('ingredient-search', controller, _searchReset)),
-            initialValue: query.q,
-            maxLength: 100,
-            decoration: menuField(
-              'Tìm tên nguyên liệu hoặc SKU',
-            ).copyWith(prefixIcon: const Icon(Icons.search)),
-            onChanged: controller.search,
-          ),
-          const SizedBox(height: 12),
-          ResponsiveColumns(
-            minColumnWidth: 220 * textScale.clamp(1.0, double.infinity),
-            maxColumns: 4,
-            spacing: 12,
-            children: [
-              _select(
-                'Trạng thái',
-                query.active?.toString() ?? 'all',
-                const {
-                  'all': 'Tất cả trạng thái',
-                  'true': 'Đang sử dụng',
-                  'false': 'Ngừng sử dụng',
-                },
-                (v) => controller.setActiveFilter(_bool(v)),
-              ),
-              _select(
-                'Theo dõi tồn kho',
-                query.trackInventory?.toString() ?? 'all',
-                const {
-                  'all': 'Tất cả',
-                  'true': 'Có theo dõi',
-                  'false': 'Không theo dõi',
-                },
-                (v) => controller.setTrackInventoryFilter(_bool(v)),
-              ),
-              _select('Sắp xếp theo', query.sortBy, const {
-                'createdAt': 'Ngày tạo',
-                'updatedAt': 'Ngày cập nhật',
-                'name': 'Tên nguyên liệu',
-                'sku': 'SKU',
-                'costPrice': 'Giá vốn',
-              }, controller.setSort),
-              _select(
-                'Chiều sắp xếp',
-                query.direction,
-                const {'asc': 'Tăng dần', 'desc': 'Giảm dần'},
-                (v) => controller.setSort(query.sortBy, direction: v),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (query.hasFilters)
-                TextButton.icon(
-                  onPressed: () {
-                    controller.setQuery(const IngredientQuery());
-                    setState(() => _searchReset++);
-                  },
-                  icon: const Icon(Icons.filter_alt_off),
-                  label: const Text('Xóa bộ lọc'),
-                ),
-              TextButton.icon(
-                onPressed: state.loading ? null : controller.load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Làm mới'),
-              ),
-            ],
-          ),
           if (state.loading) const LinearProgressIndicator(),
           MenuFailurePanel(
             failure: state.failure,
@@ -155,9 +61,7 @@ class _IngredientListState extends State<IngredientList> {
                   ),
                   if (widget.canCreate && !query.hasFilters) ...[
                     const SizedBox(height: 8),
-                    const Text(
-                      'Dùng nút "Thêm nguyên liệu" phía trên để bắt đầu.',
-                    ),
+                    const Text('Dùng nút + ở góc dưới bên phải để bắt đầu.'),
                   ],
                 ],
               ),
@@ -174,55 +78,11 @@ class _IngredientListState extends State<IngredientList> {
                 children: [for (final item in state.rows) _card(item)],
               ),
           ],
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              Text(
-                '${state.totalElements} nguyên liệu · Trang ${query.page + 1}/${state.totalPages == 0 ? 1 : state.totalPages}',
-              ),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  SizedBox(
-                    width: 110 * textScale.clamp(1.0, double.infinity),
-                    child: _select(
-                      'Mỗi trang',
-                      query.size.toString(),
-                      const {'10': '10', '20': '20', '50': '50', '100': '100'},
-                      (v) => controller.setPageSize(int.parse(v)),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Trang trước',
-                    onPressed: state.loading || query.page == 0
-                        ? null
-                        : () => controller.setPage(query.page - 1),
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  IconButton(
-                    tooltip: 'Trang sau',
-                    onPressed:
-                        state.loading || query.page >= state.totalPages - 1
-                        ? null
-                        : () => controller.setPage(query.page + 1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  bool? _bool(String value) => value == 'all' ? null : value == 'true';
   bool _busy(Ingredient item) =>
       controller.isPending(item.id) || widget.opening.contains(item.id);
 
@@ -279,7 +139,7 @@ class _IngredientListState extends State<IngredientList> {
               const SizedBox(height: 8),
               Text(
                 item.costConfigured
-                    ? 'Giá vốn tham chiếu: ${item.costPrice} / ${item.baseUnit}'
+                    ? 'Giá vốn tham chiếu: ${menuMoney(item.costPrice)} / ${item.baseUnit}'
                     : 'Chưa cấu hình giá vốn',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.colorScheme.primary,
@@ -345,7 +205,7 @@ class _IngredientListState extends State<IngredientList> {
                   DataCell(
                     Text(
                       item.costConfigured
-                          ? '${item.costPrice}'
+                          ? menuMoney(item.costPrice)
                           : 'Chưa cấu hình giá vốn',
                     ),
                   ),

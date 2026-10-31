@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../../menu/domain/entities/menu_group.dart';
 import '../../../menu/domain/entities/menu_item.dart';
@@ -33,6 +34,8 @@ class OrderMenuPickerController extends OrderController {
     direction: 'asc',
   );
   MenuPage<MenuItem>? page;
+  final endless = EndlessPages<MenuItem>((item) => item.id);
+  bool get hasMore => query.page < (page?.totalPages ?? 0) - 1;
   final List<MenuGroup> _groups = [];
   List<MenuGroup> get groups => List.unmodifiable(_groups);
   int _groupPage = 0, _groupTotal = 1, _generation = 0, _groupGeneration = 0;
@@ -85,11 +88,21 @@ class OrderMenuPickerController extends OrderController {
     loading = true;
     failure = null;
     changed();
-    final result = await itemsUseCase(query);
+    final q = query;
+    final result = await endless.read(
+      page: q.page,
+      fetch: (index) => itemsUseCase(q.copyWith(page: index)),
+      content: (v) => v.content,
+      totalPages: (v) => v.totalPages,
+      active: () => allowed && g == _generation,
+    );
     if (!allowed || g != _generation) return;
     switch (result) {
-      case Success(value: final v):
-        page = v;
+      case Success(value: final pages):
+        if (pages.lastPage != q.page) {
+          query = query.copyWith(page: pages.lastPage);
+        }
+        page = _pageOf(pages.rows, pages.last);
       case Error(failure: final f):
         failure = f;
         await report(f);
@@ -97,6 +110,43 @@ class OrderMenuPickerController extends OrderController {
     loading = false;
     changed();
   }
+
+  /// Appends the next page; a failure keeps the items already shown.
+  Future<void> loadMore() async {
+    final shown = page;
+    if (shown == null ||
+        !hasMore ||
+        !allowed ||
+        loading ||
+        endless.loadingMore ||
+        _debounce?.isActive == true) {
+      return;
+    }
+    final g = ++_generation;
+    final next = query.copyWith(page: query.page + 1);
+    endless.begin();
+    changed();
+    final result = await itemsUseCase(next);
+    if (!allowed || g != _generation) return;
+    switch (result) {
+      case Success(value: final v):
+        query = next;
+        page = _pageOf(endless.append(shown.content, v.content), v);
+      case Error(failure: final f):
+        endless.fail(f);
+        await report(f);
+    }
+    changed();
+  }
+
+  MenuPage<MenuItem> _pageOf(List<MenuItem> rows, MenuPage<MenuItem> v) =>
+      MenuPage(
+        content: rows,
+        page: v.page,
+        size: v.size,
+        totalElements: v.totalElements,
+        totalPages: v.totalPages,
+      );
 
   Future<void> loadGroups({bool reset = false}) async {
     if (!allowed || groupsLoading && !reset) return;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
+import '../../../../core/platform/alert_sound.dart';
 import '../../data/data_sources/kitchen_remote_data_source.dart';
 import '../../data/repositories/kitchen_repository_impl.dart';
 import '../../domain/repositories/kitchen_repository.dart';
@@ -25,6 +26,8 @@ final kitchenRepositoryProvider = Provider<KitchenRepository>(
     KitchenRemoteDataSource(ref.watch(apiClientsProvider).authenticated),
   ),
 );
+
+final alertSoundProvider = Provider((ref) => const AlertSound());
 
 final kitchenDisplayProvider =
     ChangeNotifierProvider.autoDispose<KitchenDisplayController>((ref) {

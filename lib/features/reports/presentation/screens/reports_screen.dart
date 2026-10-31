@@ -8,7 +8,6 @@ import '../controllers/report_summary_controller.dart';
 import '../controllers/top_items_report_controller.dart';
 import '../widgets/completed_orders_breakdown_card.dart';
 import '../widgets/payment_methods_card.dart';
-import '../widgets/report_filter_bar.dart';
 import '../widgets/report_kpi_card.dart';
 import '../widgets/report_kpi_grid.dart';
 import '../widgets/report_orders_table.dart';
@@ -25,8 +24,6 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _topItemsLoaded = false;
-  bool _ordersLoaded = false;
 
   @override
   void initState() {
@@ -42,33 +39,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     super.dispose();
   }
 
+  // Tabs load lazily on first open; later filter changes are pushed by
+  // applyReportFilters once a tab has requested data.
   void _onTabChanged() {
-    final summaryCtrl = ref.read(reportSummaryControllerProvider);
-    final parentFilter = summaryCtrl.appliedFilter;
+    final parentFilter = ref
+        .read(reportSummaryControllerProvider)
+        .appliedFilter;
+    final topItemsCtrl = ref.read(topItemsReportControllerProvider);
+    final ordersCtrl = ref.read(reportOrdersControllerProvider);
 
-    if (_tabController.index == 1 && !_topItemsLoaded) {
-      _topItemsLoaded = true;
-      ref
-          .read(topItemsReportControllerProvider)
-          .updateParentFilter(parentFilter);
-    } else if (_tabController.index == 2 && !_ordersLoaded) {
-      _ordersLoaded = true;
-      ref.read(reportOrdersControllerProvider).updateParentFilter(parentFilter);
-    }
-  }
-
-  void _onApplyFilters() {
-    final summaryCtrl = ref.read(reportSummaryControllerProvider);
-    summaryCtrl.applyFilters();
-
-    final parentFilter = summaryCtrl.draftFilter;
-    if (_tabController.index == 1 || _topItemsLoaded) {
-      ref
-          .read(topItemsReportControllerProvider)
-          .updateParentFilter(parentFilter);
-    }
-    if (_tabController.index == 2 || _ordersLoaded) {
-      ref.read(reportOrdersControllerProvider).updateParentFilter(parentFilter);
+    if (_tabController.index == 1 && !topItemsCtrl.hasRequested) {
+      topItemsCtrl.updateParentFilter(parentFilter);
+    } else if (_tabController.index == 2 && !ordersCtrl.hasRequested) {
+      ordersCtrl.updateParentFilter(parentFilter);
     }
   }
 
@@ -87,65 +70,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     final canViewOrder =
         session != null && AccessPolicy.canOrders(session, 'ORDER_VIEW');
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await summaryCtrl.refreshAll();
-          if (_topItemsLoaded) {
-            await topItemsCtrl.refresh();
-          }
-          if (_ordersLoaded) {
-            await ordersCtrl.refresh();
-          }
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header with Title and Meta Chips
-              _buildHeader(context, summaryCtrl, meta),
-              const SizedBox(height: 16),
-
-              // Filter Bar
-              RangeReportFilterBar(
-                range: summaryCtrl.draftFilter.range,
-                currencyCode: summaryCtrl.draftFilter.currencyCode,
-                serviceType: summaryCtrl.draftFilter.serviceType,
-                sourceChannel: summaryCtrl.draftFilter.sourceChannel,
-                onRangeChanged: summaryCtrl.setDraftRange,
-                onCurrencyChanged: summaryCtrl.setDraftCurrencyCode,
-                onServiceTypeChanged: summaryCtrl.setDraftServiceType,
-                onSourceChannelChanged: summaryCtrl.setDraftSourceChannel,
-                onApply: _onApplyFilters,
-                onReset: summaryCtrl.resetToDefaults,
-                onRefresh: () => summaryCtrl.refreshAll(),
-                isLoading:
-                    summaryCtrl.isAnyLoading || summaryCtrl.isAnyRefreshing,
-              ),
-              const SizedBox(height: 16),
-
-              if (summaryCtrl.isAnyRefreshing)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: LinearProgressIndicator(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Pinned tab bar; filters live in the app bar overlay.
+          Material(
+            color: theme.colorScheme.surface,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: theme.colorScheme.outlineVariant),
                 ),
-
-              // Tab Bar
-              TabBar(
+              ),
+              child: TabBar(
                 controller: _tabController,
                 isScrollable: MediaQuery.of(context).size.width < 500,
-                onTap: (index) {
-                  final parentFilter = summaryCtrl.appliedFilter;
-                  if (index == 1 && !_topItemsLoaded) {
-                    _topItemsLoaded = true;
-                    topItemsCtrl.updateParentFilter(parentFilter);
-                  } else if (index == 2 && !_ordersLoaded) {
-                    _ordersLoaded = true;
-                    ordersCtrl.updateParentFilter(parentFilter);
-                  }
-                },
                 tabs: const [
                   Tab(icon: Icon(Icons.dashboard_outlined), text: 'Tổng quan'),
                   Tab(
@@ -158,40 +100,68 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              // Tab Contents
-              AnimatedBuilder(
-                animation: _tabController,
-                builder: (context, _) {
-                  switch (_tabController.index) {
-                    case 0:
-                      return _buildOverviewTab(
-                        context,
-                        summaryCtrl,
-                        meta?.currencyCode ?? 'VND',
-                      );
-                    case 1:
-                      return _buildTopItemsTab(
-                        context,
-                        topItemsCtrl,
-                        meta?.currencyCode ?? 'VND',
-                      );
-                    case 2:
-                      return _buildOrdersTab(
-                        context,
-                        ordersCtrl,
-                        meta?.currencyCode ?? 'VND',
-                        canViewOrder,
-                      );
-                    default:
-                      return const SizedBox.shrink();
-                  }
-                },
-              ),
-            ],
+            ),
           ),
-        ),
+          SizedBox(
+            height: 2,
+            child: summaryCtrl.isAnyRefreshing
+                ? const LinearProgressIndicator(minHeight: 2)
+                : null,
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.wait([
+                  summaryCtrl.refreshAll(),
+                  if (topItemsCtrl.hasRequested) topItemsCtrl.refresh(),
+                  if (ordersCtrl.hasRequested) ordersCtrl.refresh(),
+                ]);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Applied filter and meta chips
+                    _buildHeader(context, summaryCtrl, meta),
+                    const SizedBox(height: 16),
+
+                    // Tab Contents
+                    AnimatedBuilder(
+                      animation: _tabController,
+                      builder: (context, _) {
+                        switch (_tabController.index) {
+                          case 0:
+                            return _buildOverviewTab(
+                              context,
+                              summaryCtrl,
+                              meta?.currencyCode ?? 'VND',
+                            );
+                          case 1:
+                            return _buildTopItemsTab(
+                              context,
+                              topItemsCtrl,
+                              meta?.currencyCode ?? 'VND',
+                            );
+                          case 2:
+                            return _buildOrdersTab(
+                              context,
+                              ordersCtrl,
+                              meta?.currencyCode ?? 'VND',
+                              canViewOrder,
+                            );
+                          default:
+                            return const SizedBox.shrink();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -201,55 +171,37 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     ReportSummaryController summaryCtrl,
     dynamic meta,
   ) {
-    final theme = Theme.of(context);
+    final range = summaryCtrl.appliedFilter.range;
 
     return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
+      spacing: 8,
+      runSpacing: 6,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Báo cáo doanh thu',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Phân tích chi tiết doanh thu, xu hướng, phương thức thanh toán và đối chiếu đơn hàng',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-          ],
-        ),
-        if (meta != null)
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: [
-              Chip(
-                avatar: const Icon(Icons.public, size: 16),
-                label: Text(meta.timezone),
-                visualDensity: VisualDensity.compact,
-              ),
-              Chip(
-                avatar: const Icon(Icons.monetization_on_outlined, size: 16),
-                label: Text(meta.currencyCode),
-                visualDensity: VisualDensity.compact,
-              ),
-              if (meta.generatedAt != null)
-                Chip(
-                  avatar: const Icon(Icons.schedule, size: 16),
-                  label: Text('Tạo lúc ${_formatTime(meta.generatedAt!)}'),
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
+        Chip(
+          avatar: const Icon(Icons.date_range, size: 16),
+          label: Text(
+            '${range.fromDate.formatDisplay()} - ${range.toDate.formatDisplay()} (${range.daysCount} ngày)',
           ),
+          visualDensity: VisualDensity.compact,
+        ),
+        if (meta != null) ...[
+          Chip(
+            avatar: const Icon(Icons.public, size: 16),
+            label: Text(meta.timezone),
+            visualDensity: VisualDensity.compact,
+          ),
+          Chip(
+            avatar: const Icon(Icons.monetization_on_outlined, size: 16),
+            label: Text(meta.currencyCode),
+            visualDensity: VisualDensity.compact,
+          ),
+          if (meta.generatedAt != null)
+            Chip(
+              avatar: const Icon(Icons.schedule, size: 16),
+              label: Text('Tạo lúc ${_formatTime(meta.generatedAt!)}'),
+              visualDensity: VisualDensity.compact,
+            ),
+        ],
       ],
     );
   }
@@ -454,8 +406,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       direction: topItemsCtrl.filter.direction,
       onSortByChanged: topItemsCtrl.setSortBy,
       onToggleDirection: topItemsCtrl.toggleSortDirection,
-      onPageChanged: topItemsCtrl.setPage,
-      onSizeChanged: topItemsCtrl.setSize,
+      onLoadMore: topItemsCtrl.loadMore,
+      loadMoreFailure: topItemsCtrl.loadMoreFailure?.message,
     );
   }
 
@@ -496,8 +448,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
       onPaymentStatusChanged: ordersCtrl.setPaymentStatus,
       onSortByChanged: ordersCtrl.setSortBy,
       onToggleDirection: ordersCtrl.toggleSortDirection,
-      onPageChanged: ordersCtrl.setPage,
-      onSizeChanged: ordersCtrl.setSize,
+      onLoadMore: ordersCtrl.loadMore,
+      loadMoreFailure: ordersCtrl.loadMoreFailure?.message,
     );
   }
 

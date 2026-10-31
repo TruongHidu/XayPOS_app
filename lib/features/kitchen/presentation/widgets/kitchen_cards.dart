@@ -163,10 +163,7 @@ class KitchenItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            height: 3.5,
-            color: statusColor,
-          ),
+          Container(height: 3.5, color: statusColor),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -179,7 +176,10 @@ class KitchenItemCard extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: KitchenStyle.bgColor(item.itemStatus),
                         borderRadius: BorderRadius.circular(6),
@@ -213,7 +213,10 @@ class KitchenItemCard extends StatelessWidget {
                 if (item.note?.trim().isNotEmpty == true) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFBEB),
                       borderRadius: BorderRadius.circular(6),
@@ -230,7 +233,11 @@ class KitchenItemCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 8),
-                const Divider(height: 16, thickness: 1, color: Color(0xFFF1F5F9)),
+                const Divider(
+                  height: 16,
+                  thickness: 1,
+                  color: Color(0xFFF1F5F9),
+                ),
                 KitchenQueueContext(item: item, now: now),
                 const SizedBox(height: 10),
                 if (item.itemStatus == OrderItemStatus.ready)
@@ -238,7 +245,11 @@ class KitchenItemCard extends StatelessWidget {
                     spacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Icon(Icons.check_circle_outline, color: Color(0xFF15803D), size: 18),
+                      Icon(
+                        Icons.check_circle_outline,
+                        color: Color(0xFF15803D),
+                        size: 18,
+                      ),
                       Text(
                         'Sẵn sàng phục vụ',
                         style: TextStyle(
@@ -253,9 +264,12 @@ class KitchenItemCard extends StatelessWidget {
                   FilledButton.icon(
                     key: ValueKey('kitchen-action-${item.key}'),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 42),
+                      minimumSize: const Size(double.infinity, 48),
                       backgroundColor: statusColor,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -325,7 +339,9 @@ class KitchenOrderCard extends StatelessWidget {
         .where((r) => r.itemStatus == OrderItemStatus.ready)
         .length;
     final allReady = ready == items.length;
-    final hasCooking = items.any((r) => r.itemStatus == OrderItemStatus.cooking);
+    final hasCooking = items.any(
+      (r) => r.itemStatus == OrderItemStatus.cooking,
+    );
     final headerAccentColor = allReady
         ? const Color(0xFF15803D)
         : hasCooking
@@ -345,10 +361,7 @@ class KitchenOrderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            height: 3.5,
-            color: headerAccentColor,
-          ),
+          Container(height: 3.5, color: headerAccentColor),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -375,7 +388,11 @@ class KitchenOrderCard extends StatelessWidget {
                   ),
                 ),
                 for (final item in items) ...[
-                  const Divider(height: 18, thickness: 1, color: Color(0xFFF1F5F9)),
+                  const Divider(
+                    height: 18,
+                    thickness: 1,
+                    color: Color(0xFFF1F5F9),
+                  ),
                   Text(
                     '${item.quantity} ${item.unit} · ${item.itemName}',
                     style: const TextStyle(
@@ -407,8 +424,11 @@ class KitchenOrderCard extends StatelessWidget {
                         OutlinedButton(
                           key: ValueKey('kitchen-order-action-${item.key}'),
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(40, 38),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(64, 48),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
                             ),
@@ -419,7 +439,7 @@ class KitchenOrderCard extends StatelessWidget {
                                 ? 'Bắt đầu nấu'
                                 : 'Đã xong',
                             style: const TextStyle(
-                              fontSize: 12.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -428,7 +448,11 @@ class KitchenOrderCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 10),
-                const Divider(height: 18, thickness: 1, color: Color(0xFFF1F5F9)),
+                const Divider(
+                  height: 18,
+                  thickness: 1,
+                  color: Color(0xFFF1F5F9),
+                ),
                 const SizedBox(height: 4),
                 if (orderStatus == OrderStatus.ready)
                   const Text(
@@ -451,8 +475,11 @@ class KitchenOrderCard extends StatelessWidget {
                   FilledButton.icon(
                     key: ValueKey('ready-order-${items.first.orderId}'),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 42),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(double.infinity, 48),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -501,9 +528,9 @@ class KitchenSummaryBar extends StatelessWidget {
         children: [
           Text(
             'Tổng hợp món cần nấu${complete ? '' : ' · Chưa đủ dữ liệu'}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           if (summaries.isEmpty)
@@ -517,7 +544,10 @@ class KitchenSummaryBar extends StatelessWidget {
             children: [
               for (final summary in summaries)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: KitchenStyle.background,
                     borderRadius: BorderRadius.circular(8),

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../domain/entities/ingredient_inputs.dart';
@@ -31,6 +32,7 @@ class IngredientListState {
   final int totalPages;
 
   bool get initialLoading => loading && !hasLoaded;
+  bool get hasMore => query.page < totalPages - 1;
 
   IngredientListState copyWith({
     IngredientQuery? query,
@@ -90,6 +92,7 @@ class IngredientController extends ChangeNotifier {
 
   IngredientListState _state;
   IngredientListState get state => _state;
+  final endless = EndlessPages<Ingredient>((item) => item.id);
   bool _disposed = false;
   int _generation = 0;
   Timer? _debounce;
@@ -212,11 +215,6 @@ class IngredientController extends ChangeNotifier {
     );
   }
 
-  void setPageSize(int size) {
-    if (size == _state.query.size) return;
-    setQuery(_state.query.copyWith(size: size));
-  }
-
   void setPage(int page) {
     if (!can('INGREDIENT_VIEW') ||
         page < 0 ||
@@ -235,12 +233,19 @@ class IngredientController extends ChangeNotifier {
     _state = _state.copyWith(loading: true, failure: () => null);
     notifyListeners();
 
-    final result = await _list(query);
+    final result = await endless.read(
+      page: query.page,
+      fetch: (page) => _list(query.copyWith(page: page)),
+      content: (page) => page.content,
+      totalPages: (page) => page.totalPages,
+      active: () => can('INGREDIENT_VIEW') && generation == _generation,
+    );
     if (!can('INGREDIENT_VIEW') || generation != _generation) return;
 
     switch (result) {
-      case Success(value: final page):
-        if (query.page > 0 && page.content.isEmpty) {
+      case Success(value: final pages):
+        final page = pages.last;
+        if (query.page > 0 && pages.rows.isEmpty) {
           final lastPage = page.totalPages > 0 ? page.totalPages - 1 : 0;
           if (lastPage < query.page) {
             _state = _state.copyWith(query: query.copyWith(page: lastPage));
@@ -249,7 +254,8 @@ class IngredientController extends ChangeNotifier {
           }
         }
         _state = _state.copyWith(
-          rows: page.content,
+          query: query.copyWith(page: pages.lastPage),
+          rows: pages.rows,
           loading: false,
           hasLoaded: true,
           totalElements: page.totalElements,
@@ -259,6 +265,38 @@ class IngredientController extends ChangeNotifier {
         await report(failure);
         if (!can('INGREDIENT_VIEW') || generation != _generation) return;
         _state = _state.copyWith(loading: false, failure: () => failure);
+    }
+    notifyListeners();
+  }
+
+  /// Appends the next page; a failure keeps the rows already shown.
+  Future<void> loadMore() async {
+    final current = _state;
+    if (!can('INGREDIENT_VIEW') ||
+        current.loading ||
+        endless.loadingMore ||
+        !current.hasMore ||
+        _debounce?.isActive == true) {
+      return;
+    }
+    final generation = ++_generation;
+    final query = current.query.copyWith(page: current.query.page + 1);
+    endless.begin();
+    notifyListeners();
+    final result = await _list(query);
+    if (!can('INGREDIENT_VIEW') || generation != _generation) return;
+    switch (result) {
+      case Success(value: final page):
+        _state = _state.copyWith(
+          query: query,
+          rows: endless.append(current.rows, page.content),
+          totalElements: page.totalElements,
+          totalPages: page.totalPages,
+        );
+      case Error(failure: final failure):
+        await report(failure);
+        if (!can('INGREDIENT_VIEW') || generation != _generation) return;
+        endless.fail(failure);
     }
     notifyListeners();
   }

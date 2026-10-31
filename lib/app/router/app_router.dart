@@ -10,13 +10,18 @@ import '../../features/order/presentation/screens/order_create_screen.dart';
 import '../../features/order/presentation/screens/order_detail_screen.dart';
 import '../../features/order/presentation/screens/order_list_screen.dart';
 import '../../features/order/presentation/screens/order_service_context_screen.dart';
+import '../../features/order/presentation/screens/takeaway_orders_screen.dart';
+import '../../features/order/domain/entities/order_entities.dart';
 import '../../features/access/presentation/access_message_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/session_bootstrap_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/reports/presentation/screens/daily_revenue_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
+import '../../features/reports/presentation/widgets/report_filter_panel.dart';
 import '../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
+import '../../features/cashbook/presentation/screens/cashbook_screen.dart';
+import '../../features/cashbook/presentation/widgets/cashbook_filter_panel.dart';
 import '../../features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_documents_screen.dart';
@@ -65,6 +70,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           initialSection: 'orders',
           child: OrderListScreen(
             sessionId: state.uri.queryParameters['tableSessionId'],
+            initialServiceType: ServiceType.values
+                .where(
+                  (t) => t.code == state.uri.queryParameters['serviceType'],
+                )
+                .firstOrNull,
           ),
         ),
         routes: [
@@ -72,9 +82,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: ':orderId',
             onExit: (context, state) =>
                 ref.read(orderExitGuardProvider).allow(context),
-            builder: (context, state) => AppShell(
-              initialSection: 'orders',
-              child: OrderDetailScreen(id: state.pathParameters['orderId']!),
+            builder: (context, state) => AppShell.inner(
+              title: 'Chi tiết đơn hàng',
+              backFallback: AppRoutes.orders,
+              child: OrderDetailScreen(
+                id: state.pathParameters['orderId']!,
+                showBackButton: false,
+              ),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: AppRoutes.takeaway,
+        builder: (context, state) => const AppShell(
+          initialSection: 'takeaway-orders',
+          child: TakeawayOrdersScreen(),
+        ),
+        routes: [
+          GoRoute(
+            path: ':orderId',
+            onExit: (context, state) =>
+                ref.read(orderExitGuardProvider).allow(context),
+            builder: (context, state) => AppShell.inner(
+              title: 'Chi tiết đơn hàng',
+              backFallback: AppRoutes.takeaway,
+              child: OrderDetailScreen(
+                id: state.pathParameters['orderId']!,
+                showBackButton: false,
+              ),
             ),
           ),
         ],
@@ -151,8 +187,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.recipe,
-        builder: (context, state) => AppShell(
-          initialSection: 'menu',
+        builder: (context, state) => AppShell.inner(
+          title: 'Công thức',
+          backFallback: AppRoutes.menu,
           child: RecipeManagementScreen(
             menuItemId: state.pathParameters['menuItemId']!,
           ),
@@ -171,14 +208,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.reports,
-        builder: (context, state) =>
-            const AppShell(initialSection: 'reports', child: ReportsScreen()),
+        builder: (context, state) => const AppShell(
+          initialSection: 'reports',
+          actions: [ReportFilterAction()],
+          child: ReportsScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.referenceMargin,
         builder: (context, state) => const AppShell(
           initialSection: 'reference-margin-reports',
           child: ReferenceMarginReportsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.cashbook,
+        builder: (context, state) => const AppShell(
+          initialSection: 'cashbook',
+          actions: [CashbookFilterAction()],
+          child: CashbookScreen(),
         ),
       ),
       GoRoute(
@@ -246,8 +294,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.inventoryAlert,
-        builder: (context, state) => AppShell(
-          initialSection: 'inventory-alerts',
+        builder: (context, state) => AppShell.inner(
+          title: 'Chi tiết cảnh báo',
+          backFallback: AppRoutes.inventoryAlerts,
           child: InventoryAlertDetailScreen(
             id: state.pathParameters['alertId']!,
           ),
@@ -256,8 +305,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.stockAuditCreate,
         onExit: (context, state) => confirmStockAuditExit(context, ref, null),
-        builder: (context, state) => const AppShell(
-          initialSection: 'inventory-audits',
+        builder: (context, state) => const AppShell.inner(
+          title: 'Tạo kiểm kê',
+          backFallback: AppRoutes.inventoryAudits,
           child: StockAuditCreateScreen(),
         ),
       ),
@@ -268,22 +318,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ref,
           state.pathParameters['auditId']!,
         ),
-        builder: (context, state) => AppShell(
-          initialSection: 'inventory-audits',
+        builder: (context, state) => AppShell.inner(
+          title: 'Chi tiết kiểm kê',
+          backFallback: AppRoutes.inventoryAudits,
           child: StockAuditDetailScreen(id: state.pathParameters['auditId']!),
         ),
       ),
       GoRoute(
         path: AppRoutes.stockCreate,
-        builder: (context, state) => const AppShell(
-          initialSection: 'inventory-documents',
+        builder: (context, state) => const AppShell.inner(
+          title: 'Tạo chứng từ',
+          backFallback: AppRoutes.inventoryDocuments,
           child: StockDocumentCreateScreen(),
         ),
       ),
       GoRoute(
         path: AppRoutes.stockDocument,
-        builder: (context, state) => AppShell(
-          initialSection: 'inventory-documents',
+        builder: (context, state) => AppShell.inner(
+          title: 'Chi tiết chứng từ',
+          backFallback: AppRoutes.inventoryDocuments,
           child: StockDocumentDetailScreen(
             id: state.pathParameters['documentId']!,
           ),
@@ -291,12 +344,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.inventoryTransactions,
-        builder: (context, state) => AppShell(
-          initialSection: 'inventory-transactions',
-          child: state.uri.queryParameters.isEmpty
-              ? const InventoryTransactionsScreen()
-              : InventoryTransactionRoute(query: state.uri.queryParameters),
-        ),
+        builder: (context, state) => state.uri.queryParameters.isEmpty
+            ? const AppShell(
+                initialSection: 'inventory-transactions',
+                child: InventoryTransactionsScreen(),
+              )
+            : AppShell.inner(
+                title: 'Lịch sử biến động kho',
+                backFallback: AppRoutes.inventoryTransactions,
+                child: InventoryTransactionRoute(
+                  query: state.uri.queryParameters,
+                ),
+              ),
       ),
       GoRoute(
         path: AppRoutes.splash,
@@ -331,7 +390,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.subscriptionUnavailable,
         builder: (context, state) => const AccessMessageScreen(
           title: 'Gói dịch vụ chưa hoạt động',
-          ownerMessage: 'Vui lòng liên hệ OWNER hoặc MANAGER.',
+          ownerMessage: 'Vui lòng liên hệ chủ nhà hàng hoặc quản lý.',
         ),
       ),
       GoRoute(
@@ -351,16 +410,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.cashierWebOnly,
         builder: (context, state) => const AccessMessageScreen(
-          title: 'Cashier Web',
+          title: 'Dùng trên bản web',
           ownerMessage:
-              'Tài khoản thu ngân hiện được sử dụng trên hệ thống Cashier Web.',
+              'Tài khoản thu ngân hiện dùng trên hệ thống web dành cho thu ngân.',
         ),
       ),
       GoRoute(
         path: AppRoutes.adminWebOnly,
         builder: (context, state) => const AccessMessageScreen(
           title: 'Quản trị hệ thống',
-          ownerMessage: 'SUPER_ADMIN sử dụng trang quản trị web.',
+          ownerMessage:
+              'Tài khoản quản trị hệ thống dùng trên trang quản trị web.',
         ),
       ),
       GoRoute(

@@ -23,12 +23,16 @@ class OrderDetailScreen extends ConsumerWidget {
     this.initialOrder,
     this.tableName,
     this.isOrderCreateFlow = false,
+    this.showBackButton = true,
   });
 
   final String id;
   final OrderDetail? initialOrder;
   final String? tableName;
   final bool isOrderCreateFlow;
+
+  /// False when the surrounding app bar already provides the way back.
+  final bool showBackButton;
 
   Future<void> _form(
     BuildContext context,
@@ -283,12 +287,15 @@ class OrderDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        tooltip: 'Quay lại',
-                        onPressed: () => _handleBack(context),
-                      ),
-                      const SizedBox(width: 4),
+                      if (showBackButton) ...[
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          tooltip: 'Quay lại',
+                          onPressed: () => _handleBack(context),
+                        ),
+                        const SizedBox(width: 4),
+                      ] else
+                        const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

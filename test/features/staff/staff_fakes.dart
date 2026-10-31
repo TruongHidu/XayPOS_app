@@ -203,10 +203,12 @@ StaffListController listController(
   updateStaff: UpdateStaff(r),
   toggleStaffStatus: ToggleStaffStatus(r),
 );
-StaffPermissionController permissionController(FakeStaffRepository r) =>
-    StaffPermissionController(
-      session: staffSession,
-      getPermissionCatalog: GetPermissionCatalog(r),
-      getStaffPermissions: GetStaffPermissions(r),
-      updateStaffPermissions: UpdateStaffPermissions(r),
-    );
+StaffPermissionController permissionController(
+  FakeStaffRepository r, {
+  AppSession Function() session = staffSession,
+}) => StaffPermissionController(
+  session: session,
+  getPermissionCatalog: GetPermissionCatalog(r),
+  getStaffPermissions: GetStaffPermissions(r),
+  updateStaffPermissions: UpdateStaffPermissions(r),
+);

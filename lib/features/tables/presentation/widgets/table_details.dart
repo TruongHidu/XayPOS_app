@@ -427,16 +427,16 @@ class TableQrDialog extends ConsumerWidget {
         if (c.loading) const LinearProgressIndicator(),
         TableFailurePanel(failure: c.failure, onReload: c.load),
         const Text(
-          'Chưa cấu hình website menu công khai. Đường dẫn bên dưới là payload quản trị; chưa có chức năng mở menu công khai.',
+          'Chưa cấu hình website thực đơn cho khách. Đường dẫn bên dưới chỉ dùng để quản lý, khách chưa mở được thực đơn từ đây.',
         ),
         if (q != null) ...[
           const SizedBox(height: 16),
-          const Text('QR token'),
+          const Text('Mã QR của bàn'),
           SelectableText(q.qrToken),
           const SizedBox(height: 12),
           const Text('Đường dẫn QR'),
           SelectableText(q.qrPath),
-          Text('Version: ${q.version}'),
+          Text('Phiên bản mã QR: ${q.version}'),
           FilledButton.tonal(
             onPressed: c.loading || c.pending('table:$id')
                 ? null
@@ -445,11 +445,11 @@ class TableQrDialog extends ConsumerWidget {
                     ref,
                     permission: 'TABLE_UPDATE',
                     child: TableConfirmation<TableQrPayload>(
-                      title: 'Xoay mã QR?',
+                      title: 'Đổi mã QR?',
                       permission: 'TABLE_UPDATE',
                       initial: q,
                       describe: (_) =>
-                          'Token cũ sẽ bị thay. Các bản QR đã phát hành cần được cập nhật.',
+                          'Mã QR cũ sẽ bị thay. Các bản QR đã phát hành cần được cập nhật.',
                       reload: () async {
                         await c.load();
                         return c.value != null
@@ -459,7 +459,7 @@ class TableQrDialog extends ConsumerWidget {
                       submit: c.rotateCurrent,
                     ),
                   ),
-            child: const Text('Xoay mã QR'),
+            child: const Text('Đổi mã QR'),
           ),
         ],
       ],

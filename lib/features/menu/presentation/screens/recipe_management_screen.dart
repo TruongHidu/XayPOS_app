@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
-import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
@@ -478,30 +476,9 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
+              alignment: WrapAlignment.end,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                IconButton(
-                  tooltip: 'Quay lại',
-                  onPressed: () {
-                    if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    } else {
-                      context.go(
-                        AccessPolicy.canMenu(
-                              ref.read(authControllerProvider).state.session,
-                              'MENU_VIEW',
-                            )
-                            ? AppRoutes.menu
-                            : AppRoutes.appHome,
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                Text(
-                  'Công thức',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
                 IconButton(
                   tooltip: 'Làm mới công thức',
                   onPressed: controller.busy ? null : controller.refresh,

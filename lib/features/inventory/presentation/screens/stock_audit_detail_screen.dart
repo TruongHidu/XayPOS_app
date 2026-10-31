@@ -195,7 +195,7 @@ class StockAuditDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       if (a.adjustmentDocumentId != null)
                         OutlinedButton.icon(
-                          onPressed: () => context.go(
+                          onPressed: () => context.push(
                             stockDetailLocation(a.adjustmentDocumentId!),
                           ),
                           icon: const Icon(Icons.receipt_long_outlined),
@@ -349,7 +349,7 @@ class _AuditReview extends ConsumerWidget {
                               permission: 'STOCK_AUDIT_MANAGE',
                               title: 'Đã đối chiếu bản nhập?',
                               message:
-                                  'Yêu cầu PATCH chưa được xác nhận áp dụng. Chỉ tiếp tục sau khi đã đối chiếu các dòng và ghi chú với dữ liệu máy chủ. Thao tác này giữ bản nhập và không tự gửi lại.',
+                                  'Chưa xác nhận được lần lưu vừa rồi đã áp dụng hay chưa. Chỉ tiếp tục sau khi đã đối chiếu các dòng và ghi chú với dữ liệu máy chủ. Thao tác này giữ bản nhập và không tự gửi lại.',
                               confirm: 'Đã đối chiếu, giữ bản nhập',
                             )) {
                               c.acknowledgeUnappliedPatch();

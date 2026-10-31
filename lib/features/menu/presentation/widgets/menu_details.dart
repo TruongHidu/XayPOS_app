@@ -196,11 +196,13 @@ class MenuBadge extends StatelessWidget {
             Icon(icon, size: 14, color: fgColor),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: fgColor),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: fgColor),
+            ),
           ),
         ],
       ),
@@ -258,155 +260,197 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
       ),
       (_, next) => unawaited(_reload()),
     );
-    return ResponsiveDialog(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    final padding = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
+    final hasImage = _item.imageUrl?.isNotEmpty == true;
+    final canRecipe = AccessPolicy.canRecipe(
+      ref.watch(authControllerProvider).state.session,
+      'RECIPE_VIEW',
+    );
+    final hasCost = _item.costConfigured && _item.costPrice != null;
+    return Dialog(
+      backgroundColor: colors.surface,
+      clipBehavior: Clip.antiAlias,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Stack(
           children: [
-            // Header
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Chi tiết món',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Đóng',
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            if (_loading) const LinearProgressIndicator(),
-            MenuFailurePanel(failure: _failure, onReload: _reload),
-            if (_failure == null) ...[
-              const SizedBox(height: 12),
-              // Hero image — larger than list card
-              MenuImage(
-                url: _item.imageUrl,
-                aspectRatio: 16 / 9,
-                borderRadius: 12,
-                onTap: _openImagePreview,
-              ),
-              const SizedBox(height: 16),
-              // Name
-              Text(_item.name, style: theme.textTheme.headlineSmall),
-              if (AccessPolicy.canRecipe(
-                ref.watch(authControllerProvider).state.session,
-                'RECIPE_VIEW',
-              )) ...[
-                const SizedBox(height: 12),
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.menu_book_outlined),
-                    label: const Text('Công thức'),
-                    onPressed: () {
-                      final router = GoRouter.of(context);
-                      final item = _item;
-                      Navigator.of(context).pop();
-                      router.push(AppRoutes.recipeFor(item.id));
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              // Price section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colors.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_failure == null)
+                    // A missing photo should not push the details off screen.
+                    MenuImage(
+                      url: _item.imageUrl,
+                      aspectRatio: hasImage ? 16 / 9 : 3,
+                      borderRadius: 0,
+                      onTap: _openImagePreview,
+                    )
+                  else
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(padding, 20, 56, 0),
+                      child: Text(
+                        'Chi tiết món',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                    ),
+                  Padding(
+                    padding: EdgeInsets.all(padding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          Icons.sell_outlined,
-                          size: 18,
-                          color: colors.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_item.salePrice}',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: colors.primary,
-                            fontWeight: FontWeight.bold,
+                        MenuFailurePanel(failure: _failure, onReload: _reload),
+                        if (_failure == null) ...[
+                          Text(
+                            _item.name,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '/ ${_item.baseUnit}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colors.onSurfaceVariant,
+                          const SizedBox(height: 12),
+                          MenuItemBadges(item: _item),
+                          const SizedBox(height: 16),
+                          // Price section
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: colors.primaryContainer.withValues(
+                                alpha: 0.3,
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _priceColumn(
+                                    theme,
+                                    label: 'Giá bán',
+                                    value:
+                                        '${menuMoney(_item.salePrice)} / ${_item.baseUnit}',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          color: colors.primary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _priceColumn(
+                                    theme,
+                                    label: 'Giá vốn thủ công',
+                                    value: hasCost
+                                        ? '${menuMoney(_item.costPrice!)} / ${_item.baseUnit}'
+                                        : 'Chưa cấu hình giá vốn',
+                                    style: hasCost
+                                        ? theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          )
+                                        : theme.textTheme.bodyMedium?.copyWith(
+                                            color: colors.onSurfaceVariant,
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          if (_item.description?.isNotEmpty == true) ...[
+                            const SizedBox(height: 16),
+                            _sectionLabel(theme, 'Mô tả'),
+                            const SizedBox(height: 4),
+                            Text(_item.description!),
+                          ],
+                          const SizedBox(height: 16),
+                          _sectionLabel(theme, 'Thông tin'),
+                          const SizedBox(height: 4),
+                          _infoRow(
+                            context,
+                            Icons.qr_code,
+                            'SKU',
+                            _item.sku ?? 'Chưa có',
+                          ),
+                          _infoRow(
+                            context,
+                            Icons.folder_outlined,
+                            'Nhóm',
+                            '${_item.group?.name ?? "Chưa phân nhóm"}${_item.group?.active == false ? " (ngừng hoạt động)" : ""}',
+                          ),
+                          _infoRow(
+                            context,
+                            Icons.straighten,
+                            'Đơn vị tính',
+                            _item.baseUnit,
+                          ),
+                          _infoRow(
+                            context,
+                            Icons.event_outlined,
+                            'Ngày tạo',
+                            menuDate(_item.createdAt),
+                          ),
+                          _infoRow(
+                            context,
+                            Icons.update,
+                            'Cập nhật',
+                            menuDate(_item.updatedAt),
+                          ),
+                          RecipeApplicationControl(
+                            menuItemId: _item.id,
+                            initialMenuItem: _item,
+                          ),
+                        ],
+                        const SizedBox(height: 4),
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (_failure == null && canRecipe)
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.menu_book_outlined),
+                                label: const Text('Công thức'),
+                                onPressed: () {
+                                  final router = GoRouter.of(context);
+                                  final item = _item;
+                                  Navigator.of(context).pop();
+                                  router.push(AppRoutes.recipeFor(item.id));
+                                },
+                              ),
+                            TextButton.icon(
+                              onPressed: _loading ? null : _reload,
+                              icon: const Icon(Icons.refresh, size: 18),
+                              label: const Text('Làm mới'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _item.costConfigured && _item.costPrice != null
-                            ? 'Giá vốn tham chiếu thủ công / dự phòng: ${_item.costPrice} / ${_item.baseUnit}'
-                            : 'Chưa cấu hình giá vốn',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Badges
-              MenuItemBadges(item: _item),
-              RecipeApplicationControl(
-                menuItemId: _item.id,
-                initialMenuItem: _item,
-              ),
-              const SizedBox(height: 16),
-              // Details section
-              _infoRow(
-                context,
-                Icons.qr_code,
-                'SKU: ${_item.sku ?? "Chưa có"}',
-              ),
-              _infoRow(
-                context,
-                Icons.folder_outlined,
-                'Nhóm: ${_item.group?.name ?? "Chưa phân nhóm"}${_item.group?.active == false ? " (ngừng hoạt động)" : ""}',
-              ),
-              if (_item.description?.isNotEmpty == true) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Mô tả',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: colors.onSurfaceVariant,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(_item.description!),
-              ],
-              const Divider(height: 24),
-              Text(
-                'Tạo: ${menuDate(_item.createdAt)} · Cập nhật: ${menuDate(_item.updatedAt)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.outline,
-                ),
+                ],
               ),
-            ],
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _loading ? null : _reload,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Làm mới'),
+            ),
+            if (_loading)
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: LinearProgressIndicator(),
+              ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Đóng',
+                icon: const Icon(Icons.close),
+                style: IconButton.styleFrom(
+                  backgroundColor: colors.surface.withValues(alpha: 0.92),
+                  foregroundColor: colors.onSurface,
+                ),
               ),
             ),
           ],
@@ -415,15 +459,63 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
     );
   }
 
-  Widget _infoRow(BuildContext context, IconData icon, String text) {
+  Widget _priceColumn(
+    ThemeData theme, {
+    required String label,
+    required String value,
+    required TextStyle? style,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: 4),
+      Text(value, style: style),
+    ],
+  );
+
+  Widget _sectionLabel(ThemeData theme, String text) => Text(
+    text,
+    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+  );
+
+  Widget _infoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          Icon(icon, size: 18, color: muted),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(color: muted),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ],
       ),
     );

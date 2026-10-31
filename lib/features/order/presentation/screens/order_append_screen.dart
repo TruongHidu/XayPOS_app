@@ -286,7 +286,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                   const Padding(
                     padding: EdgeInsets.all(8),
                     child: Text(
-                      'Key xung đột. Không tạo key mới; cần đối chiếu với người quản lý.',
+                      'Lần gửi này trùng với một lần gửi trước nhưng nội dung khác. Đừng gửi lại, hãy nhờ người quản lý kiểm tra đơn.',
                     ),
                   ),
                 if (cart.needsReview)

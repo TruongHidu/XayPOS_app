@@ -5,7 +5,9 @@ import '../screens/stock_document_detail_screen.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../domain/entities/stock_document.dart';
+import '../../domain/entities/stock_queries.dart';
 import 'inventory_widgets.dart';
 import 'stock_widgets.dart';
 import 'warehouse_picker.dart';
@@ -44,7 +46,7 @@ class StockDocumentList extends ConsumerWidget {
                         }
                         if (!context.mounted || !create.current) return;
                         create.begin(type);
-                        context.go('/app/inventory/stock-documents/new');
+                        context.push('/app/inventory/stock-documents/new');
                       },
                 icon: const Icon(Icons.add),
                 label: Text('Tạo phiếu ${type.label.toLowerCase()}'),
@@ -52,14 +54,14 @@ class StockDocumentList extends ConsumerWidget {
             if (create.dirty && !create.uncertain && create.result == null)
               OutlinedButton.icon(
                 onPressed: () =>
-                    context.go('/app/inventory/stock-documents/new'),
+                    context.push('/app/inventory/stock-documents/new'),
                 icon: const Icon(Icons.edit_note),
                 label: const Text('Tiếp tục phiếu đang soạn'),
               ),
             if (create.uncertain)
               OutlinedButton.icon(
                 onPressed: () =>
-                    context.go('/app/inventory/stock-documents/new'),
+                    context.push('/app/inventory/stock-documents/new'),
                 icon: const Icon(Icons.pending_actions),
                 label: const Text('Khôi phục yêu cầu chưa xác minh'),
               ),
@@ -72,7 +74,16 @@ class StockDocumentList extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
-          identity: c,
+          listenable: c,
+          title: 'Bộ lọc chứng từ',
+          onRefresh: c.load,
+          activeCount: () => [
+            c.query.type,
+            c.query.status,
+            c.query.warehouseId,
+            c.query.dates,
+          ].where((value) => value != null).length,
+          onClear: () => c.filter(StockDocumentQuery(q: c.query.q)),
           search: TextFormField(
             key: ValueKey(('document-search', c)),
             initialValue: q.q,
@@ -82,97 +93,95 @@ class StockDocumentList extends ConsumerWidget {
             ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
             onChanged: c.search,
           ),
-          children: [
-            StockSelect(
-              label: 'Loại phiếu',
-              value: q.type?.code ?? 'all',
-              items: {
-                'all': 'Tất cả loại',
-                for (final v in StockDocumentType.values) v.code: v.label,
-              },
-              changed: (v) => c.filter(
-                q.copyWith(
-                  type: () => StockDocumentType.values
-                      .where((t) => t.code == v)
-                      .firstOrNull,
+          filters: () {
+            final q = c.query;
+            return [
+              StockSelect(
+                label: 'Loại phiếu',
+                value: q.type?.code ?? 'all',
+                items: {
+                  'all': 'Tất cả loại',
+                  for (final v in StockDocumentType.values) v.code: v.label,
+                },
+                changed: (v) => c.filter(
+                  q.copyWith(
+                    type: () => StockDocumentType.values
+                        .where((t) => t.code == v)
+                        .firstOrNull,
+                  ),
                 ),
               ),
-            ),
-            StockSelect(
-              label: 'Trạng thái phiếu',
-              value: q.status?.code ?? 'all',
-              items: {
-                'all': 'Tất cả trạng thái',
-                for (final v in StockDocumentStatus.values) v.code: v.label,
-              },
-              changed: (v) => c.filter(
-                q.copyWith(
-                  status: () => StockDocumentStatus.values
-                      .where((t) => t.code == v)
-                      .firstOrNull,
+              StockSelect(
+                label: 'Trạng thái phiếu',
+                value: q.status?.code ?? 'all',
+                items: {
+                  'all': 'Tất cả trạng thái',
+                  for (final v in StockDocumentStatus.values) v.code: v.label,
+                },
+                changed: (v) => c.filter(
+                  q.copyWith(
+                    status: () => StockDocumentStatus.values
+                        .where((t) => t.code == v)
+                        .firstOrNull,
+                  ),
                 ),
               ),
-            ),
-            StockSelect(
-              label: 'Sắp xếp',
-              value: q.sortBy,
-              items: const {
-                'createdAt': 'Ngày tạo',
-                'updatedAt': 'Cập nhật',
-                'documentCode': 'Mã phiếu',
-                'documentType': 'Loại phiếu',
-                'status': 'Trạng thái',
-                'totalCost': 'Tổng giá trị',
-              },
-              changed: (v) => c.filter(q.copyWith(sortBy: v)),
-            ),
-            StockSelect(
-              label: 'Thứ tự',
-              value: q.direction,
-              items: const {'desc': 'Mới/lớn trước', 'asc': 'Cũ/nhỏ trước'},
-              changed: (v) => c.filter(q.copyWith(direction: v)),
-            ),
-            StockSelect(
-              label: 'Mỗi trang',
-              value: '${q.size}',
-              items: const {
-                '20': '20 dòng',
-                '50': '50 dòng',
-                '100': '100 dòng',
-              },
-              changed: (v) => c.filter(q.copyWith(size: int.parse(v))),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              onPressed: () async {
-                final value = await chooseInventoryWarehouse(context, ref);
-                if (context.mounted && value != null && c.current) {
-                  c.filter(q.copyWith(warehouseId: () => value.id));
-                }
-              },
-              icon: const Icon(Icons.warehouse_outlined),
-              label: Text(
-                q.warehouseId == null ? 'Tất cả kho' : 'Kho: ${q.warehouseId}',
+              StockSelect(
+                label: 'Sắp xếp',
+                value: q.sortBy,
+                items: const {
+                  'createdAt': 'Ngày tạo',
+                  'updatedAt': 'Cập nhật',
+                  'documentCode': 'Mã phiếu',
+                  'documentType': 'Loại phiếu',
+                  'status': 'Trạng thái',
+                  'totalCost': 'Tổng giá trị',
+                },
+                changed: (v) => c.filter(q.copyWith(sortBy: v)),
               ),
-            ),
-            if (q.warehouseId != null)
-              IconButton(
-                tooltip: 'Bỏ lọc kho',
-                onPressed: () => c.filter(q.copyWith(warehouseId: () => null)),
-                icon: const Icon(Icons.close),
+              StockSelect(
+                label: 'Thứ tự',
+                value: q.direction,
+                items: const {'desc': 'Mới/lớn trước', 'asc': 'Cũ/nhỏ trước'},
+                changed: (v) => c.filter(q.copyWith(direction: v)),
               ),
-            StockDateFilter(
-              range: q.dates,
-              changed: (v) => c.filter(q.copyWith(dates: () => v)),
-            ),
-          ],
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final value = await chooseInventoryWarehouse(
+                        context,
+                        ref,
+                      );
+                      if (context.mounted && value != null && c.current) {
+                        c.filter(q.copyWith(warehouseId: () => value.id));
+                      }
+                    },
+                    icon: const Icon(Icons.warehouse_outlined),
+                    label: Text(
+                      q.warehouseId == null
+                          ? 'Tất cả kho'
+                          : 'Kho: ${q.warehouseId}',
+                    ),
+                  ),
+                  if (q.warehouseId != null)
+                    IconButton(
+                      tooltip: 'Bỏ lọc kho',
+                      onPressed: () =>
+                          c.filter(q.copyWith(warehouseId: () => null)),
+                      icon: const Icon(Icons.close),
+                    ),
+                  StockDateFilter(
+                    range: q.dates,
+                    changed: (v) => c.filter(q.copyWith(dates: () => v)),
+                  ),
+                ],
+              ),
+            ];
+          },
         ),
         const SizedBox(height: 16),
         if (c.loading) const LinearProgressIndicator(),
@@ -322,13 +331,12 @@ class StockDocumentList extends ConsumerWidget {
             );
           },
         ),
-        if (c.hasLoaded)
-          InventoryPaging(
-            page: q.page,
-            totalPages: c.totalPages,
-            totalElements: c.totalElements,
-            loading: c.loading,
-            changed: c.page,
+        if (c.hasLoaded && c.rows.isNotEmpty)
+          EndlessListFooter(
+            hasMore: c.hasMore,
+            failureMessage: c.endless.failure?.message,
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} chứng từ',
+            onLoadMore: c.loadMore,
           ),
       ],
     );

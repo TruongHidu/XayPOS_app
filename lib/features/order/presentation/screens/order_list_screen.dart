@@ -4,13 +4,18 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../domain/entities/order_entities.dart';
 import '../controllers/order_list_controller.dart';
 import '../widgets/order_widgets.dart';
 
 class OrderListScreen extends ConsumerStatefulWidget {
-  const OrderListScreen({super.key, this.sessionId});
+  const OrderListScreen({super.key, this.sessionId, this.initialServiceType});
   final String? sessionId;
+
+  /// Pre-selects the order type filter, e.g. from "Xem lịch sử đơn mang đi".
+  final ServiceType? initialServiceType;
 
   @override
   ConsumerState<OrderListScreen> createState() => _OrderListScreenState();
@@ -23,6 +28,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    final type = widget.initialServiceType;
+    if (type != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(orderListProvider(widget.sessionId)).filter(type: type);
+      });
+    }
   }
 
   @override
@@ -31,368 +43,152 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     super.dispose();
   }
 
-  Widget _buildDropdownPill<T>({
-    required T? value,
-    required String hint,
-    required IconData icon,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?> onChanged,
-    bool isActive = false,
-  }) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFFF7ED) : Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isActive ? OrderPalette.orange : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isDense: true,
-          icon: Icon(
-            Icons.keyboard_arrow_down_rounded,
-            size: 18,
-            color: isActive ? OrderPalette.orange : Colors.grey.shade500,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-            color: isActive ? OrderPalette.orange : const Color(0xFF374151),
-          ),
-          hint: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 14, color: Colors.grey.shade500),
-              const SizedBox(width: 5),
-              Text(
-                hint,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-          selectedItemBuilder: (context) {
-            return items.map((item) {
-              final text = item.child is Text ? (item.child as Text).data ?? '' : '';
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icon,
-                    size: 14,
-                    color: isActive ? OrderPalette.orange : Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: isActive
-                          ? OrderPalette.orange
-                          : const Color(0xFF374151),
-                    ),
-                  ),
-                ],
-              );
-            }).toList();
-          },
-          items: items,
-          onChanged: onChanged,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDirectionButton({
-    required bool isDesc,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      height: 36,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Tooltip(
-        message: isDesc ? 'Đang giảm dần' : 'Đang tăng dần',
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isDesc
-                      ? Icons.arrow_downward_rounded
-                      : Icons.arrow_upward_rounded,
-                  size: 15,
-                  color: OrderPalette.orange,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  isDesc ? 'Giảm dần' : 'Tăng dần',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF4B5563),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _select<T>({
+    required String label,
+    required T value,
+    required Map<T, String> items,
+    required ValueChanged<T> onChanged,
+  }) => DropdownButtonFormField<T>(
+    key: ValueKey((label, value)),
+    value: value,
+    isExpanded: true,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+    ),
+    items: [
+      for (final entry in items.entries)
+        DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+    ],
+    onChanged: (value) => onChanged(value as T),
+  );
 
   Widget _buildFilterCard(OrderListController c) {
-    final hasActiveFilter = c.query.status != null ||
-        c.query.serviceType != null ||
-        c.query.sortBy != 'createdAt' ||
-        c.query.direction != 'desc' ||
-        _searchController.text.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Search Input ───────────────────────────────────────────
-          TextField(
-            controller: _searchController,
-            maxLength: 100,
-            onChanged: (val) {
-              c.search(val);
-              setState(() {});
-            },
-            style: const TextStyle(fontSize: 14),
-            decoration: InputDecoration(
-              isDense: true,
-              hintText: 'Tìm theo mã đơn (ví dụ: OD-001)...',
-              hintStyle: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade400,
-              ),
-              prefixIcon: const Icon(
-                Icons.search_rounded,
-                color: OrderPalette.orange,
-                size: 20,
-              ),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.cancel_rounded, size: 18),
-                      color: Colors.grey.shade400,
-                      onPressed: () {
-                        _searchController.clear();
-                        c.search('');
-                        setState(() {});
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: const Color(0xFFF9FAFB),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade200),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade200),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: OrderPalette.orange,
-                  width: 1.5,
-                ),
-              ),
-              counterText: '',
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SearchFilterRow(
+        search: TextField(
+          controller: _searchController,
+          maxLength: 100,
+          onChanged: (val) {
+            c.search(val);
+            setState(() {});
+          },
+          style: const TextStyle(fontSize: 14),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'Tìm theo mã đơn (ví dụ: OD-001)...',
+            hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: OrderPalette.orange,
+              size: 20,
             ),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.cancel_rounded, size: 18),
+                    color: Colors.grey.shade400,
+                    onPressed: () {
+                      _searchController.clear();
+                      c.search('');
+                      setState(() {});
+                    },
+                  )
+                : null,
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 10,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: OrderPalette.orange,
+                width: 1.5,
+              ),
+            ),
+            counterText: '',
           ),
-
-          const SizedBox(height: 10),
-
-          // ── Filter Pills & Sort Options ────────────────────────────
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              // 1. Trạng thái đơn (Status)
-              _buildDropdownPill<OrderStatus?>(
-                value: c.query.status,
-                hint: 'Mọi trạng thái',
-                icon: Icons.flag_outlined,
-                isActive: c.query.status != null,
-                items: [
-                  const DropdownMenuItem<OrderStatus?>(
-                    value: null,
-                    child: Text('Mọi trạng thái'),
-                  ),
-                  for (final status in OrderStatus.values)
-                    DropdownMenuItem(
-                      value: status,
-                      child: Text(status.label),
-                    ),
-                ],
-                onChanged: (status) => c.filter(
-                  status: status,
-                  type: c.query.serviceType,
-                  sortBy: c.query.sortBy,
-                  direction: c.query.direction,
-                ),
+        ),
+        filter: FilterPanelButton(
+          listenable: c,
+          title: 'Bộ lọc đơn hàng',
+          onRefresh: c.load,
+          activeCount: () => [
+            c.query.status != null,
+            c.query.serviceType != null,
+            c.query.sortBy != 'createdAt',
+            c.query.direction != 'desc',
+          ].where((active) => active).length,
+          onClear: () =>
+              c.filter(status: null, type: null, sortBy: 'createdAt'),
+          filters: () => [
+            _select<OrderStatus?>(
+              label: 'Trạng thái đơn',
+              value: c.query.status,
+              items: {
+                null: 'Mọi trạng thái',
+                for (final status in OrderStatus.values) status: status.label,
+              },
+              onChanged: (status) => c.filter(
+                status: status,
+                type: c.query.serviceType,
+                sortBy: c.query.sortBy,
+                direction: c.query.direction,
               ),
-
-              // 2. Loại đơn (Service Type)
-              _buildDropdownPill<ServiceType?>(
-                value: c.query.serviceType,
-                hint: 'Mọi loại đơn',
-                icon: Icons.storefront_outlined,
-                isActive: c.query.serviceType != null,
-                items: [
-                  const DropdownMenuItem<ServiceType?>(
-                    value: null,
-                    child: Text('Mọi loại đơn'),
-                  ),
-                  for (final type in ServiceType.values)
-                    DropdownMenuItem(
-                      value: type,
-                      child: Text(type.label),
-                    ),
-                ],
-                onChanged: (type) => c.filter(
-                  status: c.query.status,
-                  type: type,
-                  sortBy: c.query.sortBy,
-                  direction: c.query.direction,
-                ),
+            ),
+            _select<ServiceType?>(
+              label: 'Loại đơn',
+              value: c.query.serviceType,
+              items: {
+                null: 'Mọi loại đơn',
+                for (final type in ServiceType.values) type: type.label,
+              },
+              onChanged: (type) => c.filter(
+                status: c.query.status,
+                type: type,
+                sortBy: c.query.sortBy,
+                direction: c.query.direction,
               ),
-
-              // 3. Sắp xếp theo (Sort By)
-              _buildDropdownPill<String>(
-                value: c.query.sortBy,
-                hint: 'Thời gian tạo',
-                icon: Icons.sort_rounded,
-                isActive: c.query.sortBy != 'createdAt',
-                items: [
-                  for (final entry in {
-                    'createdAt': 'Thời gian tạo',
-                    'updatedAt': 'Cập nhật',
-                    'orderCode': 'Mã đơn',
-                    'totalAmount': 'Tổng tiền',
-                  }.entries)
-                    DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    ),
-                ],
-                onChanged: (sort) => c.filter(
-                  status: c.query.status,
-                  type: c.query.serviceType,
-                  sortBy: sort!,
-                  direction: c.query.direction,
-                ),
+            ),
+            _select<String>(
+              label: 'Sắp xếp theo',
+              value: c.query.sortBy,
+              items: const {
+                'createdAt': 'Thời gian tạo',
+                'updatedAt': 'Cập nhật',
+                'orderCode': 'Mã đơn',
+                'totalAmount': 'Tổng tiền',
+              },
+              onChanged: (sort) => c.filter(
+                status: c.query.status,
+                type: c.query.serviceType,
+                sortBy: sort,
+                direction: c.query.direction,
               ),
-
-              // 4. Chiều sắp xếp (Tăng / Giảm)
-              _buildDirectionButton(
-                isDesc: c.query.direction == 'desc',
-                onTap: () => c.filter(
-                  status: c.query.status,
-                  type: c.query.serviceType,
-                  sortBy: c.query.sortBy,
-                  direction: c.query.direction == 'desc' ? 'asc' : 'desc',
-                ),
+            ),
+            _select<String>(
+              label: 'Thứ tự',
+              value: c.query.direction,
+              items: const {'desc': 'Mới/lớn trước', 'asc': 'Cũ/nhỏ trước'},
+              onChanged: (direction) => c.filter(
+                status: c.query.status,
+                type: c.query.serviceType,
+                sortBy: c.query.sortBy,
+                direction: direction,
               ),
-
-              // 5. Nút đặt lại (Reset filters)
-              if (hasActiveFilter)
-                InkWell(
-                  onTap: () {
-                    _searchController.clear();
-                    c.search('');
-                    c.filter(
-                      status: null,
-                      type: null,
-                      sortBy: 'createdAt',
-                      direction: 'desc',
-                    );
-                    setState(() {});
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh_rounded,
-                          size: 15,
-                          color: Colors.red.shade400,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Đặt lại',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red.shade500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -407,10 +203,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       ),
       color: Colors.white,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 6,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         onTap: () => context.push('/app/orders/${order.id}'),
         leading: Container(
           width: 44,
@@ -520,10 +313,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
               const SizedBox(height: 4),
               Text(
                 formatLocalDate(order.createdAt),
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
               ),
             ],
           ),
@@ -607,24 +397,22 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     child: Center(
                       child: Text(
                         'Chưa có đơn phù hợp.',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ),
                   ),
                 for (final order in c.page?.content ?? <OrderSummary>[])
                   _buildOrderCard(order),
+                if (c.page?.content.isNotEmpty == true)
+                  EndlessListFooter(
+                    hasMore: c.hasMore,
+                    failureMessage: c.endless.failure?.message,
+                    endLabel: 'Đã hiển thị tất cả ${c.page!.totalElements} đơn',
+                    onLoadMore: c.loadMore,
+                  ),
               ],
             ),
           ),
-        ),
-        OrderPaging(
-          page: c.page?.page ?? 0,
-          totalPages: c.page?.totalPages ?? 0,
-          loading: c.loading,
-          onPage: c.go,
         ),
       ],
     );

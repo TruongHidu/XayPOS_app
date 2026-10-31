@@ -1,19 +1,10 @@
+import '../../../../core/formatters/money_format.dart';
 import '../../domain/entities/recipe_cost_amount.dart';
 
-String recipeCostNumber(Object value) {
-  final parts = value.toString().split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-    (m) => '${m[1]}.',
-  );
-  final fraction = parts.length == 1
-      ? ''
-      : parts[1].replaceFirst(RegExp(r'0+$'), '');
-  return '$whole${fraction.isEmpty ? '' : ',$fraction'}';
-}
+String recipeCostNumber(Object value) => formatDecimal(value.toString());
 
 String recipeCostMoney(RecipeCostAmount amount, String currency) =>
-    '${recipeCostNumber(amount)} $currency';
+    formatMoney(amount.toString(), currency: currency);
 
 String recipeCostCents(BigInt cents, String currency) {
   final digits = cents.abs().toString().padLeft(3, '0');

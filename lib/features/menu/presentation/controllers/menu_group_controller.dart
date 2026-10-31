@@ -24,7 +24,7 @@ class MenuGroupController extends MenuListController<MenuGroup> {
        _status = status,
        _delete = delete,
        _events = events,
-       super(list: list.call, items: false);
+       super(list: list.call, items: false, idOf: (group) => group.id);
   final GetMenuGroupDetail _detail;
   final CreateMenuGroup _create;
   final UpdateMenuGroup _update;

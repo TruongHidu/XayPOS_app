@@ -185,7 +185,7 @@ void main() {
     },
   );
   testWidgets(
-    'real routes open alert/audit detail while keeping inventory shell selection',
+    'real routes open alert/audit detail and back leads to the inventory shell',
     (tester) async {
       final alerts = FakeInventoryAlerts(), audits = FakeStockAudits();
       final container = await _pump(
@@ -201,6 +201,10 @@ void main() {
       expect(find.byType(StockAuditDetailScreen), findsOneWidget);
       expect(audits.details, 1);
       expect(audits.itemQueries, hasLength(1));
+      expect(find.text('Chi tiết kiểm kê'), findsOneWidget);
+      expect(find.byTooltip('Menu'), findsNothing);
+      await tester.tap(find.byTooltip('Quay lại'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Menu'));
       await tester.pumpAndSettle();
       await _tap(tester, find.widgetWithText(ListTile, 'Tồn kho'));

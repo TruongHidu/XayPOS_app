@@ -20,7 +20,11 @@ class RestaurantTableController extends TableListController<RestaurantTable> {
     required this.statusTable,
     required this.assignTable,
     required this.deleteTable,
-  }) : super(kind: TableQueryKind.tables, list: list.call) {
+  }) : super(
+         kind: TableQueryKind.tables,
+         list: list.call,
+         idOf: (table) => table.id,
+       ) {
     _eventRevision = events.revision;
     events.addListener(_event);
   }

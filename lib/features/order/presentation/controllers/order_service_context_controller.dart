@@ -269,7 +269,7 @@ class OrderServiceContextController extends OrderController {
         if (!canView) {
           return _selectionFailure(
             'ORDER_VIEW_REQUIRED',
-            'Cần ORDER_VIEW để kiểm tra đơn của bàn đang sử dụng.',
+            'Bạn chưa có quyền xem đơn hàng nên không kiểm tra được đơn của bàn đang sử dụng.',
             type: FailureType.forbidden,
           );
         }

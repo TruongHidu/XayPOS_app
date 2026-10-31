@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/menu_page.dart';
 import '../../domain/entities/menu_query.dart';
@@ -25,6 +26,7 @@ class MenuListState<T> {
   final int totalElements;
   final int totalPages;
   bool get initialLoading => loading && !hasLoaded;
+  bool get hasMore => query.page < totalPages - 1;
 
   MenuListState<T> copyWith({
     MenuQuery? query,
@@ -51,9 +53,11 @@ abstract class MenuListController<T> extends ChangeNotifier {
     required AppSession? Function() session,
     required Future<Result<MenuPage<T>>> Function(MenuQuery) list,
     required this.items,
+    required Object Function(T) idOf,
     this.onAccessDenied,
     MenuQuery query = const MenuQuery(),
   }) : _session = session,
+       endless = EndlessPages<T>(idOf),
        _scope = AccessPolicy.menuScope(session()),
        _list = list,
        _state = MenuListState(query: query);
@@ -61,6 +65,7 @@ abstract class MenuListController<T> extends ChangeNotifier {
   final AppSession? Function() _session;
   final Object? _scope;
   final Future<Result<MenuPage<T>>> Function(MenuQuery) _list;
+  final EndlessPages<T> endless;
   final Future<void> Function(Failure)? onAccessDenied;
   final bool items;
   MenuListState<T> _state;
@@ -138,11 +143,18 @@ abstract class MenuListController<T> extends ChangeNotifier {
     final query = _state.query;
     _state = _state.copyWith(loading: true, failure: () => null);
     notifyListeners();
-    final result = await _list(query);
+    final result = await endless.read(
+      page: query.page,
+      fetch: (page) => _list(query.copyWith(page: page)),
+      content: (page) => page.content,
+      totalPages: (page) => page.totalPages,
+      active: () => can('MENU_VIEW') && generation == _generation,
+    );
     if (!can('MENU_VIEW') || generation != _generation) return;
     switch (result) {
-      case Success(value: final page):
-        if (query.page > 0 && page.content.isEmpty) {
+      case Success(value: final pages):
+        final page = pages.last;
+        if (query.page > 0 && pages.rows.isEmpty) {
           final lastPage = page.totalPages > 0 ? page.totalPages - 1 : 0;
           if (lastPage < query.page) {
             _state = _state.copyWith(query: query.copyWith(page: lastPage));
@@ -151,7 +163,8 @@ abstract class MenuListController<T> extends ChangeNotifier {
           }
         }
         _state = _state.copyWith(
-          rows: page.content,
+          query: query.copyWith(page: pages.lastPage),
+          rows: pages.rows,
           loading: false,
           hasLoaded: true,
           totalElements: page.totalElements,
@@ -161,6 +174,38 @@ abstract class MenuListController<T> extends ChangeNotifier {
         await report(failure);
         if (!can('MENU_VIEW') || generation != _generation) return;
         _state = _state.copyWith(loading: false, failure: () => failure);
+    }
+    notifyListeners();
+  }
+
+  /// Appends the next page; a failure keeps the rows already shown.
+  Future<void> loadMore() async {
+    final current = _state;
+    if (!can('MENU_VIEW') ||
+        current.loading ||
+        endless.loadingMore ||
+        !current.hasMore ||
+        _debounce?.isActive == true) {
+      return;
+    }
+    final generation = ++_generation;
+    final query = current.query.copyWith(page: current.query.page + 1);
+    endless.begin();
+    notifyListeners();
+    final result = await _list(query);
+    if (!can('MENU_VIEW') || generation != _generation) return;
+    switch (result) {
+      case Success(value: final page):
+        _state = _state.copyWith(
+          query: query,
+          rows: endless.append(current.rows, page.content),
+          totalElements: page.totalElements,
+          totalPages: page.totalPages,
+        );
+      case Error(failure: final failure):
+        await report(failure);
+        if (!can('MENU_VIEW') || generation != _generation) return;
+        endless.fail(failure);
     }
     notifyListeners();
   }

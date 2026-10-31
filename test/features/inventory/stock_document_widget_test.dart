@@ -239,7 +239,7 @@ void main() {
     await _tap(tester, find.text('Xóa bộ lọc'));
     expect(ledger.queries.last.warehouseId, isNull);
     expect(ledger.queries.last.documentId, isNull);
-    expect(find.text('Tất cả kho'), findsOneWidget);
+    expect(find.text('Kho: KHO-W1'), findsNothing);
     expect(tester.takeException(), isNull);
   });
   testWidgets('invalid ledger source link makes no unfiltered request', (
@@ -307,16 +307,17 @@ void main() {
       tester.view.physicalSize = const Size(600, 1000);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await _tap(tester, find.text('Lọc và sắp xếp'));
-      expect(find.byType(StockSelect), findsNWidgets(5));
+      await _tap(tester, find.byTooltip('Bộ lọc'));
+      expect(find.byType(StockSelect), findsNWidgets(4));
       expect(bucket.readState(context), isA<double>());
+      await _tap(tester, find.byTooltip('Đóng').last);
 
       tester.view.physicalSize = const Size(1200, 1000);
       await tester.pumpAndSettle();
       tester.view.physicalSize = const Size(600, 1000);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.byType(StockSelect), findsNWidgets(5));
+      expect(bucket.readState(context), isA<double>());
     },
   );
 
@@ -333,9 +334,10 @@ void main() {
       final documentsContext = tester.element(documents);
       final bucket = PageStorage.of(documentsContext);
       bucket.writeState(documentsContext, 180.0);
-      await _tap(tester, find.text('Lọc và sắp xếp'));
-      expect(find.byType(StockSelect), findsNWidgets(5));
+      await _tap(tester, find.byTooltip('Bộ lọc'));
+      expect(find.byType(StockSelect), findsNWidgets(4));
       expect(bucket.readState(documentsContext), isA<double>());
+      await _tap(tester, find.byTooltip('Đóng').last);
 
       router.go('/app/inventory/transactions');
       await tester.pumpAndSettle();
@@ -345,20 +347,14 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       expect(find.byType(StockSelect), findsNothing);
-      await _tap(tester, find.text('Lọc thêm'));
-      expect(find.byType(StockSelect), findsNWidgets(4));
+      await _tap(tester, find.byTooltip('Bộ lọc'));
+      expect(find.byType(StockSelect), findsNWidgets(3));
+      await _tap(tester, find.byTooltip('Đóng').last);
 
       router.go('/app/inventory/stock-documents');
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(find.byType(StockSelect), findsNWidgets(5));
-      router.go('/app/inventory/transactions');
-      await tester.pumpAndSettle();
-      // The ledger's auto-disposed controller starts a fresh filter identity.
       expect(find.byType(StockSelect), findsNothing);
-      await _tap(tester, find.text('Lọc thêm'));
-      expect(find.byType(StockSelect), findsNWidgets(4));
-      expect(tester.takeException(), isNull);
     },
   );
 
@@ -420,11 +416,10 @@ void main() {
           );
           await _see(tester, find.text('RCV-20261018-d1'));
           expect(tester.takeException(), isNull);
-          if (find.byType(ExpansionTile).evaluate().isNotEmpty) {
-            await _tap(tester, find.text('Lọc và sắp xếp'));
-            expect(find.byType(StockSelect), findsNWidgets(5));
-            expect(tester.takeException(), isNull);
-          }
+          await _tap(tester, find.byTooltip('Bộ lọc'));
+          expect(find.byType(StockSelect), findsNWidgets(4));
+          expect(tester.takeException(), isNull);
+          await _tap(tester, find.byTooltip('Đóng').last);
           router.go('/app/inventory/stock-documents/d1');
           await tester.pumpAndSettle();
           await _see(
@@ -510,6 +505,7 @@ void main() {
       expect(find.text('Xác nhận chứng từ'), findsNothing);
       router.go('/app/inventory/transactions?warehouseId=w1');
       await tester.pumpAndSettle();
+      await _tap(tester, find.byTooltip('Bộ lọc'));
       await _tap(tester, find.text('Tất cả nguyên liệu'));
       expect(find.byKey(const ValueKey('stock-pick-i3')), findsOneWidget);
       expect(balances.queries.last.q.ingredientActive, isNull);

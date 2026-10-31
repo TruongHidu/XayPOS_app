@@ -1,3 +1,5 @@
+import '../../../../core/formatters/money_format.dart';
+
 /// Exact currency representation using 2-decimal minor units (hundredths) via BigInt.
 ///
 /// Prevents IEEE 754 floating point distortion in business calculations,
@@ -110,25 +112,11 @@ class ReportMoney implements Comparable<ReportMoney> {
   /// Formatted monetary string for display.
   ///
   /// Example: "1.500.000 VND" or "1.500.000,50 USD".
-  String format({String? currencyCode, bool includeCurrency = true}) {
-    final isNeg = minorUnits < BigInt.zero;
-    final abs = isNeg ? -minorUnits : minorUnits;
-
-    final whole = (abs ~/ BigInt.from(100)).toString();
-    final grouped = whole.replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (_) => '.',
-    );
-    final fraction = (abs % BigInt.from(100)).toString().padLeft(2, '0');
-    final fracPart = fraction == '00' ? '' : ',$fraction';
-    final sign = isNeg ? '-' : '';
-
-    final curr =
-        includeCurrency && currencyCode != null && currencyCode.isNotEmpty
-        ? ' $currencyCode'
-        : '';
-    return '$sign$grouped$fracPart$curr';
-  }
+  String format({String? currencyCode, bool includeCurrency = true}) =>
+      formatMinorUnits(
+        minorUnits,
+        currency: includeCurrency ? currencyCode : null,
+      );
 
   /// Compact representation for chart axes.
   ///

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
-import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../domain/entities/inventory_quantity.dart';
 
 Future<T?> showInventoryDialog<T>(
@@ -250,6 +250,7 @@ class InventoryFilters extends StatelessWidget {
   const InventoryFilters({
     super.key,
     required this.identity,
+    required this.listenable,
     required this.search,
     required this.onSearch,
     required this.active,
@@ -259,19 +260,19 @@ class InventoryFilters extends StatelessWidget {
     required this.sorts,
     required this.onSort,
     required this.onDirection,
-    required this.size,
-    required this.onSize,
     this.warehouses = false,
   });
   final Object identity;
-  final String search, sortBy, direction;
-  final bool? active;
-  final int size;
+  final Listenable listenable;
+  final String search;
+
+  /// Read again while the filter panel is open, so these stay current.
+  final bool? Function() active;
+  final String Function() sortBy, direction;
   final Map<String, String> sorts;
   final bool warehouses;
   final ValueChanged<String> onSearch, onSort, onDirection;
   final ValueChanged<bool?> onActive;
-  final ValueChanged<int> onSize;
   @override
   Widget build(BuildContext context) {
     Widget select(
@@ -293,67 +294,36 @@ class InventoryFilters extends StatelessWidget {
         if (v != null) changed(v);
       },
     );
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final controls = ResponsiveColumns(
-      minColumnWidth: 220 * scale.clamp(1, 1.5),
-      maxColumns: 4,
-      spacing: 12,
-      children: [
-        select(
-          'Trạng thái',
-          active?.toString() ?? 'all',
-          const {'all': 'Tất cả', 'true': 'Đang bật', 'false': 'Đã tắt'},
-          (v) => onActive(v == 'all' ? null : v == 'true'),
-        ),
-        select('Sắp xếp', sortBy, sorts, onSort),
-        select('Thứ tự', direction, const {
-          'asc': 'Tăng dần',
-          'desc': 'Giảm dần',
-        }, onDirection),
-        select('Mỗi trang', '$size', const {
-          '20': '20 dòng',
-          '50': '50 dòng',
-          '100': '100 dòng',
-        }, (v) => onSize(int.parse(v))),
-      ],
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 700 ||
-            constraints.maxWidth < 1000 && scale > 1.3;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextFormField(
-              key: ValueKey(('inventory-search', identity)),
-              initialValue: search,
-              maxLength: 100,
-              decoration: inventoryField(
-                warehouses ? 'Tìm kho' : 'Tìm nguyên liệu',
-                hint: warehouses ? 'Mã hoặc tên kho' : 'Tên hoặc SKU',
-              ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
-              onChanged: onSearch,
-            ),
-            const SizedBox(height: 12),
-            if (compact)
-              ExpansionTile(
-                key: PageStorageKey(('inventory-filters', identity)),
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.symmetric(vertical: 12),
-                title: const Text('Lọc và sắp xếp'),
-                subtitle: active == null
-                    ? null
-                    : Text(
-                        active! ? 'Chỉ đang hoạt động' : 'Chỉ ngừng hoạt động',
-                      ),
-                children: [controls],
-              )
-            else
-              controls,
-          ],
-        );
-      },
+    return SearchFilterRow(
+      search: TextFormField(
+        key: ValueKey(('inventory-search', identity)),
+        initialValue: search,
+        maxLength: 100,
+        decoration: inventoryField(
+          warehouses ? 'Tìm kho' : 'Tìm nguyên liệu',
+          hint: warehouses ? 'Mã hoặc tên kho' : 'Tên hoặc SKU',
+        ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
+        onChanged: onSearch,
+      ),
+      filter: FilterPanelButton(
+        listenable: listenable,
+        title: warehouses ? 'Bộ lọc kho' : 'Bộ lọc tồn kho',
+        activeCount: () => active() == null ? 0 : 1,
+        onClear: () => onActive(null),
+        filters: () => [
+          select(
+            'Trạng thái',
+            active()?.toString() ?? 'all',
+            const {'all': 'Tất cả', 'true': 'Đang bật', 'false': 'Đã tắt'},
+            (v) => onActive(v == 'all' ? null : v == 'true'),
+          ),
+          select('Sắp xếp', sortBy(), sorts, onSort),
+          select('Thứ tự', direction(), const {
+            'asc': 'Tăng dần',
+            'desc': 'Giảm dần',
+          }, onDirection),
+        ],
+      ),
     );
   }
 }

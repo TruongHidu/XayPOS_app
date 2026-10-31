@@ -16,6 +16,7 @@ class MenuGroupSelectorController extends MenuListController<MenuGroup> {
        super(
          list: list.call,
          items: false,
+         idOf: (group) => group.id,
          query: MenuQuery(
            active: activeOnly ? true : null,
            sortBy: 'name',

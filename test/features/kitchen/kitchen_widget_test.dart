@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pos_saas_app/core/platform/alert_sound.dart';
 import 'package:pos_saas_app/app/app.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/app/router/app_router.dart';
@@ -30,6 +31,12 @@ Future<void> tapKitchen(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+class _CountingSound extends AlertSound {
+  int plays = 0;
+  @override
+  Future<void> play() async => plays++;
+}
+
 Future<ProviderContainer> pumpKitchen(
   WidgetTester tester,
   FakeKitchen repo, {
@@ -38,6 +45,7 @@ Future<ProviderContainer> pumpKitchen(
   bool router = false,
   Set<String> features = const {'KITCHEN_DISPLAY'},
   FakeOrders? orders,
+  AlertSound sound = const AlertSound(),
 }) async {
   final auth = makeController(
     authRepository: FakeAuthRepository()
@@ -52,6 +60,7 @@ Future<ProviderContainer> pumpKitchen(
     overrides: [
       authControllerProvider.overrideWith((ref) => auth),
       kitchenRepositoryProvider.overrideWithValue(repo),
+      alertSoundProvider.overrideWithValue(sound),
       if (orders != null) orderRepositoryProvider.overrideWithValue(orders),
     ],
   );
@@ -189,6 +198,31 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('new items alert the kitchen unless the sound is off', (
+    tester,
+  ) async {
+    final repo = FakeKitchen();
+    final sound = _CountingSound();
+    final container = await pumpKitchen(tester, repo, sound: sound);
+    final display = container.read(kitchenDisplayProvider);
+    expect(sound.plays, 0);
+
+    repo.rows = [...repo.rows, KitchenDto.item(kitchenJson(itemId: 'i2'))];
+    await display.refresh();
+    await tester.pump();
+    expect(sound.plays, 1);
+    expect(find.text('Có 1 món mới vào bếp.'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Tắt âm báo món mới'));
+    await tester.pump();
+    repo.rows = [...repo.rows, KitchenDto.item(kitchenJson(itemId: 'i3'))];
+    await display.refresh();
+    await tester.pump();
+    expect(sound.plays, 1);
+    expect(find.byTooltip('Bật âm báo món mới'), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets(
     'view-only and placeholder controls cannot mutate; search is local',
     (tester) async {
@@ -202,12 +236,8 @@ void main() {
         find.byKey(const ValueKey('kitchen-action-o1/i1')),
       );
       expect(button.onPressed, isNull);
-      final print = tester.widget<IconButton>(
-        find.byWidgetPredicate(
-          (w) => w is IconButton && w.tooltip == 'In phiếu bếp · Sắp có',
-        ),
-      );
-      expect(print.onPressed, isNull);
+      expect(find.textContaining('Sắp có'), findsNothing);
+      expect(find.byTooltip('In phiếu bếp · Sắp có'), findsNothing);
       await tester.enterText(find.byType(TextField), 'Không tồn tại');
       await tester.pump(const Duration(milliseconds: 350));
       expect(container.read(kitchenDisplayProvider).visibleItems, isEmpty);

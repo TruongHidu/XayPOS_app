@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../domain/entities/inventory_alert.dart';
 import '../../domain/entities/inventory_entities.dart';
 import 'inventory_alert_widgets.dart';
@@ -33,7 +34,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
     final c = ref.watch(inventoryAlertListProvider), q = c.query;
     Widget open(InventoryAlert row) => OutlinedButton.icon(
       style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
-      onPressed: () => context.go(inventoryAlertLocation(row.id)),
+      onPressed: () => context.push(inventoryAlertLocation(row.id)),
       icon: const Icon(Icons.visibility_outlined),
       label: const Text('Chi tiết'),
     );
@@ -46,7 +47,13 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
-          identity: ('alerts', c),
+          listenable: c,
+          title: 'Bộ lọc cảnh báo',
+          onRefresh: c.load,
+          activeCount: () => [
+            c.query.warehouseId,
+            c.query.dates,
+          ].where((value) => value != null).length,
           search: TextFormField(
             key: ValueKey(('alert-search', c)),
             initialValue: q.q,
@@ -57,97 +64,88 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
               hint: 'Tên hoặc SKU tại thời điểm cảnh báo',
             ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
           ),
-          children: [
-            StockSelect(
-              label: 'Trạng thái cảnh báo',
-              value: q.status?.code ?? 'all',
-              items: {
-                'all': 'Tất cả',
-                for (final s in InventoryAlertStatus.values) s.code: s.label,
-              },
-              changed: (v) => c.filter(
-                q.copyWith(
-                  status: () => InventoryAlertStatus.values
-                      .where((s) => s.code == v)
-                      .firstOrNull,
+          filters: () {
+            final q = c.query;
+            return [
+              StockSelect(
+                label: 'Trạng thái cảnh báo',
+                value: q.status?.code ?? 'all',
+                items: {
+                  'all': 'Tất cả',
+                  for (final s in InventoryAlertStatus.values) s.code: s.label,
+                },
+                changed: (v) => c.filter(
+                  q.copyWith(
+                    status: () => InventoryAlertStatus.values
+                        .where((s) => s.code == v)
+                        .firstOrNull,
+                  ),
                 ),
               ),
-            ),
-            StockSelect(
-              label: 'Sắp xếp',
-              value: q.sortBy,
-              items: const {
-                'triggeredAt': 'Thời điểm phát',
-                'updatedAt': 'Cập nhật gần nhất',
-              },
-              changed: (v) => c.filter(q.copyWith(sortBy: v)),
-            ),
-            StockSelect(
-              label: 'Thứ tự',
-              value: q.direction,
-              items: const {'desc': 'Mới nhất trước', 'asc': 'Cũ nhất trước'},
-              changed: (v) => c.filter(q.copyWith(direction: v)),
-            ),
-            StockSelect(
-              label: 'Mỗi trang',
-              value: '${q.size}',
-              items: const {
-                '20': '20 dòng',
-                '50': '50 dòng',
-                '100': '100 dòng',
-              },
-              changed: (v) => c.filter(q.copyWith(size: int.parse(v))),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.warehouse_outlined),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
-              label: Text(
-                q.warehouseId == null
-                    ? 'Tất cả kho'
-                    : _warehouse?.name ?? q.warehouseId!,
-              ),
-              onPressed: () async {
-                final scope = ref.read(inventoryScopeProvider);
-                final result = await showDialog<Warehouse>(
-                  context: context,
-                  builder: (_) => InventoryAlertScopeGuard(
-                    scope: scope,
-                    child: const WarehousePickerDialog(),
-                  ),
-                );
-                if (mounted && c.allowed && result != null) {
-                  setState(() => _warehouse = result);
-                  c.filter(c.query.copyWith(warehouseId: () => result.id));
-                }
-              },
-            ),
-            if (q.warehouseId != null)
-              IconButton(
-                tooltip: 'Bỏ lọc kho',
-                onPressed: () {
-                  setState(() => _warehouse = null);
-                  c.filter(q.copyWith(warehouseId: () => null));
+              StockSelect(
+                label: 'Sắp xếp',
+                value: q.sortBy,
+                items: const {
+                  'triggeredAt': 'Thời điểm phát',
+                  'updatedAt': 'Cập nhật gần nhất',
                 },
-                icon: const Icon(Icons.close),
+                changed: (v) => c.filter(q.copyWith(sortBy: v)),
               ),
-            InventoryAlertDateFilter(
-              range: q.dates,
-              changed: (v) => c.filter(q.copyWith(dates: () => v)),
-            ),
-            OutlinedButton.icon(
-              onPressed: c.loading ? null : c.load,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Tải lại cảnh báo'),
-            ),
-          ],
+              StockSelect(
+                label: 'Thứ tự',
+                value: q.direction,
+                items: const {'desc': 'Mới nhất trước', 'asc': 'Cũ nhất trước'},
+                changed: (v) => c.filter(q.copyWith(direction: v)),
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.warehouse_outlined),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                    ),
+                    label: Text(
+                      q.warehouseId == null
+                          ? 'Tất cả kho'
+                          : _warehouse?.name ?? q.warehouseId!,
+                    ),
+                    onPressed: () async {
+                      final scope = ref.read(inventoryScopeProvider);
+                      final result = await showDialog<Warehouse>(
+                        context: context,
+                        builder: (_) => InventoryAlertScopeGuard(
+                          scope: scope,
+                          child: const WarehousePickerDialog(),
+                        ),
+                      );
+                      if (mounted && c.allowed && result != null) {
+                        setState(() => _warehouse = result);
+                        c.filter(
+                          c.query.copyWith(warehouseId: () => result.id),
+                        );
+                      }
+                    },
+                  ),
+                  if (q.warehouseId != null)
+                    IconButton(
+                      tooltip: 'Bỏ lọc kho',
+                      onPressed: () {
+                        setState(() => _warehouse = null);
+                        c.filter(q.copyWith(warehouseId: () => null));
+                      },
+                      icon: const Icon(Icons.close),
+                    ),
+                  InventoryAlertDateFilter(
+                    range: q.dates,
+                    changed: (v) => c.filter(q.copyWith(dates: () => v)),
+                  ),
+                ],
+              ),
+            ];
+          },
         ),
         const SizedBox(height: 12),
         Text(
@@ -297,13 +295,12 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
             );
           },
         ),
-        if (c.hasLoaded)
-          InventoryPaging(
-            page: q.page,
-            totalPages: c.totalPages,
-            totalElements: c.totalElements,
-            loading: c.loading,
-            changed: c.page,
+        if (c.hasLoaded && c.rows.isNotEmpty)
+          EndlessListFooter(
+            hasMore: c.hasMore,
+            failureMessage: c.endless.failure?.message,
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} cảnh báo',
+            onLoadMore: c.loadMore,
           ),
       ],
     );

@@ -29,12 +29,30 @@ Sửa `.env` ở thư mục gốc, rồi chạy:
 flutter run
 ```
 
-Trong VS Code, chọn **Xây POS (.env)** ở Run and Debug và nhấn F5. App tự nạp
-`.env` lúc khởi động, trước khi tạo ProviderScope và các client API/realtime.
-Cấu hình F5 truyền sẵn `--dart-define-from-file=.env` để lấy cấu hình trực tiếp
-từ file khi build; không cần gõ lại tham số. Backend URL và các tùy chọn được đọc
-tập trung tại `lib/core/config/environment.dart`. Sau khi sửa `.env`, dừng hẳn
-phiên debug rồi nhấn F5; hot reload không thay đổi các giá trị compile-time.
+Trong VS Code có các cách chạy:
+
+- **Xây POS (.env)** và **Xây POS qua USB (.env)**: cùng dùng khi phát triển với một thiết bị Android cắm
+  USB. Bật USB debugging, chấp nhận kết nối trên thiết bị, chọn thiết bị đó rồi
+  nhấn F5. Task chạy trước tự thiết lập `adb -d reverse tcp:8080 tcp:8080`;
+  app dùng `http://127.0.0.1:8080` qua cáp, không phụ thuộc IP Wi-Fi của máy tính.
+  Backend phải chạy ở cổng 8080 và cần giữ cáp USB. Nếu rút/cắm lại cáp hoặc khởi
+  động lại thiết bị, dừng phiên debug rồi F5 để thiết lập lại đường kết nối.
+- **Xây POS qua Wi-Fi (tự cập nhật IP)**: trước mỗi F5 tự lấy IPv4 của Wi-Fi/
+  Ethernet đang hoạt động và cập nhật địa chỉ backend local trong `.env`.
+  Giữ port/path và các key khác; đồng bộ URL WebSocket local nếu được đặt rõ.
+  Bỏ qua adapter WSL/ảo/VPN và giữ nguyên URL backend có domain/IP public.
+- **Xây POS theo URL (.env)**: dùng chính xác URL đã cấu hình cho emulator,
+  web/desktop hoặc backend riêng; không tự đổi IP và không thiết lập USB.
+
+Các cấu hình truyền `--dart-define-from-file=.env`; riêng USB ghi đè
+`API_BASE_URL=http://127.0.0.1:8080` và `REALTIME_URL=` để socket cũng suy ra
+đúng `/ws` qua cổng USB. Các tùy chọn khác vẫn lấy từ `.env`, bao gồm công tắc
+realtime. Không cần đổi IP trong `.env` khi dùng cấu hình USB.
+
+App nạp cấu hình trước khi tạo ProviderScope và các client API/realtime.
+Backend URL và các tùy chọn được đọc tập trung tại
+`lib/core/config/environment.dart`. Sau khi sửa `.env` hoặc đổi chế độ USB/Wi-Fi,
+dừng hẳn phiên debug rồi nhấn F5; hot reload không đổi giá trị compile-time.
 
 | Key | Ý nghĩa |
 | --- | --- |
@@ -82,6 +100,8 @@ vào `.env`.
 Tham khảo [nạp asset bằng flutter_dotenv](https://pub.dev/packages/flutter_dotenv),
 [compile-time override của Dart](https://dart.dev/libraries/core/environment-declarations)
 và [launch configuration của Dart Code](https://dartcode.org/docs/launch-configuration/).
+Chế độ USB dùng [ADB reverse](https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md#networking)
+và [preLaunchTask của VS Code](https://code.visualstudio.com/docs/debugtest/debugging-configuration#_launchjson-attributes).
 
 Module quản lý bàn nằm tại `/app/tables`, yêu cầu feature `TABLE_MANAGEMENT`
 và quyền `TABLE_VIEW`; các thao tác tạo/sửa/phục vụ kiểm tra quyền riêng.

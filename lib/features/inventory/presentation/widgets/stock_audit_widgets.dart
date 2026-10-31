@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../domain/entities/stock_audit.dart';
@@ -42,8 +41,12 @@ class StockAuditPageFrame extends StatelessWidget {
     required this.child,
     this.actions = const [],
     this.onRefresh,
+    this.showTitle = true,
   });
   final String title;
+
+  /// False when the app bar already shows [title].
+  final bool showTitle;
   final Widget child;
   final List<Widget> actions;
   final Future<void> Function()? onRefresh;
@@ -64,23 +67,13 @@ class StockAuditPageFrame extends StatelessWidget {
                   alignment: WrapAlignment.spaceBetween,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () => context.go('/app/inventory/audits'),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Danh sách kiểm kê'),
-                        ),
-                        ...actions,
-                      ],
-                    ),
+                    if (showTitle)
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    Wrap(spacing: 8, runSpacing: 8, children: actions),
                   ],
                 ),
                 const SizedBox(height: 20),

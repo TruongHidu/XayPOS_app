@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/inventory_entities.dart';
@@ -84,12 +85,13 @@ class InventoryBalanceList extends ConsumerWidget {
           ),
         InventoryFilters(
           identity: c,
+          listenable: c,
           search: q.q,
           onSearch: c.search,
-          active: q.ingredientActive,
+          active: () => c.query.ingredientActive,
           onActive: (v) => c.filter(active: v),
-          sortBy: q.sortBy,
-          direction: q.direction,
+          sortBy: () => c.query.sortBy,
+          direction: () => c.query.direction,
           sorts: const {
             'ingredientName': 'Tên nguyên liệu',
             'sku': 'SKU',
@@ -97,11 +99,9 @@ class InventoryBalanceList extends ConsumerWidget {
             'minQuantity': 'Ngưỡng',
             'updatedAt': 'Cập nhật',
           },
-          onSort: (v) => c.filter(active: q.ingredientActive, sortBy: v),
+          onSort: (v) => c.filter(active: c.query.ingredientActive, sortBy: v),
           onDirection: (v) =>
-              c.filter(active: q.ingredientActive, direction: v),
-          size: q.size,
-          onSize: (v) => c.filter(active: q.ingredientActive, size: v),
+              c.filter(active: c.query.ingredientActive, direction: v),
         ),
         const SizedBox(height: 16),
         if (c.loading) const LinearProgressIndicator(),
@@ -140,12 +140,12 @@ class InventoryBalanceList extends ConsumerWidget {
                     columns: [
                       const DataColumn(label: Text('Nguyên liệu')),
                       if (target.lowStock) const DataColumn(label: Text('Kho')),
+                      const DataColumn(label: Text('Trong kho'), numeric: true),
+                      const DataColumn(label: Text('Đang giữ'), numeric: true),
                       const DataColumn(
-                        label: Text('Tồn vật lý'),
+                        label: Text('Có thể dùng'),
                         numeric: true,
                       ),
-                      const DataColumn(label: Text('Đang giữ'), numeric: true),
-                      const DataColumn(label: Text('Khả dụng'), numeric: true),
                       const DataColumn(label: Text('Ngưỡng'), numeric: true),
                       const DataColumn(label: Text('Trạng thái')),
                       const DataColumn(label: Text('Thao tác')),
@@ -230,116 +230,129 @@ class InventoryBalanceList extends ConsumerWidget {
               spacing: 12,
               children: [
                 for (final row in c.rows)
-                  Card(
+                  _BalanceCard(
                     key: ValueKey('balance-${row.key}'),
-                    margin: EdgeInsets.zero,
-                    color: row.lowStock ? const Color(0xFFFFFAF2) : null,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            row.ingredientName,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          Text(
-                            row.ingredientSku ?? 'Chưa có SKU',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          if (target.lowStock)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text('Kho: ${row.warehouseCode}'),
-                            ),
-                          const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 24,
-                            runSpacing: 12,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Tồn vật lý'),
-                                  Text(
-                                    inventoryAmount(row.quantity, row.baseUnit),
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Đang giữ'),
-                                  Text(
-                                    inventoryAmount(
-                                      row.reservedQuantity,
-                                      row.baseUnit,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Khả dụng'),
-                                  Text(
-                                    inventoryAmount(
-                                      row.availableQuantity,
-                                      row.baseUnit,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Ngưỡng tối thiểu'),
-                                  Text(
-                                    inventoryAmount(
-                                      row.minQuantity,
-                                      row.baseUnit,
-                                    ),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          badges(row),
-                          const SizedBox(height: 12),
-                          actions(row),
-                        ],
-                      ),
-                    ),
+                    row: row,
+                    showWarehouse: target.lowStock,
+                    badges: badges(row),
+                    actions: actions(row),
+                    onOpen: () => _open(context, ref, row, false),
                   ),
               ],
             );
           },
         ),
-        if (c.hasLoaded)
-          InventoryPaging(
-            page: q.page,
-            totalPages: c.totalPages,
-            totalElements: c.totalElements,
-            loading: c.loading,
-            changed: c.page,
+        if (c.hasLoaded && c.rows.isNotEmpty)
+          EndlessListFooter(
+            hasMore: c.hasMore,
+            failureMessage: c.endless.failure?.message,
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} nguyên liệu',
+            onLoadMore: c.loadMore,
           ),
       ],
+    );
+  }
+}
+
+/// What a kitchen needs at a glance: how much can still be used, and how close
+/// that is to the alert threshold. Details stay in the threshold dialog.
+class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({
+    super.key,
+    required this.row,
+    required this.showWarehouse,
+    required this.badges,
+    required this.actions,
+    required this.onOpen,
+  });
+
+  final InventoryBalance row;
+  final bool showWarehouse;
+  final Widget badges, actions;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    final tracked = row.minQuantity != InventoryQuantity.zero;
+    final level = row.lowStock
+        ? const Color(0xFFB45309)
+        : const Color(0xFF0F766E);
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      color: row.lowStock ? const Color(0xFFFFFAF2) : colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: row.lowStock
+              ? const Color(0xFFFDE68A)
+              : colors.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: InkWell(
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                row.ingredientName,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (showWarehouse)
+                Text('Kho: ${row.warehouseCode}', style: muted),
+              const SizedBox(height: 10),
+              Text('Có thể dùng', style: muted),
+              Text(
+                inventoryAmount(row.availableQuantity, row.baseUnit),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: tracked ? level : null,
+                ),
+              ),
+              if (tracked) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    // Full at twice the threshold, half-way at the threshold.
+                    value:
+                        (row.availableQuantity.scaled /
+                                (row.minQuantity.scaled * 2))
+                            .clamp(0.0, 1.0),
+                    minHeight: 6,
+                    color: level,
+                    backgroundColor: level.withValues(alpha: 0.15),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cảnh báo khi dưới ${inventoryAmount(row.minQuantity, row.baseUnit)}',
+                  style: muted,
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                'Trong kho ${inventoryAmount(row.quantity, row.baseUnit)} · Đang giữ ${inventoryAmount(row.reservedQuantity, row.baseUnit)}',
+                style: muted,
+              ),
+              const SizedBox(height: 10),
+              badges,
+              const SizedBox(height: 4),
+              actions,
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

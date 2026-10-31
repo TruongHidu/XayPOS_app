@@ -155,7 +155,16 @@ void main() {
           ),
         );
         await pumpOrder(tester, tables: tables, orders: orders);
-        expect(orders.queries.length, 5);
+        // The table grid reads dine-in orders; the "Mang đi" card's count
+        // reads takeaway separately, also once per serving status.
+        expect(
+          orders.queries.where((q) => q.serviceType == ServiceType.dineIn),
+          hasLength(5),
+        );
+        expect(
+          orders.queries.where((q) => q.serviceType == ServiceType.takeaway),
+          hasLength(5),
+        );
         expect(orders.activeCalls, isEmpty);
         expect(orders.detailCalls, 0);
         expect(
@@ -209,7 +218,7 @@ void main() {
     },
   );
   testWidgets(
-    'FAB is screen-floating, usable with large text and remains below sidebar overlay',
+    'FAB is screen-floating and usable with large text',
     (tester) async {
       tester.view.physicalSize = const Size(320, 850);
       tester.view.devicePixelRatio = 1;
@@ -230,11 +239,6 @@ void main() {
       await tester.drag(find.byType(ListView).first, const Offset(0, -250));
       await tester.pumpAndSettle();
       expect(tester.getCenter(fab), before);
-      await tester.tap(find.byTooltip('Menu'));
-      await tester.pumpAndSettle();
-      await tester.tap(fab, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Gọi thêm ·'), findsNothing);
       expect(orders.submissions, isEmpty);
       expect(tester.takeException(), isNull);
     },
@@ -331,9 +335,9 @@ void main() {
       final refresh = container.read(orderServiceContextProvider).refresh();
       await tester.pumpAndSettle();
       await refresh;
-      expect(find.text('Kiểm tra bằng yêu cầu tạo ban đầu'), findsOneWidget);
+      expect(find.text('Kiểm tra lại lần gửi này'), findsOneWidget);
       orders.onCreate = () async => Success(orders.current);
-      await tester.tap(find.text('Kiểm tra bằng yêu cầu tạo ban đầu'));
+      await tester.tap(find.text('Kiểm tra lại lần gửi này'));
       await tester.pumpAndSettle();
       expect(orders.creates.last.$2, original.$2);
       expect(identical(orders.creates.last.$1, original.$1), true);

@@ -137,7 +137,7 @@ class RecipeCostPanel extends ConsumerWidget {
                               value?.currencyCode ?? '',
                             ),
                       note: !sale.allowed
-                          ? 'Cần quyền xem danh mục món (MENU_VIEW).'
+                          ? 'Bạn chưa có quyền xem thực đơn.'
                           : value == null && item != null
                           ? 'Chưa xác định tiền tệ; chờ kết quả ước tính.'
                           : null,

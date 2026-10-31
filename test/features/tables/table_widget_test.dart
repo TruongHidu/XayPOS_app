@@ -93,7 +93,6 @@ void main() {
       final s = TableServer()..table = tableJson(occupied: true);
       await pumpTables(tester, s);
       expect(find.text('Có khách • 6 người'), findsOneWidget);
-      expect(find.text('Hoạt động'), findsWidgets);
       expect(tester.takeException(), isNull);
       expect(
         s.requests.where((r) => r.path.endsWith('current-session')),
@@ -242,7 +241,9 @@ void main() {
       requestOptions: r,
       type: DioExceptionType.connectionError,
     );
-    await tester.tap(find.byTooltip('Tải lại bàn'));
+    await tester.tap(find.byTooltip('Bộ lọc').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Tải lại'));
     await tester.pumpAndSettle();
     expect(
       find.text('Không thể kết nối đến máy chủ. Vui lòng thử lại.'),
@@ -259,17 +260,17 @@ void main() {
   ) async {
     final s = TableServer();
     await pumpTables(tester, s, child: const TableQrDialog(id: 't1'));
-    expect(find.text('Version: 9'), findsOneWidget);
-    await tester.tap(find.text('Xoay mã QR'));
+    expect(find.text('Phiên bản mã QR: 9'), findsOneWidget);
+    await tester.tap(find.text('Đổi mã QR'));
     await tester.pumpAndSettle();
-    expect(find.text('Xoay mã QR?'), findsOneWidget);
+    expect(find.text('Đổi mã QR?'), findsOneWidget);
     expect(s.requests.where((r) => r.method == 'POST'), isEmpty);
     await tester.tap(find.text('Xác nhận'));
     await tester.pumpAndSettle();
     expect(s.requests.where((r) => r.path.endsWith('/qr/rotate')).single.data, {
       'expectedVersion': 9,
     });
-    expect(find.text('Version: 10'), findsOneWidget);
+    expect(find.text('Phiên bản mã QR: 10'), findsOneWidget);
   });
   testWidgets(
     'timed-out create keeps draft and requires checking server before retry',

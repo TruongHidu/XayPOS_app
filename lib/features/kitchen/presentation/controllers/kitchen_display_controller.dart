@@ -43,6 +43,31 @@ class KitchenDisplayController extends KitchenController {
   bool _refreshRequested = false, _visible = false, _foreground = true;
   Timer? _poll, _debounce;
 
+  /// Rises when a full read finds items that were not in the previous one.
+  int newItemRevision = 0, newItemCount = 0;
+  bool soundEnabled = true;
+  Set<String>? _knownItems;
+
+  void toggleSound() {
+    soundEnabled = !soundEnabled;
+    changed();
+  }
+
+  /// The first read is the existing queue, not news.
+  void _noticeNewItems() {
+    final known = _knownItems;
+    _knownItems = _items.keys.toSet();
+    if (known == null) return;
+    final fresh = _items.values.where(
+      (item) =>
+          !known.contains(item.key) &&
+          item.itemStatus == OrderItemStatus.pending,
+    );
+    if (fresh.isEmpty) return;
+    newItemCount = fresh.length;
+    newItemRevision++;
+  }
+
   List<KitchenQueueItem> get items {
     if (!current) return [];
     return _items.values.toList()..sort((a, b) {
@@ -239,6 +264,7 @@ class KitchenDisplayController extends KitchenController {
     if (complete) {
       lastUpdated = clock();
       _backoff = 0;
+      _noticeNewItems();
     } else {
       _backoff = (_backoff + 1).clamp(0, 3);
     }

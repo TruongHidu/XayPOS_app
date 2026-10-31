@@ -8,6 +8,32 @@ import '../../helpers/auth_fakes.dart';
 import 'kitchen_fakes.dart';
 
 void main() {
+  test('only items that arrive after the first read count as new', () async {
+    final rig = KitchenRig();
+    addTearDown(rig.dispose);
+    await rig.display.refresh();
+    expect(rig.display.newItemRevision, 0);
+
+    await rig.display.refresh();
+    expect(rig.display.newItemRevision, 0);
+
+    rig.repo.rows = [
+      ...rig.repo.rows,
+      KitchenDto.item(kitchenJson(itemId: 'i2')),
+      KitchenDto.item(kitchenJson(itemId: 'i3')),
+    ];
+    await rig.display.refresh();
+    expect(rig.display.newItemRevision, 1);
+    expect(rig.display.newItemCount, 2);
+
+    rig.repo.rows = [
+      for (final row in rig.repo.rows.skip(1)) row,
+      KitchenDto.item(kitchenJson(itemId: 'i4', status: 'COOKING')),
+    ];
+    await rig.display.refresh();
+    expect(rig.display.newItemRevision, 1);
+  });
+
   test(
     'append during Ready batch stops remaining lines and retains new PENDING',
     () async {

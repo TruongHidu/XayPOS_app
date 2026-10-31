@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/features/staff/domain/entities/staff_permission_config.dart';
+import 'package:pos_saas_app/features/staff/presentation/controllers/staff_permission_controller.dart';
 import 'package:pos_saas_app/features/staff/presentation/widgets/staff_permission_dialog.dart';
 import '../../helpers/auth_fakes.dart';
 import 'staff_fakes.dart';
@@ -215,4 +217,162 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  group('permission dialog', () {
+    Future<StaffPermissionController> open(
+      WidgetTester tester, {
+      List<String> role = const ['ORDER_VIEW'],
+      List<String> grants = const [],
+      List<String> denies = const [],
+      Set<String> actor = staffPermissions,
+      double width = 800,
+    }) async {
+      tester.view.physicalSize = Size(width, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = FakeStaffRepository()..delayedPermissions = true;
+      final controller = permissionController(
+        repo,
+        session: () =>
+            makeAppSession(permissions: actor, features: staffFeatures),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            staffPermissionControllerProvider.overrideWith((ref) => controller),
+          ],
+          child: MaterialApp(
+            home: Scaffold(body: StaffPermissionDialog(staff: member('A'))),
+          ),
+        ),
+      );
+      await tester.pump();
+      repo.configs['A']!.complete(
+        Success(
+          StaffPermissionConfig(
+            staffId: 'A',
+            roleCode: 'WAITER',
+            rolePermissions: role,
+            grants: grants,
+            denies: denies,
+            effectivePermissions: role,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return controller;
+    }
+
+    Finder toggle(String code) =>
+        find.byKey(ValueKey('staff-permission-$code'));
+
+    testWidgets('shows plain names grouped, without technical codes', (
+      tester,
+    ) async {
+      await open(tester);
+      expect(find.text('Đơn hàng'), findsOneWidget);
+      expect(find.text('Xem đơn hàng'), findsOneWidget);
+      expect(find.text('Hủy đơn hàng'), findsOneWidget);
+      expect(find.text('ORDER_CANCEL'), findsNothing);
+      expect(find.textContaining('override'), findsNothing);
+      expect(find.textContaining('Đang có 1/2 quyền'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('switches map to role, grant and deny and count changes', (
+      tester,
+    ) async {
+      final c = await open(tester);
+      expect(c.isEnabled('ORDER_VIEW'), true);
+
+      await tester.tap(toggle('ORDER_CANCEL'));
+      await tester.pumpAndSettle();
+      expect(c.state.localGrants, {'ORDER_CANCEL'});
+      expect(find.text('Thêm riêng cho nhân viên này'), findsOneWidget);
+
+      await tester.tap(toggle('ORDER_VIEW'));
+      await tester.pumpAndSettle();
+      expect(c.state.localDenies, {'ORDER_VIEW'});
+      expect(find.text('Đã tắt riêng cho nhân viên này'), findsOneWidget);
+      expect(find.text('2 thay đổi chưa lưu'), findsOneWidget);
+
+      await tester.tap(toggle('ORDER_VIEW'));
+      await tester.pumpAndSettle();
+      expect(c.state.localDenies, isEmpty);
+      expect(find.text('1 thay đổi chưa lưu'), findsOneWidget);
+
+      await tester.tap(find.text('Khôi phục theo vai trò'));
+      await tester.pumpAndSettle();
+      expect(c.state.localGrants, isEmpty);
+      expect(find.textContaining('chưa lưu'), findsNothing);
+    });
+
+    testWidgets('a group switches together', (tester) async {
+      final c = await open(tester);
+      await tester.tap(find.text('Bật cả nhóm'));
+      await tester.pumpAndSettle();
+      expect(c.state.localGrants, {'ORDER_CANCEL'});
+      await tester.tap(find.text('Tắt cả nhóm'));
+      await tester.pumpAndSettle();
+      expect(c.state.localGrants, isEmpty);
+      expect(c.state.localDenies, {'ORDER_VIEW'});
+    });
+
+    testWidgets('a permission the actor lacks cannot be granted', (
+      tester,
+    ) async {
+      final c = await open(
+        tester,
+        actor: staffPermissions.difference({'ORDER_CANCEL'}),
+      );
+      expect(c.canToggle('ORDER_CANCEL'), false);
+      expect(c.canToggle('ORDER_VIEW'), true);
+      expect(
+        find.text('Bạn chưa có quyền này nên không thể cấp cho người khác.'),
+        findsOneWidget,
+      );
+      await tester.tap(toggle('ORDER_CANCEL'));
+      await tester.pumpAndSettle();
+      expect(c.state.localGrants, isEmpty);
+    });
+
+    testWidgets('search narrows the list', (tester) async {
+      await open(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('staff-permission-search')),
+        'hủy',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Hủy đơn hàng'), findsOneWidget);
+      expect(find.text('Xem đơn hàng'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('staff-permission-search')),
+        'không có',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Không tìm thấy quyền phù hợp.'), findsOneWidget);
+    });
+
+    testWidgets('closing with unsaved changes asks first', (tester) async {
+      await open(tester);
+      await tester.tap(toggle('ORDER_CANCEL'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Đóng'));
+      await tester.pumpAndSettle();
+      expect(find.text('Bỏ thay đổi chưa lưu?'), findsOneWidget);
+      await tester.tap(find.text('Tiếp tục sửa'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StaffPermissionDialog), findsOneWidget);
+    });
+
+    for (final width in [320.0, 412.0]) {
+      testWidgets('fits a $width phone at large text', (tester) async {
+        tester.platformDispatcher.textScaleFactorTestValue = 2;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await open(tester, width: width);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  });
 }

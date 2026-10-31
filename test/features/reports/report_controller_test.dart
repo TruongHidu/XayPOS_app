@@ -5,6 +5,8 @@ import 'package:pos_saas_app/features/order/domain/entities/order_entities.dart'
 import 'package:pos_saas_app/features/reports/domain/entities/report_date.dart';
 import 'package:pos_saas_app/features/reports/domain/entities/report_enums.dart';
 import 'package:pos_saas_app/features/reports/domain/entities/report_meta.dart';
+import 'package:pos_saas_app/features/reports/domain/entities/report_order_row.dart';
+import 'package:pos_saas_app/features/reports/domain/entities/report_page.dart';
 import 'package:pos_saas_app/features/reports/domain/use_cases/report_use_cases.dart';
 import 'package:pos_saas_app/features/reports/presentation/controllers/daily_report_controller.dart';
 import 'package:pos_saas_app/features/reports/presentation/controllers/report_orders_controller.dart';
@@ -216,6 +218,68 @@ void main() {
       expect(controller.data, isNotNull);
       expect(controller.data?.data.content.length, 2);
       expect(repo.ordersCalls, 1);
+    });
+
+    test('loadMore grows the list and a refresh keeps those pages', () async {
+      await controller.load();
+      final first = controller.data!;
+      repo.reportOrdersResult = Success(
+        ReportEnvelope(
+          meta: first.meta,
+          data: ReportPage(
+            content: first.data.content,
+            page: 0,
+            size: 2,
+            totalElements: 4,
+            totalPages: 2,
+          ),
+        ),
+      );
+      await controller.load();
+      repo.ordersCalls = 0;
+
+      await controller.loadMore();
+      expect(controller.filter.page, 1);
+      expect(controller.data?.data.hasNextPage, isFalse);
+      expect(controller.data?.data.content.length, 2); // Shifted rows collapse.
+      expect(repo.ordersCalls, 1);
+
+      await controller.refresh();
+      expect(repo.ordersCalls, 3);
+      expect(controller.filter.page, 1);
+    });
+
+    test('a failed next page keeps the rows and can be retried', () async {
+      await controller.load();
+      final first = controller.data!;
+      final twoPages = Success<ReportEnvelope<ReportPage<ReportOrderRow>>>(
+        ReportEnvelope(
+          meta: first.meta,
+          data: ReportPage(
+            content: first.data.content,
+            page: 0,
+            size: 2,
+            totalElements: 4,
+            totalPages: 2,
+          ),
+        ),
+      );
+      repo.reportOrdersResult = twoPages;
+      await controller.load();
+      repo.reportOrdersResult = const Error(
+        Failure(type: FailureType.network, message: 'offline'),
+      );
+
+      await controller.loadMore();
+      expect(controller.loadMoreFailure?.message, 'offline');
+      expect(controller.failure, isNull);
+      expect(controller.data?.data.content.length, 2);
+      expect(controller.filter.page, 0);
+
+      repo.reportOrdersResult = twoPages;
+      await controller.loadMore();
+      expect(controller.loadMoreFailure, isNull);
+      expect(controller.filter.page, 1);
     });
 
     test(

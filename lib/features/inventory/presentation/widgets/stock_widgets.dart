@@ -1,23 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
-import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/formatters/money_format.dart';
+import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_queries.dart';
 import '../../domain/entities/stock_numbers.dart';
 import 'inventory_widgets.dart';
 
-String stockDisplay(Object value) {
-  if (value is! StockMoney) return value.toString().replaceAll('.', ',');
-  final parts = value.toString().split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-    (m) => '${m[1]}.',
-  );
-  return '$whole${parts.length == 1 ? '' : ',${parts[1]}'}';
-}
+String stockDisplay(Object value) => value is StockMoney
+    ? formatMoney(value.toString())
+    : value.toString().replaceAll('.', ',');
 
 String stockDay(DateTime value) {
   final d = value.toLocal();
@@ -93,42 +87,31 @@ class StockSelect extends StatelessWidget {
 class StockFilterLayout extends StatelessWidget {
   const StockFilterLayout({
     super.key,
-    required this.identity,
-    required this.children,
-    this.search,
+    required this.listenable,
+    required this.title,
+    required this.search,
+    required this.activeCount,
+    required this.filters,
+    this.onClear,
+    this.onRefresh,
   });
-  final Object identity;
-  final List<Widget> children;
-  final Widget? search;
+  final Listenable listenable;
+  final String title;
+  final Widget search;
+  final int Function() activeCount;
+  final List<Widget> Function() filters;
+  final VoidCallback? onClear, onRefresh;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-      final filters = ResponsiveColumns(
-        minColumnWidth: 240 * scale.clamp(1, 1.5),
-        maxColumns: 4,
-        spacing: 12,
-        children: children,
-      );
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (search != null) ...[search!, const SizedBox(height: 12)],
-          if (box.maxWidth < 700 || box.maxWidth < 1000 && scale > 1.3)
-            ExpansionTile(
-              // Keep the expanded bool separate from the parent's scroll offset
-              // and from filters in other inventory tabs.
-              key: PageStorageKey(('stock-filters', identity)),
-              title: const Text('Lọc và sắp xếp'),
-              tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.symmetric(vertical: 12),
-              children: [filters],
-            )
-          else
-            filters,
-        ],
-      );
-    },
+  Widget build(BuildContext context) => SearchFilterRow(
+    search: search,
+    filter: FilterPanelButton(
+      listenable: listenable,
+      title: title,
+      activeCount: activeCount,
+      filters: filters,
+      onClear: onClear,
+      onRefresh: onRefresh,
+    ),
   );
 }
 
@@ -201,8 +184,12 @@ class StockPageFrame extends ConsumerWidget {
     this.actions = const [],
     this.permission = 'INVENTORY_VIEW',
     this.onRefresh,
+    this.showTitle = true,
   });
   final String title, permission;
+
+  /// False when the app bar already shows [title].
+  final bool showTitle;
   final Widget child;
   final List<Widget> actions;
   final Future<void> Function()? onRefresh;
@@ -228,24 +215,13 @@ class StockPageFrame extends ConsumerWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   alignment: WrapAlignment.spaceBetween,
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () =>
-                              context.go('/app/inventory/balances'),
-                          icon: const Icon(Icons.arrow_back),
-                          label: const Text('Về kho'),
-                        ),
-                        ...actions,
-                      ],
-                    ),
+                    if (showTitle)
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    Wrap(spacing: 8, runSpacing: 8, children: actions),
                   ],
                 ),
                 const SizedBox(height: 20),

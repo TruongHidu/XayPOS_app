@@ -49,6 +49,32 @@ final ingredientScopeProvider = Provider<Object?>(
   ),
 );
 
+enum MenuWorkspaceTab { menuItems, menuGroups, ingredients }
+
+/// Tab picked in the menu workspace. Shared with the app bar filter action,
+/// so read it through [resolveMenuTab] to apply permission fallbacks.
+final menuWorkspaceTabProvider = StateProvider.autoDispose<MenuWorkspaceTab>((
+  ref,
+) {
+  ref.watch(menuScopeProvider);
+  ref.watch(ingredientScopeProvider);
+  return MenuWorkspaceTab.menuItems;
+});
+
+MenuWorkspaceTab resolveMenuTab(
+  MenuWorkspaceTab selected, {
+  required bool canMenuView,
+  required bool canIngredientView,
+}) {
+  if (!canMenuView && selected != MenuWorkspaceTab.ingredients) {
+    return MenuWorkspaceTab.ingredients;
+  }
+  if (!canIngredientView && selected == MenuWorkspaceTab.ingredients) {
+    return MenuWorkspaceTab.menuItems;
+  }
+  return selected;
+}
+
 final menuGroupFilterProvider = StateProvider<MenuItemGroupSummary?>((ref) {
   ref.watch(menuScopeProvider);
   return null;

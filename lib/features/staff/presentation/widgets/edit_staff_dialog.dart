@@ -267,10 +267,10 @@ class _EditStaffDialogState extends State<EditStaffDialog> {
               const SizedBox(height: 16),
               if (_selectedRoleCode != widget.staff.role.code)
                 const Text(
-                  'Đổi vai trò sẽ xóa toàn bộ permission overrides cũ.',
+                  'Đổi vai trò sẽ xóa các quyền đã chỉnh riêng cho nhân viên này.',
                 ),
               const Text(
-                'Đổi email hoặc vai trò sẽ thu hồi các refresh token của nhân viên.',
+                'Đổi email hoặc vai trò sẽ đăng xuất nhân viên khỏi các thiết bị.',
               ),
               const SizedBox(height: 24),
 

@@ -32,6 +32,7 @@ class InventoryTransactionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) => StockPageFrame(
     key: ValueKey((ref.watch(inventoryScopeProvider), target)),
     title: 'Lịch sử biến động kho',
+    showTitle: false,
     onRefresh: () => ref.read(inventoryTransactionsProvider(target)).load(),
     child: InventoryTransactionList(target: target),
   );

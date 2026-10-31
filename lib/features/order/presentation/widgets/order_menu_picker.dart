@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
@@ -71,7 +72,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Cần MENU_VIEW và MENU_MANAGEMENT để chọn món. Liên hệ người quản lý cấp quyền.',
+            'Bạn chưa có quyền xem thực đơn nên chưa chọn được món. Liên hệ người quản lý để được cấp quyền.',
           ),
         ),
       );
@@ -331,14 +332,16 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                         },
                       ),
                     ),
-                  SliverToBoxAdapter(
-                    child: OrderPaging(
-                      page: picker.page?.page ?? 0,
-                      totalPages: picker.page?.totalPages ?? 0,
-                      loading: picker.loading,
-                      onPage: picker.go,
+                  if (items.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: EndlessListFooter(
+                        hasMore: picker.hasMore,
+                        failureMessage: picker.endless.failure?.message,
+                        endLabel:
+                            'Đã hiển thị tất cả ${picker.page?.totalElements ?? items.length} món',
+                        onLoadMore: picker.loadMore,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

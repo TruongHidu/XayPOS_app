@@ -30,7 +30,7 @@ class MenuItemController extends MenuListController<MenuItem> {
        _group = group,
        _delete = delete,
        _events = events,
-       super(list: list.call, items: true) {
+       super(list: list.call, items: true, idOf: (item) => item.id) {
     _groupRevision = events.groupRevision;
     events.addListener(_groupsChanged);
   }

@@ -5,6 +5,8 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
+import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_queries.dart';
 import 'inventory_widgets.dart';
@@ -33,7 +35,7 @@ class InventoryTransactionList extends ConsumerWidget {
     Widget origin(InventoryTransaction row) =>
         row.source == InventoryTransactionSource.stockDocument
         ? TextButton(
-            onPressed: () => context.go(stockDetailLocation(row.documentId!)),
+            onPressed: () => context.push(stockDetailLocation(row.documentId!)),
             child: Text(row.documentCode!),
           )
         : SizedBox(
@@ -52,7 +54,7 @@ class InventoryTransactionList extends ConsumerWidget {
                 ),
                 if (canOpenOrder)
                   TextButton(
-                    onPressed: () => context.go(
+                    onPressed: () => context.push(
                       '/app/orders/${Uri.encodeComponent(row.orderId!)}',
                     ),
                     child: const Text('Xem đơn'),
@@ -66,21 +68,23 @@ class InventoryTransactionList extends ConsumerWidget {
       positive: !row.change.negative,
     );
     String name(String id, String fallback) => c.names[id] ?? fallback;
-    final advanced = [
-      q.source != null,
-      q.type != null,
-      q.direction != 'desc',
-      q.size != 20,
-    ].where((v) => v).length;
+    int activeFilters() {
+      final q = c.query;
+      return [
+        q.warehouseId != null,
+        q.ingredientId != null,
+        q.dates != null,
+        q.source != null,
+        q.type != null,
+        q.direction != 'desc',
+      ].where((active) => active).length;
+    }
+
     final filtered =
-        advanced > 0 ||
-        q.warehouseId != null ||
-        q.ingredientId != null ||
+        activeFilters() > 0 ||
         q.documentId != null ||
         q.orderId != null ||
-        q.orderItemId != null ||
-        q.dates != null;
-    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+        q.orderItemId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -89,77 +93,134 @@ class InventoryTransactionList extends ConsumerWidget {
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            OutlinedButton.icon(
-              onPressed: () async {
-                final row = await chooseInventoryWarehouse(context, ref);
-                if (context.mounted && row != null && c.current) {
-                  c.names[row.id] = '${row.name} · ${row.code}';
-                  c.filter(
-                    q.copyWith(
-                      warehouseId: () => row.id,
-                      ingredientId: () => null,
-                    ),
-                  );
-                }
-              },
-              icon: const Icon(Icons.warehouse_outlined),
-              label: Text(
-                q.warehouseId == null
-                    ? 'Tất cả kho'
-                    : 'Kho: ${name(q.warehouseId!, 'đã chọn')}',
-              ),
-            ),
-            if (q.warehouseId != null)
-              IconButton(
-                tooltip: 'Bỏ lọc kho',
-                onPressed: () => c.filter(
-                  q.copyWith(warehouseId: () => null, ingredientId: () => null),
-                ),
-                icon: const Icon(Icons.close),
-              ),
-            Tooltip(
-              message: q.warehouseId == null
-                  ? 'Chọn kho trước để lọc theo nguyên liệu'
-                  : '',
-              child: OutlinedButton.icon(
-                onPressed: q.warehouseId == null
-                    ? null
-                    : () async {
-                        // Viewing the ledger must not require a mutation or ingredient permission.
-                        final row = await showInventoryDialog(
-                          context,
-                          ref,
-                          child: StockIngredientPicker(
-                            warehouseId: q.warehouseId!,
-                            type: StockDocumentType.issue,
-                            excluded: const {},
+            FilterPanelButton(
+              listenable: c,
+              title: 'Bộ lọc biến động',
+              onRefresh: c.load,
+              activeCount: activeFilters,
+              onClear: () => c.filter(const InventoryTransactionQuery()),
+              filters: () {
+                final q = c.query;
+                return [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final row = await chooseInventoryWarehouse(context, ref);
+                      if (context.mounted && row != null && c.current) {
+                        c.names[row.id] = '${row.name} · ${row.code}';
+                        c.filter(
+                          c.query.copyWith(
+                            warehouseId: () => row.id,
+                            ingredientId: () => null,
                           ),
                         );
-                        if (context.mounted && row != null && c.current) {
-                          c.names[row.ingredientId] = row.ingredientName;
-                          c.filter(
-                            q.copyWith(ingredientId: () => row.ingredientId),
-                          );
-                        }
-                      },
-                icon: const Icon(Icons.grass_outlined),
-                label: Text(
-                  q.ingredientId == null
-                      ? 'Tất cả nguyên liệu'
-                      : 'Nguyên liệu: ${name(q.ingredientId!, 'đã chọn')}',
+                      }
+                    },
+                    icon: const Icon(Icons.warehouse_outlined),
+                    label: Text(
+                      q.warehouseId == null
+                          ? 'Tất cả kho'
+                          : 'Kho: ${name(q.warehouseId!, 'đã chọn')}',
+                    ),
+                  ),
+                  Tooltip(
+                    message: q.warehouseId == null
+                        ? 'Chọn kho trước để lọc theo nguyên liệu'
+                        : '',
+                    child: OutlinedButton.icon(
+                      onPressed: q.warehouseId == null
+                          ? null
+                          : () async {
+                              // Viewing the ledger must not require a mutation or ingredient permission.
+                              final row = await showInventoryDialog(
+                                context,
+                                ref,
+                                child: StockIngredientPicker(
+                                  warehouseId: q.warehouseId!,
+                                  type: StockDocumentType.issue,
+                                  excluded: const {},
+                                ),
+                              );
+                              if (context.mounted && row != null && c.current) {
+                                c.names[row.ingredientId] = row.ingredientName;
+                                c.filter(
+                                  c.query.copyWith(
+                                    ingredientId: () => row.ingredientId,
+                                  ),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.grass_outlined),
+                      label: Text(
+                        q.ingredientId == null
+                            ? 'Tất cả nguyên liệu'
+                            : 'Nguyên liệu: ${name(q.ingredientId!, 'đã chọn')}',
+                      ),
+                    ),
+                  ),
+                  StockDateFilter(
+                    range: q.dates,
+                    changed: (v) => c.filter(c.query.copyWith(dates: () => v)),
+                  ),
+                  StockSelect(
+                    label: 'Nguồn giao dịch',
+                    value: q.source?.code ?? 'all',
+                    items: {
+                      'all': 'Tất cả nguồn',
+                      for (final source in InventoryTransactionSource.values)
+                        source.code: source.label,
+                    },
+                    changed: (value) => c.filter(
+                      q.copyWith(
+                        source: () => InventoryTransactionSource.values
+                            .where((e) => e.code == value)
+                            .firstOrNull,
+                      ),
+                    ),
+                  ),
+                  StockSelect(
+                    label: 'Loại biến động',
+                    value: q.type?.code ?? 'all',
+                    items: {
+                      'all': 'Tất cả biến động',
+                      for (final v in InventoryTransactionType.values)
+                        v.code: v.label,
+                    },
+                    changed: (v) => c.filter(
+                      q.copyWith(
+                        type: () => InventoryTransactionType.values
+                            .where((t) => t.code == v)
+                            .firstOrNull,
+                      ),
+                    ),
+                  ),
+                  StockSelect(
+                    label: 'Thứ tự',
+                    value: q.direction,
+                    items: const {'desc': 'Mới trước', 'asc': 'Cũ trước'},
+                    changed: (v) => c.filter(q.copyWith(direction: v)),
+                  ),
+                ];
+              },
+            ),
+            IconButton(
+              tooltip: 'Tải lại biến động',
+              onPressed: c.loading ? null : c.load,
+              icon: const Icon(Icons.refresh),
+            ),
+            if (q.warehouseId != null)
+              InputChip(
+                avatar: const Icon(Icons.warehouse_outlined, size: 18),
+                label: Text('Kho: ${name(q.warehouseId!, 'đã chọn')}'),
+                onDeleted: () => c.filter(
+                  q.copyWith(warehouseId: () => null, ingredientId: () => null),
                 ),
               ),
-            ),
             if (q.ingredientId != null)
-              IconButton(
-                tooltip: 'Bỏ lọc nguyên liệu',
-                onPressed: () => c.filter(q.copyWith(ingredientId: () => null)),
-                icon: const Icon(Icons.close),
+              InputChip(
+                avatar: const Icon(Icons.grass_outlined, size: 18),
+                label: Text('Nguyên liệu: ${name(q.ingredientId!, 'đã chọn')}'),
+                onDeleted: () => c.filter(q.copyWith(ingredientId: () => null)),
               ),
-            StockDateFilter(
-              range: q.dates,
-              changed: (v) => c.filter(q.copyWith(dates: () => v)),
-            ),
             if (q.documentId != null)
               InputChip(
                 avatar: const Icon(Icons.receipt_long_outlined, size: 18),
@@ -191,75 +252,6 @@ class InventoryTransactionList extends ConsumerWidget {
                 onPressed: () => c.filter(const InventoryTransactionQuery()),
                 child: const Text('Xóa bộ lọc'),
               ),
-            IconButton(
-              tooltip: 'Tải lại biến động',
-              onPressed: c.loading ? null : c.load,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        ExpansionTile(
-          // Keyed by the controller so a fresh ledger starts collapsed.
-          key: PageStorageKey(('stock-filters', c)),
-          title: Text(advanced == 0 ? 'Lọc thêm' : 'Lọc thêm · $advanced'),
-          tilePadding: EdgeInsets.zero,
-          childrenPadding: const EdgeInsets.only(bottom: 12),
-          children: [
-            ResponsiveColumns(
-              minColumnWidth: 240 * scale.clamp(1, 1.5),
-              maxColumns: 4,
-              spacing: 12,
-              children: [
-                StockSelect(
-                  label: 'Nguồn giao dịch',
-                  value: q.source?.code ?? 'all',
-                  items: {
-                    'all': 'Tất cả nguồn',
-                    for (final source in InventoryTransactionSource.values)
-                      source.code: source.label,
-                  },
-                  changed: (value) => c.filter(
-                    q.copyWith(
-                      source: () => InventoryTransactionSource.values
-                          .where((e) => e.code == value)
-                          .firstOrNull,
-                    ),
-                  ),
-                ),
-                StockSelect(
-                  label: 'Loại biến động',
-                  value: q.type?.code ?? 'all',
-                  items: {
-                    'all': 'Tất cả biến động',
-                    for (final v in InventoryTransactionType.values)
-                      v.code: v.label,
-                  },
-                  changed: (v) => c.filter(
-                    q.copyWith(
-                      type: () => InventoryTransactionType.values
-                          .where((t) => t.code == v)
-                          .firstOrNull,
-                    ),
-                  ),
-                ),
-                StockSelect(
-                  label: 'Thứ tự',
-                  value: q.direction,
-                  items: const {'desc': 'Mới trước', 'asc': 'Cũ trước'},
-                  changed: (v) => c.filter(q.copyWith(direction: v)),
-                ),
-                StockSelect(
-                  label: 'Mỗi trang',
-                  value: '${q.size}',
-                  items: const {
-                    '20': '20 dòng',
-                    '50': '50 dòng',
-                    '100': '100 dòng',
-                  },
-                  changed: (v) => c.filter(q.copyWith(size: int.parse(v))),
-                ),
-              ],
-            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -386,13 +378,12 @@ class InventoryTransactionList extends ConsumerWidget {
             );
           },
         ),
-        if (c.hasLoaded)
-          InventoryPaging(
-            page: q.page,
-            totalPages: c.totalPages,
-            totalElements: c.totalElements,
-            loading: c.loading,
-            changed: c.page,
+        if (c.hasLoaded && c.rows.isNotEmpty)
+          EndlessListFooter(
+            hasMore: c.hasMore,
+            failureMessage: c.endless.failure?.message,
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} biến động',
+            onLoadMore: c.loadMore,
           ),
       ],
     );

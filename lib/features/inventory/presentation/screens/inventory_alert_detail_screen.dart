@@ -64,35 +64,13 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const InventoryAlertSyncStatus(),
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      Text(
-                        'Chi tiết cảnh báo',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                context.go('/app/inventory/alerts'),
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('Về cảnh báo'),
-                          ),
-                          IconButton(
-                            tooltip: 'Tải lại cảnh báo',
-                            onPressed: c.loading || c.busy ? null : c.load,
-                            icon: const Icon(Icons.refresh),
-                          ),
-                        ],
-                      ),
-                    ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      tooltip: 'Tải lại cảnh báo',
+                      onPressed: c.loading || c.busy ? null : c.load,
+                      icon: const Icon(Icons.refresh),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   if (c.loading || c.busy) const LinearProgressIndicator(),
@@ -241,7 +219,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                       runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: () => context.go(
+                          onPressed: () => context.push(
                             stockHistoryLocation(
                               warehouseId: row.warehouseId,
                               ingredientId: row.ingredientId,

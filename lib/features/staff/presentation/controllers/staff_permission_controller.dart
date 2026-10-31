@@ -64,6 +64,19 @@ class StaffPermissionState {
     base.removeAll(localDenies);
     return base;
   }
+
+  /// Permissions whose saved override differs from the current draft.
+  Set<String> get changedCodes {
+    if (config == null) return {};
+    final grants = config!.grants.toSet();
+    final denies = config!.denies.toSet();
+    return {
+      ...grants.difference(localGrants),
+      ...localGrants.difference(grants),
+      ...denies.difference(localDenies),
+      ...localDenies.difference(denies),
+    };
+  }
 }
 
 class StaffPermissionController extends ChangeNotifier {
@@ -209,13 +222,52 @@ class StaffPermissionController extends ChangeNotifier {
         break;
     }
 
-    _state = _state.copyWith(localGrants: grants, localDenies: denies);
+    _state = _state.copyWith(
+      localGrants: grants,
+      localDenies: denies,
+      successMessage: () => null,
+    );
     notifyListeners();
+  }
+
+  bool isEnabled(String code) =>
+      _state.calculatedEffectivePermissions.contains(code);
+
+  /// Turning off is always allowed; turning on may need a grant the actor lacks.
+  bool canToggle(String code) =>
+      canSave &&
+      (isEnabled(code) ||
+          (_state.config?.rolePermissions.contains(code) ?? false) ||
+          canGrant(code));
+
+  /// The on/off view of grants and denies: matching the role clears the
+  /// override, anything else becomes one.
+  void setEnabled(String code, bool enabled) {
+    if (!canToggle(code)) return;
+    final inRole = _state.config!.rolePermissions.contains(code);
+    setPermissionState(
+      code,
+      enabled == inRole
+          ? 'default'
+          : enabled
+          ? 'grant'
+          : 'deny',
+    );
+  }
+
+  void setGroupEnabled(Iterable<String> codes, bool enabled) {
+    for (final code in codes) {
+      if (isEnabled(code) != enabled) setEnabled(code, enabled);
+    }
   }
 
   void resetAllOverrides() {
     if (!canSave) return;
-    _state = _state.copyWith(localGrants: {}, localDenies: {});
+    _state = _state.copyWith(
+      localGrants: {},
+      localDenies: {},
+      successMessage: () => null,
+    );
     notifyListeners();
   }
 

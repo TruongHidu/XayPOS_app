@@ -145,12 +145,12 @@ void main() {
       items: items,
       groups: groups,
     );
-    expect(find.text('Quản lý nguyên liệu'), findsOneWidget);
     expect(find.text('Thịt bò'), findsOneWidget);
     expect(items.queries, isEmpty);
     expect(groups.queries, isEmpty);
     expect(find.text('Món bán'), findsNothing);
-    await _tap(tester, find.text('Thêm nguyên liệu'));
+    // Only one creatable type: the add button opens its form directly.
+    await _tap(tester, find.byTooltip('Thêm mới'));
     await tester.pumpAndSettle();
     expect(_field('name'), findsOneWidget);
     expect(find.byKey(const ValueKey('menu-item-salePrice')), findsNothing);
@@ -469,23 +469,23 @@ void main() {
         expect(find.text('Thịt bò'), findsOneWidget);
         expect(tester.takeException(), isNull);
 
-        await tester.scrollUntilVisible(
-          find.text('Thêm nguyên liệu'),
-          -300,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await _tap(tester, find.text('Thêm nguyên liệu'));
-        await tester.pumpAndSettle();
-        await tester.enterText(_field('name'), 'Bò');
-        await _tap(tester, find.byKey(const ValueKey('create-type-MENU_ITEM')));
-        await tester.pumpAndSettle();
-        tester.view.viewInsets = const FakeViewPadding(bottom: 320);
-        addTearDown(tester.view.resetViewInsets);
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        await _tap(tester, find.text('Đóng').last);
-        await tester.pumpAndSettle();
-        tester.view.resetViewInsets();
+        for (final option in ['Thêm nguyên liệu', 'Thêm món']) {
+          await _tap(tester, find.byTooltip('Thêm mới'));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await _tap(tester, find.text(option));
+          await tester.pumpAndSettle();
+          if (option == 'Thêm nguyên liệu') {
+            await tester.enterText(_field('name'), 'Bò');
+          }
+          tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+          addTearDown(tester.view.resetViewInsets);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await _tap(tester, find.text('Đóng').last);
+          await tester.pumpAndSettle();
+          tester.view.resetViewInsets();
+        }
 
         await tester.pumpWidget(const SizedBox.shrink());
         await _pump(
@@ -510,7 +510,7 @@ void main() {
           permission: 'INGREDIENT_VIEW',
         );
         expect(
-          find.text('Giá vốn tham chiếu: 250.25 / g · Đã cấu hình'),
+          find.text('Giá vốn tham chiếu: 250,25 đ / g · Đã cấu hình'),
           findsOneWidget,
         );
         expect(tester.takeException(), isNull);

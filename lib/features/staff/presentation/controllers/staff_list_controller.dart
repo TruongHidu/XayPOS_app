@@ -6,6 +6,7 @@ import '../../domain/use_cases/get_staff_detail.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/result/result.dart';
+import '../../../../core/paging/endless_pages.dart';
 import '../../domain/entities/paginated_staff_result.dart';
 import '../../domain/entities/staff_member.dart';
 import '../../domain/entities/staff_role.dart';
@@ -172,6 +173,7 @@ class StaffListController extends ChangeNotifier {
 
   StaffListState _state = const StaffListState();
   StaffListState get state => _state;
+  final endless = EndlessPages<StaffMember>((staff) => staff.id);
 
   Future<void> loadInitial() async {
     await Future.wait([loadRoles(), loadStaffList(resetPage: true)]);
@@ -216,20 +218,19 @@ class StaffListController extends ChangeNotifier {
     );
     notifyListeners();
 
-    final result = await _getStaffList(
-      query: _state.query.isEmpty ? null : _state.query,
-      roleCode: _state.selectedRoleCode,
-      active: _state.selectedActive,
+    final result = await endless.read(
       page: targetPage,
-      size: _state.size,
-      sortBy: _state.sortBy,
-      direction: _state.direction,
+      fetch: _fetchPage,
+      content: (data) => data.content,
+      totalPages: (data) => data.totalPages,
+      active: () => !_disposed && request == _request,
     );
 
     if (_disposed || request != _request) return;
-    if (result is Success<PaginatedStaffResult>) {
-      final data = result.value;
-      if (data.content.isEmpty && targetPage > 0) {
+    if (result is Success<EndlessRead<StaffMember, PaginatedStaffResult>>) {
+      final pages = result.value;
+      final data = pages.last;
+      if (pages.rows.isEmpty && targetPage > 0) {
         _state = _state.copyWith(
           page: data.totalPages > 0 ? data.totalPages - 1 : 0,
         );
@@ -238,19 +239,58 @@ class StaffListController extends ChangeNotifier {
       }
       _state = _state.copyWith(
         isLoading: false,
-        staffList: data.content,
+        staffList: pages.rows,
         page: data.page,
         size: data.size,
         totalElements: data.totalElements,
         totalPages: data.totalPages,
       );
-    } else if (result is Error<PaginatedStaffResult>) {
-      final message = await _failure(result.failure);
+    } else if (result case Error(failure: final failure)) {
+      final message = await _failure(failure);
       if (_disposed || request != _request) return;
       _state = _state.copyWith(isLoading: false, errorMessage: () => message);
     }
     notifyListeners();
   }
+
+  /// Appends the next page; a failure keeps the staff already shown.
+  Future<void> loadMore() async {
+    if (!_allowed('STAFF_VIEW') ||
+        _state.isLoading ||
+        endless.loadingMore ||
+        _state.page >= _state.totalPages - 1) {
+      return;
+    }
+    final request = ++_request;
+    endless.begin();
+    notifyListeners();
+    final result = await _fetchPage(_state.page + 1);
+    if (_disposed || request != _request) return;
+    switch (result) {
+      case Success(value: final data):
+        _state = _state.copyWith(
+          staffList: endless.append(_state.staffList, data.content),
+          page: data.page,
+          totalElements: data.totalElements,
+          totalPages: data.totalPages,
+        );
+      case Error(failure: final failure):
+        await _failure(failure);
+        if (_disposed || request != _request) return;
+        endless.fail(failure);
+    }
+    notifyListeners();
+  }
+
+  Future<Result<PaginatedStaffResult>> _fetchPage(int page) => _getStaffList(
+    query: _state.query.isEmpty ? null : _state.query,
+    roleCode: _state.selectedRoleCode,
+    active: _state.selectedActive,
+    page: page,
+    size: _state.size,
+    sortBy: _state.sortBy,
+    direction: _state.direction,
+  );
 
   void setSearchQuery(String query) {
     if (_state.query == query) return;
