@@ -133,7 +133,7 @@ class StockDocumentRemoteDataSource {
       '${documentPath(id)}/items/${Uri.encodeComponent(item)}',
       body: {
         'expectedVersion': input.expectedVersion,
-        ...StockDocumentRequests.line(input.line, includeIngredient: false),
+        ...StockDocumentRequests.line(input.line, includeItem: false),
       },
     ),
     id,
@@ -188,7 +188,7 @@ class StockDocumentRemoteDataSource {
     if (page.content.any(
       (r) =>
           q.warehouseId != null && r.warehouseId != q.warehouseId ||
-          q.ingredientId != null && r.ingredientId != q.ingredientId ||
+          q.ingredientId != null && r.stockItemId != q.ingredientId ||
           q.documentId != null && r.documentId != q.documentId ||
           q.orderId != null && r.orderId != q.orderId ||
           q.orderItemId != null && r.orderItemId != q.orderItemId ||

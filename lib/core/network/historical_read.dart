@@ -40,7 +40,7 @@ Future<Result<T>> historicalRead<T>(Future<T> Function() operation) async {
       Failure(
         type: FailureType.internal,
         code: 'INVALID_INGREDIENT_READ_RESPONSE',
-        message: 'Dữ liệu nguyên liệu chưa xác minh được. Vui lòng tải lại.',
+        message: 'Dữ liệu của món chưa xác minh được. Vui lòng tải lại.',
       ),
     );
   } on Object catch (error) {

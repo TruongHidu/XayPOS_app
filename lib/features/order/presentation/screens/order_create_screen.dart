@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
@@ -321,7 +323,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       hintText: hint,
       prefixIcon: Icon(icon, size: 20),
       filled: true,
-      fillColor: const Color(0xFFF9FAFB),
+      fillColor: AppColors.grey50,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     );
     return Container(
@@ -422,7 +424,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
         : 'Chưa gửi đơn';
 
     return Material(
-      color: Colors.grey.shade50,
+      color: AppColors.grey50,
       child: SafeArea(
         child: Column(
           children: [
@@ -436,7 +438,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: AppColors.grey200),
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.chevron_left, size: 22),
@@ -461,7 +463,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF111827),
+                            color: AppColors.grey900,
                           ),
                         ),
                         if (!_takeaway)
@@ -474,16 +476,16 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                             decoration: BoxDecoration(
                               color: widget.contextInput.sessionAlreadyOpen
                                   ? const Color(0xFFFFF0EB)
-                                  : const Color(0xFFF3F4F6),
+                                  : AppColors.grey100,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               statusText,
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: widget.contextInput.sessionAlreadyOpen
-                                    ? OrderPalette.orange
-                                    : Colors.grey.shade700,
+                                    ? OrderPalette.primary
+                                    : AppColors.grey700,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -496,7 +498,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: AppColors.grey200),
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.search, size: 18),
@@ -515,7 +517,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: AppColors.grey200),
                     ),
                     child: PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert, size: 18),
@@ -565,9 +567,9 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
               color: Colors.white,
               child: TabBar(
                 controller: _tabController,
-                indicatorColor: OrderPalette.orange,
-                labelColor: OrderPalette.orange,
-                unselectedLabelColor: Colors.grey.shade700,
+                indicatorColor: OrderPalette.primary,
+                labelColor: OrderPalette.primary,
+                unselectedLabelColor: AppColors.grey700,
                 tabs: [
                   const Tab(text: 'Chọn món'),
                   Tab(text: 'Giỏ (${d.lines.length})'),
@@ -643,97 +645,130 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                             child: Center(child: Text('Chưa chọn món nào.')),
                           ),
                         for (final line in d.lines)
-                          Card(
-                            color: Colors.white,
-                            elevation: 0,
-                            margin: const EdgeInsets.only(bottom: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(color: Colors.grey.shade200),
+                          Dismissible(
+                            key: ValueKey('cart-line-${line.id}'),
+                            direction: d.frozen
+                                ? DismissDirection.none
+                                : DismissDirection.endToStart,
+                            onDismissed: (_) {
+                              HapticFeedback.mediumImpact();
+                              d.remove(line.id);
+                            },
+                            background: Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              alignment: Alignment.centerRight,
+                              decoration: BoxDecoration(
+                                color: AppColors.danger,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'Bỏ món',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          line.item.name,
+                            child: Card(
+                              color: Colors.white,
+                              elevation: 0,
+                              margin: const EdgeInsets.only(bottom: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(color: AppColors.grey200),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            line.item.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          orderMoney(line.previewMinor),
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: OrderPalette.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${line.quantity} ${line.item.baseUnit}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.grey600,
+                                      ),
+                                    ),
+                                    if (line.note?.isNotEmpty == true) ...[
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Ghi chú: ${line.note}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.brown.shade700,
                                           ),
                                         ),
                                       ),
-                                      Text(
-                                        orderMoney(line.previewMinor),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: OrderPalette.orange,
-                                        ),
-                                      ),
                                     ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${line.quantity} ${line.item.baseUnit}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                  if (line.note?.isNotEmpty == true) ...[
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.amber.shade50,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        'Ghi chú: ${line.note}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.brown.shade700,
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: d.frozen
+                                              ? null
+                                              : () => _edit(d, line),
+                                          icon: const Icon(
+                                            Icons.edit_note,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'Số lượng / ghi chú',
+                                          ),
                                         ),
-                                      ),
+                                        TextButton.icon(
+                                          onPressed: d.frozen
+                                              ? null
+                                              : () => d.remove(line.id),
+                                          icon: const Icon(
+                                            Icons.delete_outline,
+                                            size: 16,
+                                          ),
+                                          label: const Text('Bỏ món'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor:
+                                                Colors.red.shade700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      TextButton.icon(
-                                        onPressed: d.frozen
-                                            ? null
-                                            : () => _edit(d, line),
-                                        icon: const Icon(
-                                          Icons.edit_note,
-                                          size: 16,
-                                        ),
-                                        label: const Text('Số lượng / ghi chú'),
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: d.frozen
-                                            ? null
-                                            : () => d.remove(line.id),
-                                        icon: const Icon(
-                                          Icons.delete_outline,
-                                          size: 16,
-                                        ),
-                                        label: const Text('Bỏ món'),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
@@ -861,14 +896,14 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
+                                color: AppColors.grey900,
                               ),
                             ),
                             Text(
                               'Tạm tính : ${orderMoney(d.previewMinor)}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade700,
+                                color: AppColors.grey700,
                               ),
                             ),
                           ],
@@ -881,9 +916,9 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                             OutlinedButton(
                               onPressed: () => _tabController.animateTo(1),
                               style: OutlinedButton.styleFrom(
-                                foregroundColor: OrderPalette.orange,
+                                foregroundColor: OrderPalette.primary,
                                 side: const BorderSide(
-                                  color: OrderPalette.orange,
+                                  color: OrderPalette.primary,
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
@@ -913,7 +948,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   : () =>
                                         _submit(d, OrderSubmissionMode.submit),
                               style: FilledButton.styleFrom(
-                                backgroundColor: OrderPalette.orange,
+                                backgroundColor: OrderPalette.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -944,7 +979,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   widget.contextInput.fromTable
                                       ? 'Bạn chưa có quyền gửi đơn hoặc mở bàn, nhưng vẫn có thể lưu nháp.'
                                       : 'Bạn chưa có quyền gửi đơn, nhưng vẫn có thể lưu nháp.',
-                                  style: const TextStyle(fontSize: 11),
+                                  style: const TextStyle(fontSize: 12),
                                 ),
                               ),
                             if (d.canDraft)

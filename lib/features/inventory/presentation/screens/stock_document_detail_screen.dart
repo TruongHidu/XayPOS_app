@@ -273,7 +273,7 @@ Future<void> _editLine(
           ref,
           warehouseId: baseline.warehouseId,
           type: baseline.type,
-          excluded: baseline.items.map((r) => r.ingredientId).toSet(),
+          excluded: baseline.items.map((r) => r.stockItemId).toSet(),
         );
   if (!context.mounted || !c.current || row == null && ingredient == null) {
     return;
@@ -284,7 +284,7 @@ Future<void> _editLine(
     permission: baseline.type.permission,
     child: StockLineEditor(
       type: baseline.type,
-      ingredientId: row?.ingredientId ?? ingredient!.ingredientId,
+      stockItemId: row?.stockItemId ?? ingredient!.stockItemId,
       name: row?.ingredientName ?? ingredient!.ingredientName,
       unit: row?.unit ?? ingredient!.baseUnit,
       sku: row?.ingredientSku ?? ingredient?.ingredientSku,
@@ -293,7 +293,7 @@ Future<void> _editLine(
       initial: row == null
           ? null
           : StockLineInput(
-              ingredientId: row.ingredientId,
+              stockItemId: row.stockItemId,
               quantity: row.quantity,
               unitCost: row.unitCost,
               direction: row.direction,
@@ -304,7 +304,7 @@ Future<void> _editLine(
   if (context.mounted && saved == true) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Đã lưu dòng nguyên liệu.')));
+    ).showSnackBar(const SnackBar(content: Text('Đã lưu dòng hàng hóa.')));
   }
 }
 
@@ -324,7 +324,7 @@ Future<void> _deleteLine(
     context,
     ref,
     permission: baseline.type.permission,
-    title: 'Xóa dòng nguyên liệu?',
+    title: 'Xóa dòng hàng hóa?',
     message:
         'Xóa ${row.ingredientName} khỏi phiếu ${baseline.documentCode}? Phiếu vẫn là nháp và chưa thay đổi tồn.',
     confirm: 'Xóa dòng',
@@ -493,7 +493,7 @@ class _StockDetailBody extends ConsumerWidget {
                       ? () => _editLine(context, ref, id)
                       : null,
                   icon: const Icon(Icons.add),
-                  label: const Text('Thêm nguyên liệu'),
+                  label: const Text('Thêm hàng hóa'),
                 ),
                 FilledButton.icon(
                   onPressed: c.editable && d.items.isNotEmpty
@@ -527,7 +527,7 @@ class _StockDetailBody extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Text(
-                'Phiếu chưa có nguyên liệu. Bổ sung ít nhất một dòng trước khi xác nhận.',
+                'Phiếu chưa có hàng hóa. Bổ sung ít nhất một dòng trước khi xác nhận.',
               ),
             ),
           LayoutBuilder(
@@ -545,7 +545,7 @@ class _StockDetailBody extends ConsumerWidget {
                         Theme.of(context).colorScheme.surfaceContainerLow,
                       ),
                       columns: [
-                        const DataColumn(label: Text('Nguyên liệu')),
+                        const DataColumn(label: Text('Hàng hóa')),
                         const DataColumn(label: Text('Số lượng / Đơn vị')),
                         if (d.type == StockDocumentType.adjustment)
                           const DataColumn(label: Text('Hướng')),
@@ -566,7 +566,7 @@ class _StockDetailBody extends ConsumerWidget {
                                 SizedBox(
                                   width: 220,
                                   child: Text(
-                                    '${row.ingredientName}\n${row.ingredientSku ?? 'Chưa có SKU'}',
+                                    '${row.ingredientName}\n${row.ingredientSku ?? ''}',
                                     maxLines: 3,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -628,7 +628,8 @@ class _StockDetailBody extends ConsumerWidget {
                               row.ingredientName,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
-                            Text(row.ingredientSku ?? 'Chưa có SKU'),
+                            if (row.ingredientSku != null)
+                              Text(row.ingredientSku!),
                             const SizedBox(height: 12),
                             Text(
                               'Số lượng: ${inventoryAmount(row.quantity, row.unit)}',

@@ -1,3 +1,4 @@
+import '../../../../core/values/item_type.dart';
 import 'inventory_quantity.dart';
 import 'stock_numbers.dart';
 
@@ -71,7 +72,8 @@ class StockAuditDetail extends StockAuditSummary {
 class StockAuditItem {
   const StockAuditItem({
     required this.id,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.sku,
     required this.name,
     required this.unit,
@@ -81,7 +83,8 @@ class StockAuditItem {
     required this.referenceUnitCostSnapshot,
     required this.note,
   });
-  final String id, ingredientId, name, unit;
+  final String id, stockItemId, name, unit;
+  final ItemType itemType;
   final String? sku, note;
   final InventoryQuantity systemQuantity;
   final InventoryQuantity? countedQuantity;

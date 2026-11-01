@@ -32,7 +32,9 @@ class MenuItemController extends MenuListController<MenuItem> {
        _events = events,
        super(list: list.call, items: true, idOf: (item) => item.id) {
     _groupRevision = events.groupRevision;
+    _itemRevision = events.itemRevision;
     events.addListener(_groupsChanged);
+    events.addListener(_itemsChanged);
   }
   final GetMenuItemDetail _detail;
   final CreateMenuItem _create;
@@ -43,6 +45,15 @@ class MenuItemController extends MenuListController<MenuItem> {
   final DeleteMenuItem _delete;
   final MenuCatalogEvents _events;
   late int _groupRevision;
+  late int _itemRevision;
+
+  // Named items are this controller's own mutations, already applied to rows.
+  // Only an unnamed change, such as a confirmed receipt, needs a fresh read.
+  void _itemsChanged() {
+    if (!isCurrent || _itemRevision == _events.itemRevision) return;
+    _itemRevision = _events.itemRevision;
+    if (_events.changedItemId == null) unawaited(load());
+  }
 
   void _groupsChanged() {
     if (!isCurrent || _groupRevision == _events.groupRevision) return;
@@ -155,6 +166,7 @@ class MenuItemController extends MenuListController<MenuItem> {
   @override
   void dispose() {
     _events.removeListener(_groupsChanged);
+    _events.removeListener(_itemsChanged);
     super.dispose();
   }
 }

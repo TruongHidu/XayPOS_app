@@ -75,10 +75,12 @@ class InventoryAlertRealtimeCoordinator {
       return;
     }
     final payload = event.payload;
+    // ingredientId is null for menu items; older events only carry that key.
+    final stockItemId = payload['itemId'] ?? payload['ingredientId'];
     if (payload['warehouseId'] is! String ||
         (payload['warehouseId'] as String).isEmpty ||
-        payload['ingredientId'] is! String ||
-        (payload['ingredientId'] as String).isEmpty ||
+        stockItemId is! String ||
+        stockItemId.isEmpty ||
         !const {
           'OPEN',
           'ACKNOWLEDGED',

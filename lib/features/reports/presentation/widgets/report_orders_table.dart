@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/report_enums.dart';
@@ -296,7 +297,7 @@ class ReportOrdersTable extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: row.collectedAmountInRange.minorUnits > BigInt.zero
-                        ? const Color(0xFF10B981)
+                        ? AppColors.success
                         : null,
                   ),
                 ),
@@ -393,7 +394,7 @@ class ReportOrdersTable extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(
                         color:
                             row.collectedAmountInRange.minorUnits > BigInt.zero
-                            ? const Color(0xFF10B981)
+                            ? AppColors.success
                             : theme.colorScheme.outline,
                         fontWeight: FontWeight.w600,
                       ),
@@ -460,7 +461,7 @@ class ReportOrdersTable extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -472,15 +473,15 @@ class ReportOrdersTable extends StatelessWidget {
 
     switch (paymentStatus) {
       case OrderPaymentStatus.unpaid:
-        bg = Colors.grey.shade100;
-        fg = Colors.grey.shade700;
+        bg = AppColors.grey100;
+        fg = AppColors.grey700;
         text = 'Chưa thanh toán';
       case OrderPaymentStatus.partiallyPaid:
         bg = Colors.orange.shade50;
         fg = Colors.orange.shade800;
         text = 'Một phần';
       case OrderPaymentStatus.paid:
-        bg = const Color(0xFF10B981).withValues(alpha: 0.12);
+        bg = AppColors.success.withValues(alpha: 0.12);
         fg = const Color(0xFF059669);
         text = 'Đã thanh toán';
       case OrderPaymentStatus.partiallyRefunded:
@@ -502,7 +503,7 @@ class ReportOrdersTable extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.bold),
       ),
     );
   }

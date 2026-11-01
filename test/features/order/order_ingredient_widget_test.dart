@@ -226,7 +226,7 @@ void main() {
       expect(find.textContaining('Không theo dõi tồn'), findsOneWidget);
       await _tap(tester, find.text('Giữ & tiêu thụ kho'));
       expect(allocations.calls, [('o1', 'line1')]);
-      expect(find.text('Đang giữ nguyên liệu'), findsOneWidget);
+      expect(find.text('Đang giữ hàng hóa'), findsOneWidget);
       expect(find.textContaining('warehouse-historical'), findsOneWidget);
       await _tap(tester, find.text('Công thức đã chốt'));
       expect(snapshots.calls, hasLength(1));
@@ -261,6 +261,74 @@ void main() {
       expect(find.textContaining('Cần quyền xem kho'), findsOneWidget);
     },
   );
+  group('stock reader without recipe rights', () {
+    const stockOnly = {'ORDER_VIEW', 'INVENTORY_VIEW'};
+    Map<String, dynamic> directJson() {
+      final json = allocationJson(status: 'RESERVED');
+      return {
+        ...json,
+        'directStockSnapshot': true,
+        'ingredients': [
+          for (final row in json['ingredients'] as List)
+            {
+              ...row as Map<String, dynamic>,
+              'recipeUsageId': null,
+              'ingredientId': null,
+              'itemId': 'coca',
+              'itemType': 'MENU_ITEM',
+            },
+        ],
+      };
+    }
+
+    testWidgets('opens a direct line without reading the recipe snapshot', (
+      tester,
+    ) async {
+      final snapshots = FakeOrderSnapshots(),
+          allocations = FakeOrderAllocations()..value = directJson();
+      await _pump(
+        tester,
+        snapshots: snapshots,
+        allocations: allocations,
+        permissions: stockOnly,
+      );
+      expect(find.text('Xem kho của món'), findsWidgets);
+      await _open(tester);
+      expect(find.text('Kho của món'), findsOneWidget);
+      expect(find.text('Công thức đã chốt'), findsNothing);
+      expect(
+        find.text('Món trừ tồn trực tiếp, không dùng công thức.'),
+        findsOneWidget,
+      );
+      expect(snapshots.calls, isEmpty);
+      expect(allocations.calls, isNotEmpty);
+      expect(tester.takeException(), null);
+    });
+
+    testWidgets('a recipe line refused by the server is not an error', (
+      tester,
+    ) async {
+      final allocations = FakeOrderAllocations()
+        ..onGet = (_, _) async => const Error(
+          Failure(type: FailureType.forbidden, message: 'Không có quyền.'),
+        );
+      await _pump(
+        tester,
+        snapshots: FakeOrderSnapshots(),
+        allocations: allocations,
+        permissions: stockOnly,
+      );
+      await _open(tester);
+      expect(
+        find.text(
+          'Chỉ món trừ tồn trực tiếp mới xem được khi không có quyền công thức.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Không có quyền.'), findsNothing);
+      expect(tester.takeException(), null);
+    });
+  });
   testWidgets(
     'order-only reader does not expose inspector or request historical data',
     (tester) async {

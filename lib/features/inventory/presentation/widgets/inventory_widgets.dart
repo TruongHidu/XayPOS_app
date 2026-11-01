@@ -4,6 +4,7 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
+import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/inventory_quantity.dart';
 
 Future<T?> showInventoryDialog<T>(
@@ -70,6 +71,7 @@ class InventoryDialogFrame extends StatelessWidget {
   Widget build(BuildContext context) => PopScope(
     canPop: !busy && canClose,
     child: Dialog(
+      alignment: phoneDialogAlignment(context),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680),
@@ -300,7 +302,7 @@ class InventoryFilters extends StatelessWidget {
         initialValue: search,
         maxLength: 100,
         decoration: inventoryField(
-          warehouses ? 'Tìm kho' : 'Tìm nguyên liệu',
+          warehouses ? 'Tìm kho' : 'Tìm hàng hóa',
           hint: warehouses ? 'Mã hoặc tên kho' : 'Tên hoặc SKU',
         ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
         onChanged: onSearch,

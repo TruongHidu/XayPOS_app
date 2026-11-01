@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/order_entities.dart';
 import '../controllers/takeaway_orders_controller.dart';
 import '../widgets/order_widgets.dart';
@@ -113,7 +115,7 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
         final status = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (c.loading) const LinearProgressIndicator(),
+            LoadingStrip(loading: c.loading),
             OrderFailurePanel(
               failure: c.failure,
               retry: c.loading ? null : c.load,
@@ -136,7 +138,7 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
                       Icon(
                         Icons.shopping_bag_outlined,
                         size: 48,
-                        color: Colors.grey.shade400,
+                        color: AppColors.grey400,
                       ),
                       const SizedBox(height: 12),
                       const Text(
@@ -237,9 +239,9 @@ class _StageColumn extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.symmetric(horizontal: 4),
     decoration: BoxDecoration(
-      color: const Color(0xFFF9FAFB),
+      color: AppColors.grey50,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
+      border: Border.all(color: AppColors.grey200),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -281,13 +283,9 @@ class _StageList extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         if (rows.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Text(
-              'Không có đơn.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
+          const EmptyState(
+            icon: Icons.shopping_bag_outlined,
+            message: 'Không có đơn.',
           ),
         for (final order in rows)
           TakeawayOrderCard(

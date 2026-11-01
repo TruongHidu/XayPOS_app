@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../order/presentation/widgets/order_widgets.dart';
 import '../../domain/entities/qr_request.dart';
 import '../../domain/entities/qr_request_messages.dart';
@@ -584,7 +585,7 @@ class _StatusChip extends StatelessWidget {
         Theme.of(context).colorScheme.tertiaryContainer,
         Theme.of(context).colorScheme.onTertiaryContainer,
       ),
-      QrRequestStatus.approved => (const Color(0xFF16A34A), Colors.white),
+      QrRequestStatus.approved => (AppColors.success, Colors.white),
       QrRequestStatus.rejected => (
         Theme.of(context).colorScheme.errorContainer,
         Theme.of(context).colorScheme.onErrorContainer,

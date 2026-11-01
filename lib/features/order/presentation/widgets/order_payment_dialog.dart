@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
@@ -234,6 +236,7 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
   }
 
   Future<void> _send(OrderSettlementController controller) async {
+    unawaited(HapticFeedback.mediumImpact());
     if (!_form.currentState!.validate() || !_received) return;
     final result = await controller.pay(
       widget.order,

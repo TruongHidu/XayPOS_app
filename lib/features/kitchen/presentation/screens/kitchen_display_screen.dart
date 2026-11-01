@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
 import '../controllers/kitchen_display_controller.dart';
@@ -70,6 +73,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
     bool wholeOrder = false,
   }) async {
     final actions = ref.read(kitchenActionsProvider);
+    unawaited(HapticFeedback.mediumImpact());
     if (action == KitchenAction.markReady) {
       final confirm = await showDialog<bool>(
         context: context,
@@ -195,13 +199,13 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
+                                    color: AppColors.grey300,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide(
-                                    color: Colors.grey.shade300,
+                                    color: AppColors.grey300,
                                   ),
                                 ),
                               ),
@@ -255,7 +259,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                               width: 1,
                               height: 24,
                               margin: const EdgeInsets.symmetric(horizontal: 6),
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                             ),
                             ChoiceChip(
                               label: Text('Tất cả (${display.items.length})'),
@@ -381,15 +385,11 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
               ),
               if (count == 0 && !display.loading)
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Center(
-                      child: Text(
-                        display.items.isEmpty && display.complete
-                            ? 'Bếp đã xử lý hết món. Chưa có món trong hàng đợi.'
-                            : 'Không có món phù hợp trong dữ liệu đã tải.',
-                      ),
-                    ),
+                  child: EmptyState(
+                    icon: Icons.soup_kitchen_outlined,
+                    message: display.items.isEmpty && display.complete
+                        ? 'Bếp đã xử lý hết món. Chưa có món trong hàng đợi.'
+                        : 'Không có món phù hợp trong dữ liệu đã tải.',
                   ),
                 ),
               SliverPadding(
@@ -412,7 +412,12 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                       if (display.mode ==
                                           KitchenViewMode.items) {
                                         final row = rows[i];
-                                        return KitchenItemCard(
+                                        final next =
+                                            row.itemStatus ==
+                                                OrderItemStatus.pending
+                                            ? KitchenAction.startCooking
+                                            : KitchenAction.markReady;
+                                        final card = KitchenItemCard(
                                           key: ValueKey(
                                             'kitchen-item-${row.key}',
                                           ),
@@ -443,6 +448,28 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                                   KitchenAction.markReady,
                                                 )
                                               : null,
+                                        );
+                                        if (!actions.canAct(row, next)) {
+                                          return card;
+                                        }
+                                        // The queue moves the card itself once
+                                        // the action lands.
+                                        return Dismissible(
+                                          key: ValueKey(
+                                            'kitchen-swipe-${row.key}',
+                                          ),
+                                          direction:
+                                              DismissDirection.startToEnd,
+                                          confirmDismiss: (_) async {
+                                            unawaited(_act(row, next));
+                                            return false;
+                                          },
+                                          background: _swipeHint(
+                                            next == KitchenAction.startCooking
+                                                ? 'Bắt đầu nấu'
+                                                : 'Đã xong',
+                                          ),
+                                          child: card,
                                         );
                                       }
                                       final group = groups[i];
@@ -507,6 +534,19 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
       ),
     );
   }
+
+  Widget _swipeHint(String label) => Container(
+    alignment: Alignment.centerLeft,
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    decoration: BoxDecoration(
+      color: AppColors.success,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+    ),
+  );
 
   String _time(DateTime date) {
     final local = date.toLocal();

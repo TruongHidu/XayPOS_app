@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../../order/presentation/widgets/order_widgets.dart';
 import '../../domain/entities/qr_request.dart';
 import '../providers/qr_request_providers.dart';
@@ -92,9 +93,9 @@ class QrRequestInbox extends ConsumerWidget {
                           'Danh sách đang giữ dữ liệu lần tải trước. Hãy tải lại trước khi đối chiếu.',
                         ),
                       if (!inbox.loading && rows.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Text('Không có yêu cầu QR chờ duyệt.'),
+                        const EmptyState(
+                          icon: Icons.qr_code_2,
+                          message: 'Không có yêu cầu QR chờ duyệt.',
                         ),
                       for (final row in rows)
                         _RequestCard(

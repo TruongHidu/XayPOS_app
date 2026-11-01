@@ -74,7 +74,7 @@ class InventoryAlertRemoteDataSource {
     if (value.content.any(
       (row) =>
           q.warehouseId != null && row.warehouseId != q.warehouseId ||
-          q.ingredientId != null && row.ingredientId != q.ingredientId ||
+          q.ingredientId != null && row.stockItemId != q.ingredientId ||
           q.status != null && row.status != q.status,
     )) {
       throw const FormatException('Wrong alert query response');

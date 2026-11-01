@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/result/result.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_entities.dart';
@@ -140,7 +141,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
         }
       },
       child: Material(
-        color: Colors.grey.shade50,
+        color: AppColors.grey50,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final textGrowth = (MediaQuery.textScalerOf(context).scale(14) - 14)
@@ -165,7 +166,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: AppColors.grey200),
                           ),
                           child: IconButton(
                             icon: const Icon(Icons.chevron_left, size: 22),
@@ -190,7 +191,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
-                                  color: Color(0xFF111827),
+                                  color: AppColors.grey900,
                                 ),
                               ),
                               if (!compact)
@@ -211,8 +212,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                       child: const Text(
                                         'Gọi thêm món',
                                         style: TextStyle(
-                                          fontSize: 11,
-                                          color: OrderPalette.orange,
+                                          fontSize: 12,
+                                          color: OrderPalette.primary,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -222,7 +223,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                     //     '#${order.summary.orderCode}',
                                     //     style: TextStyle(
                                     //       fontSize: 12,
-                                    //       color: Colors.grey.shade600,
+                                    //       color: AppColors.grey600,
                                     //     ),
                                     //   ),
                                   ],
@@ -234,7 +235,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: AppColors.grey200),
                           ),
                           child: IconButton(
                             icon: const Icon(Icons.search, size: 18),
@@ -257,9 +258,9 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                   color: Colors.white,
                   child: TabBar(
                     controller: _tabController,
-                    indicatorColor: OrderPalette.orange,
-                    labelColor: OrderPalette.orange,
-                    unselectedLabelColor: Colors.grey.shade700,
+                    indicatorColor: OrderPalette.primary,
+                    labelColor: OrderPalette.primary,
+                    unselectedLabelColor: AppColors.grey700,
                     tabs: [
                       const Tab(text: 'Chọn món'),
                       Tab(text: 'Giỏ gọi thêm (${cart.lines.length})'),
@@ -357,7 +358,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                               margin: const EdgeInsets.only(bottom: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: Colors.grey.shade200),
+                                side: BorderSide(color: AppColors.grey200),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(12),
@@ -382,7 +383,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                           ),
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            color: OrderPalette.orange,
+                                            color: OrderPalette.primary,
                                           ),
                                         ),
                                       ],
@@ -392,7 +393,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                       '${line.quantity} ${line.item.baseUnit}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey.shade600,
+                                        color: AppColors.grey600,
                                       ),
                                     ),
                                     if (line.note != null &&
@@ -468,7 +469,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                               'Giá và tổng chính thức lấy từ backend. Các món đã lưu không đổi.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: AppColors.grey600,
                               ),
                             ),
                           ],
@@ -511,14 +512,14 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827),
+                                  color: AppColors.grey900,
                                 ),
                               ),
                               Text(
                                 'Tạm tính : ${orderMoney(cart.previewMinor, currency: currency)}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade700,
+                                  color: AppColors.grey700,
                                 ),
                               ),
                             ],
@@ -532,9 +533,9 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                               OutlinedButton(
                                 onPressed: () => _tabController.animateTo(1),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: OrderPalette.orange,
+                                  foregroundColor: OrderPalette.primary,
                                   side: const BorderSide(
-                                    color: OrderPalette.orange,
+                                    color: OrderPalette.primary,
                                   ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -558,7 +559,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                   ? () => _send(cart)
                                   : null,
                               style: FilledButton.styleFrom(
-                                backgroundColor: OrderPalette.orange,
+                                backgroundColor: OrderPalette.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,

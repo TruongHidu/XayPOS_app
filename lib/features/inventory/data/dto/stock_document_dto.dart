@@ -1,8 +1,10 @@
+import '../../../../core/values/item_type.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/inventory_quantity.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_numbers.dart';
 import 'inventory_dto.dart';
+import 'stock_item_ref_dto.dart';
 import 'stock_json.dart';
 
 abstract final class StockDocumentDto {
@@ -66,6 +68,7 @@ abstract final class StockDocumentDto {
 
   static StockDocumentItem item(Object? raw, StockDocumentType type) {
     final j = InventoryDto.object(raw),
+        stockItem = StockItemRefDto.parse(j),
         direction = j['adjustmentDirection'] == null
             ? null
             : enumeration(
@@ -75,7 +78,8 @@ abstract final class StockDocumentDto {
               );
     final result = StockDocumentItem(
       id: InventoryDto.text(j, 'id'),
-      ingredientId: InventoryDto.text(j, 'ingredientId'),
+      stockItemId: stockItem.stockItemId,
+      itemType: stockItem.itemType,
       ingredientSku: InventoryDto.optionalText(j, 'ingredientSku'),
       ingredientName: InventoryDto.text(j, 'ingredientName'),
       unit: InventoryDto.text(j, 'unit'),
@@ -101,7 +105,7 @@ abstract final class StockDocumentDto {
     final items = (j['items'] as List).map((v) => item(v, s.type)).toList();
     if (items.length != s.lineCount ||
         items.map((v) => v.id).toSet().length != items.length ||
-        items.map((v) => v.ingredientId).toSet().length != items.length) {
+        items.map((v) => v.stockItemId).toSet().length != items.length) {
       throw const FormatException('Duplicate/missing stock lines');
     }
     final value = StockDocumentDetail(
@@ -161,6 +165,7 @@ abstract final class StockDocumentDto {
     ]) {
       if (j[key] != null) InventoryDto.text(j, key);
     }
+    final stockItem = StockItemRefDto.parse(j);
     final value = InventoryTransaction(
       source: enumeration(
         j['sourceType'],
@@ -174,7 +179,8 @@ abstract final class StockDocumentDto {
       id: InventoryDto.text(j, 'transactionId'),
       warehouseId: InventoryDto.text(j, 'warehouseId'),
       warehouseCode: InventoryDto.text(j, 'warehouseCode'),
-      ingredientId: InventoryDto.text(j, 'ingredientId'),
+      stockItemId: stockItem.stockItemId,
+      itemType: stockItem.itemType,
       ingredientSku: InventoryDto.optionalText(j, 'ingredientSku'),
       ingredientName: InventoryDto.text(j, 'ingredientName'),
       unit: InventoryDto.text(j, 'unit'),
@@ -201,6 +207,7 @@ abstract final class StockDocumentDto {
     );
     final negative = const {
       InventoryTransactionType.recipeUse,
+      InventoryTransactionType.directUse,
       InventoryTransactionType.issue,
       InventoryTransactionType.adjustmentDecrease,
     }.contains(value.type);
@@ -210,18 +217,23 @@ abstract final class StockDocumentDto {
       throw const FormatException('Invalid stock movement');
     }
     final fromOrder = value.source == InventoryTransactionSource.orderItem;
+    final recipeUse = value.type == InventoryTransactionType.recipeUse;
+    final directUse = value.type == InventoryTransactionType.directUse;
     // Since backend V38, RECIPE_USE carries the frozen reference price of its
     // usage (known or configured zero); unknown/legacy usage stays null.
+    // DIRECT_USE has no recipe usage: it consumes the menu item itself.
     if (fromOrder
-        ? value.type != InventoryTransactionType.recipeUse ||
+        ? !recipeUse && !directUse ||
               value.orderId == null ||
               value.orderItemId == null ||
               value.reservationId == null ||
-              value.recipeUsageId == null ||
+              (value.recipeUsageId == null) != directUse ||
+              directUse && value.itemType != ItemType.menuItem ||
               value.documentId != null ||
               value.documentCode != null ||
               value.documentType != null
-        : value.type == InventoryTransactionType.recipeUse ||
+        : recipeUse ||
+              directUse ||
               value.documentId == null ||
               value.documentCode == null ||
               value.documentType == null ||

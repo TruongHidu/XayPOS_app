@@ -24,6 +24,7 @@ import 'package:pos_saas_app/features/menu/presentation/widgets/ingredient_dialo
 import 'package:pos_saas_app/features/menu/presentation/widgets/ingredient_form.dart';
 import 'package:pos_saas_app/features/menu/presentation/widgets/menu_dialogs.dart';
 import 'package:pos_saas_app/features/menu/presentation/widgets/menu_item_form.dart';
+import 'package:pos_saas_app/features/menu/presentation/widgets/recipe_form.dart';
 import '../../helpers/auth_fakes.dart';
 import 'ingredient_fakes.dart';
 import 'menu_fakes.dart';
@@ -60,9 +61,19 @@ class _RecipeRepository implements RecipeRepository {
     String recipeId,
   ) async => Success(estimateForRecipe(_recipe()));
   int activeCalls = 0, historyCalls = 0, detailCalls = 0, writes = 0;
+  bool noActive = false;
   @override
   Future<Result<Recipe>> active(String menuItemId) async {
     activeCalls++;
+    if (noActive) {
+      return const Error(
+        Failure(
+          type: FailureType.notFound,
+          code: 'ACTIVE_RECIPE_NOT_FOUND',
+          message: 'Chưa có công thức',
+        ),
+      );
+    }
     return Success(_recipe());
   }
 
@@ -263,6 +274,88 @@ void main() {
       expect(ingredients.detailCalls, 0);
       expect(recipes.writes, 0);
       expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'choosing recipe while creating an item continues into the recipe form',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final recipes = _RecipeRepository()..noActive = true;
+      // A real server answers later than the form opens.
+      final items = FakeMenuItems()
+        ..onDetail = () async {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          return Success(item());
+        };
+      final auth = await _auth(
+        permissions: {
+          'MENU_VIEW',
+          'MENU_CREATE',
+          'MENU_UPDATE',
+          'RECIPE_VIEW',
+          'RECIPE_CREATE',
+        },
+        features: {'MENU_MANAGEMENT', 'RECIPE_MANAGEMENT'},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith((ref) => auth),
+          recipeRepositoryProvider.overrideWithValue(recipes),
+          menuItemRepositoryProvider.overrideWithValue(items),
+          menuGroupRepositoryProvider.overrideWithValue(FakeMenuGroups()),
+          ingredientRepositoryProvider.overrideWithValue(FakeIngredients()),
+        ],
+      );
+      addTearDown(container.dispose);
+      final router = container.read(appRouterProvider)..go(AppRoutes.menu);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Thêm mới'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Thêm món'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('menu-item-name')),
+        'Phở bò',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('menu-item-baseUnit')),
+        'tô',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('menu-item-salePrice')),
+        '50000',
+      );
+      final recipe = find.byKey(const ValueKey('menu-item-inventory-RECIPE'));
+      await _tapVisible(tester, recipe);
+      await tester.pumpAndSettle();
+      expect(find.text('Tạo món'), findsNothing);
+      await _tapVisible(tester, find.text('Lưu & thêm công thức'));
+      await tester.pumpAndSettle();
+
+      expect(items.lastCreate?.recipeEnabled, isFalse);
+      expect(items.lastCreate?.trackInventory, isFalse);
+      expect(find.byType(RecipeManagementScreen), findsOneWidget);
+      expect(find.byType(RecipeForm), findsOneWidget);
+      expect(find.textContaining('Cần quyền xem món'), findsNothing);
+
+      await _tapVisible(tester, find.text('Đóng'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RecipeForm), findsNothing);
+      expect(
+        find.text('Món đã lưu nhưng chưa có công thức, kho sẽ chưa được trừ.'),
+        findsOneWidget,
+      );
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );

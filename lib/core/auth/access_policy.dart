@@ -1,5 +1,6 @@
 import '../../features/auth/domain/entities/user_role.dart';
 import '../../features/subscription/domain/entities/entitlement.dart';
+import '../values/inventory_mode.dart';
 import 'app_session.dart';
 
 abstract final class AccessPolicy {
@@ -10,13 +11,40 @@ abstract final class AccessPolicy {
       canMenu(session, 'MENU_UPDATE') &&
       (!enabled || session!.features.contains('RECIPE_MANAGEMENT'));
 
+  // Only switching a mode on needs its feature, so a lost plan never blocks
+  // keeping the current mode or leaving it.
+  static bool canSetInventoryMode(
+    AppSession? session, {
+    required bool creating,
+    required InventoryMode from,
+    required InventoryMode to,
+  }) {
+    if (!canMenu(session, creating ? 'MENU_CREATE' : 'MENU_UPDATE')) {
+      return false;
+    }
+    if (from == to) return true;
+    return switch (to) {
+      InventoryMode.none => true,
+      InventoryMode.direct => session!.features.contains(
+        'INVENTORY_MANAGEMENT',
+      ),
+      // A new item has no recipe yet: choosing this leads to creating one.
+      InventoryMode.recipe =>
+        creating
+            ? canRecipe(session, 'RECIPE_CREATE')
+            : session!.features.contains('RECIPE_MANAGEMENT'),
+    };
+  }
+
   // Historical ingredient reads have their own effective capability intersection.
   static bool canViewOrderRecipeSnapshot(AppSession? session) =>
       canOrders(session, 'ORDER_VIEW') &&
       session!.permissions.contains('RECIPE_VIEW') &&
       session.features.contains('RECIPE_MANAGEMENT');
+  // Direct stock lines need no recipe rights; the server still guards the
+  // recipe rights per line, because a line's mode is unknown before reading it.
   static bool canViewOrderItemAllocation(AppSession? session) =>
-      canViewOrderRecipeSnapshot(session) &&
+      canOrders(session, 'ORDER_VIEW') &&
       session!.permissions.contains('INVENTORY_VIEW') &&
       session.features.contains('INVENTORY_MANAGEMENT');
   static Object? inventoryScope(AppSession? session) => menuScope(session);

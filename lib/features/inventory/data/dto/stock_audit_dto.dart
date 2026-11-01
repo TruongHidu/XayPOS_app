@@ -2,6 +2,7 @@ import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/stock_audit.dart';
 import 'inventory_dto.dart';
 import 'stock_document_dto.dart';
+import 'stock_item_ref_dto.dart';
 import 'stock_json.dart';
 
 abstract final class StockAuditDto {
@@ -99,9 +100,11 @@ abstract final class StockAuditDto {
     for (final key in ['countedQuantity', 'differenceQuantity']) {
       if (!j.containsKey(key)) throw FormatException('Missing $key');
     }
+    final stockItem = StockItemRefDto.parse(j);
     final value = StockAuditItem(
       id: InventoryDto.text(j, 'id'),
-      ingredientId: InventoryDto.text(j, 'ingredientId'),
+      stockItemId: stockItem.stockItemId,
+      itemType: stockItem.itemType,
       sku: InventoryDto.optionalText(j, 'sku'),
       name: InventoryDto.text(j, 'name'),
       unit: InventoryDto.text(j, 'unit'),

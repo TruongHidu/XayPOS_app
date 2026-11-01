@@ -130,7 +130,7 @@ class _InventoryThresholdDialogState
               if (row.minQuantity == InventoryQuantity.zero)
                 const InventoryBadge('Đã tắt cảnh báo'),
               if (!row.ingredientActive)
-                const InventoryBadge('Nguyên liệu ngừng hoạt động'),
+                const InventoryBadge('Hàng hóa ngừng hoạt động'),
             ],
           ),
           if (c.warehouse?.active == false)

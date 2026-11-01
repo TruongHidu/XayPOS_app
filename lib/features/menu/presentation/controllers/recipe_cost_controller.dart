@@ -142,19 +142,33 @@ class RecipeMenuPriceController extends ChangeNotifier {
       !_disposed && _scope == AccessPolicy.recipeScope(session());
   bool get allowed => current && AccessPolicy.canMenu(session(), 'MENU_VIEW');
   MenuItem? get menu => allowed ? _menu : null;
+  Future<void>? _reading;
   void _catalogChanged() {
     if (!current || _revision == events.itemRevision) return;
     _revision = events.itemRevision;
     if (events.changedItemId == null || events.changedItemId == menuItemId) {
       ++_generation;
+      _reading = null;
       loading = false;
       stale = true;
       notifyListeners();
     }
   }
 
-  Future<void> load() async {
-    if (!allowed || loading) return;
+  /// A caller arriving mid-read waits for that read, so `menu` is settled
+  /// once this completes.
+  Future<void> load() {
+    if (!allowed) return Future.value();
+    final reading = _reading;
+    if (reading != null) return reading;
+    late final Future<void> next;
+    next = _read().whenComplete(() {
+      if (identical(_reading, next)) _reading = null;
+    });
+    return _reading = next;
+  }
+
+  Future<void> _read() async {
     final generation = ++_generation;
     loading = true;
     failure = null;

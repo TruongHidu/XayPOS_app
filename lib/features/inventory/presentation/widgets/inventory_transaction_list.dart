@@ -7,6 +7,7 @@ import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_queries.dart';
 import 'inventory_widgets.dart';
@@ -124,7 +125,7 @@ class InventoryTransactionList extends ConsumerWidget {
                   ),
                   Tooltip(
                     message: q.warehouseId == null
-                        ? 'Chọn kho trước để lọc theo nguyên liệu'
+                        ? 'Chọn kho trước để lọc theo hàng hóa'
                         : '',
                     child: OutlinedButton.icon(
                       onPressed: q.warehouseId == null
@@ -141,19 +142,19 @@ class InventoryTransactionList extends ConsumerWidget {
                                 ),
                               );
                               if (context.mounted && row != null && c.current) {
-                                c.names[row.ingredientId] = row.ingredientName;
+                                c.names[row.stockItemId] = row.ingredientName;
                                 c.filter(
                                   c.query.copyWith(
-                                    ingredientId: () => row.ingredientId,
+                                    ingredientId: () => row.stockItemId,
                                   ),
                                 );
                               }
                             },
-                      icon: const Icon(Icons.grass_outlined),
+                      icon: const Icon(Icons.inventory_2_outlined),
                       label: Text(
                         q.ingredientId == null
-                            ? 'Tất cả nguyên liệu'
-                            : 'Nguyên liệu: ${name(q.ingredientId!, 'đã chọn')}',
+                            ? 'Tất cả hàng hóa'
+                            : 'Hàng hóa: ${name(q.ingredientId!, 'đã chọn')}',
                       ),
                     ),
                   ),
@@ -217,8 +218,8 @@ class InventoryTransactionList extends ConsumerWidget {
               ),
             if (q.ingredientId != null)
               InputChip(
-                avatar: const Icon(Icons.grass_outlined, size: 18),
-                label: Text('Nguyên liệu: ${name(q.ingredientId!, 'đã chọn')}'),
+                avatar: const Icon(Icons.inventory_2_outlined, size: 18),
+                label: Text('Hàng hóa: ${name(q.ingredientId!, 'đã chọn')}'),
                 onDeleted: () => c.filter(q.copyWith(ingredientId: () => null)),
               ),
             if (q.documentId != null)
@@ -255,7 +256,7 @@ class InventoryTransactionList extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         InventoryFailurePanel(
           failure: c.failure,
           retry: c.loading ? null : c.load,
@@ -287,7 +288,7 @@ class InventoryTransactionList extends ConsumerWidget {
                     dataRowMaxHeight: 112,
                     columns: const [
                       DataColumn(label: Text('Thời gian / Kho')),
-                      DataColumn(label: Text('Nguyên liệu')),
+                      DataColumn(label: Text('Hàng hóa')),
                       DataColumn(label: Text('Loại')),
                       DataColumn(label: Text('Chênh lệch')),
                       DataColumn(label: Text('Tồn trước → sau')),
@@ -308,7 +309,7 @@ class InventoryTransactionList extends ConsumerWidget {
                               SizedBox(
                                 width: 220,
                                 child: Text(
-                                  '${row.ingredientName}\n${row.ingredientSku ?? 'Chưa có SKU'}',
+                                  '${row.ingredientName}\n${row.ingredientSku ?? ''}',
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -348,7 +349,6 @@ class InventoryTransactionList extends ConsumerWidget {
                             row.ingredientName,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          Text(row.ingredientSku ?? 'Chưa có SKU'),
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,

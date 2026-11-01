@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
@@ -124,7 +125,7 @@ class _IngredientDetailsDialogState
                         ? Icons.check_circle
                         : Icons.pause_circle_outline,
                     size: 16,
-                    color: _item.active ? Colors.green : Colors.grey,
+                    color: _item.active ? Colors.green : AppColors.grey500,
                   ),
                   label: Text(_item.active ? 'Đang sử dụng' : 'Ngừng sử dụng'),
                   backgroundColor: _item.active

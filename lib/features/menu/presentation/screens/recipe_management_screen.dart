@@ -7,6 +7,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/recipe.dart';
 import '../controllers/recipe_controller.dart';
@@ -21,9 +22,13 @@ class RecipeManagementScreen extends ConsumerWidget {
     super.key,
     required this.menuItemId,
     this.initialMenuItem,
+    this.startSetup = false,
   });
   final String menuItemId;
   final MenuItem? initialMenuItem;
+
+  /// Arriving straight from creating the item: open the form at once.
+  final bool startSetup;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,6 +47,7 @@ class RecipeManagementScreen extends ConsumerWidget {
     return _RecipeWorkspace(
       key: ValueKey((scope, menuItemId)),
       menuItemId: menuItemId,
+      startSetup: startSetup,
       initialMenuItem:
           AccessPolicy.canMenu(session, 'MENU_VIEW') &&
               initialMenuItem?.id == menuItemId
@@ -56,9 +62,11 @@ class _RecipeWorkspace extends ConsumerStatefulWidget {
     super.key,
     required this.menuItemId,
     this.initialMenuItem,
+    this.startSetup = false,
   });
   final String menuItemId;
   final MenuItem? initialMenuItem;
+  final bool startSetup;
   @override
   ConsumerState<_RecipeWorkspace> createState() => _RecipeWorkspaceState();
 }
@@ -66,6 +74,7 @@ class _RecipeWorkspace extends ConsumerStatefulWidget {
 class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
   bool _history = false;
   bool _opening = false;
+  late bool _setupPending = widget.startSetup;
   MenuItem? get _menu =>
       ref.read(recipeMenuPriceProvider(widget.menuItemId)).menu;
   Failure? get _menuFailure =>
@@ -127,6 +136,13 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
       // An inactive history does not protect the current menu unit from edits.
       await _loadMenu();
       if (!mounted || !_current) return;
+      // Without the item the form cannot set its unit; a failed read is not
+      // a missing permission.
+      if (_menu == null && _menuFailure != null) {
+        setState(() => _opening = false);
+        _message(_menuFailure!.message);
+        return;
+      }
     }
     setState(() => _opening = false);
     await showRecipeDialog<bool>(
@@ -141,6 +157,21 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
         reconcileHistory: source != null,
       ),
     );
+  }
+
+  /// Runs once the first read shows there is no recipe to protect.
+  void _resumeSetup(RecipeController controller) {
+    if (!_setupPending ||
+        !controller.activeLoaded ||
+        controller.activeLoading) {
+      return;
+    }
+    _setupPending = false;
+    if (controller.active != null || controller.activeFailure != null) return;
+    if (!controller.can('RECIPE_CREATE')) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_current) unawaited(_form());
+    });
   }
 
   Future<void> _deactivate(Recipe recipe) async {
@@ -248,6 +279,11 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.startSetup)
+              const RecipeNotice(
+                message:
+                    'Món đã lưu nhưng chưa có công thức, kho sẽ chưa được trừ.',
+              ),
             const Icon(Icons.menu_book_outlined, size: 40),
             const SizedBox(height: 12),
             Text(
@@ -393,9 +429,9 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
         if (history != null &&
             history.content.isEmpty &&
             !controller.historyLoading)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('Chưa có lịch sử công thức.'),
+          const EmptyState(
+            icon: Icons.menu_book_outlined,
+            message: 'Chưa có lịch sử công thức.',
           ),
         const SizedBox(height: 12),
         if (history != null)
@@ -466,6 +502,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(recipeControllerProvider(widget.menuItemId));
+    _resumeSetup(controller);
     ref.watch(recipeMenuPriceProvider(widget.menuItemId));
     return SafeArea(
       child: Column(

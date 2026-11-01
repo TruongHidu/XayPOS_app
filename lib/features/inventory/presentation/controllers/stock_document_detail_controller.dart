@@ -197,14 +197,14 @@ class StockDocumentDetailController extends InventoryController {
       );
     }
     if (itemId == null &&
-        baseline.items.any((r) => r.ingredientId == line.ingredientId)) {
-      errors['ingredientId'] = 'Nguyên liệu đã có trong phiếu.';
+        baseline.items.any((r) => r.stockItemId == line.stockItemId)) {
+      errors['ingredientId'] = 'Hàng hóa đã có trong phiếu.';
     }
     if (itemId != null &&
         !baseline.items.any(
-          (r) => r.id == itemId && r.ingredientId == line.ingredientId,
+          (r) => r.id == itemId && r.stockItemId == line.stockItemId,
         )) {
-      errors['ingredientId'] = 'Không thể đổi nguyên liệu của dòng đã lưu.';
+      errors['ingredientId'] = 'Không thể đổi hàng hóa của dòng đã lưu.';
     }
     if (errors.isNotEmpty) {
       return Future.value(Error(InventoryController.invalid(errors)));

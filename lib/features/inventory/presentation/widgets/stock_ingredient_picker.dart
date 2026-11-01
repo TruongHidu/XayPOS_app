@@ -38,7 +38,7 @@ class StockIngredientPicker extends ConsumerWidget {
       stockIngredientPickerProvider((warehouseId: warehouseId, type: type)),
     );
     return InventoryDialogFrame(
-      title: 'Chọn nguyên liệu',
+      title: 'Chọn hàng hóa',
       children: [
         TextField(
           decoration: inventoryField(
@@ -55,15 +55,15 @@ class StockIngredientPicker extends ConsumerWidget {
         if (c.hasLoaded && c.rows.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16),
-            child: Text('Không có nguyên liệu phù hợp.'),
+            child: Text('Không có hàng hóa phù hợp.'),
           ),
         for (final row in c.rows)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: OutlinedButton(
-              key: ValueKey('stock-pick-${row.ingredientId}'),
+              key: ValueKey('stock-pick-${row.stockItemId}'),
               onPressed:
-                  excluded.contains(row.ingredientId) ||
+                  excluded.contains(row.stockItemId) ||
                       type == StockDocumentType.receipt && !row.ingredientActive
                   ? null
                   : () => Navigator.of(context).pop(row),
@@ -78,9 +78,7 @@ class StockIngredientPicker extends ConsumerWidget {
                     row.ingredientName,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  Text(
-                    '${row.ingredientSku ?? 'Chưa có SKU'} · ${row.baseUnit}',
-                  ),
+                  Text('Đơn vị: ${row.baseUnit}'),
                   Text(
                     'Tồn vật lý: ${inventoryAmount(row.quantity, row.baseUnit)}',
                   ),
@@ -95,11 +93,12 @@ class StockIngredientPicker extends ConsumerWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
+                      InventoryBadge(row.itemType.label),
                       if (!row.configured)
                         const InventoryBadge('Chưa cấu hình'),
                       if (!row.ingredientActive)
                         const InventoryBadge('Ngừng hoạt động'),
-                      if (excluded.contains(row.ingredientId))
+                      if (excluded.contains(row.stockItemId))
                         const InventoryBadge('Đã có trong phiếu'),
                     ],
                   ),

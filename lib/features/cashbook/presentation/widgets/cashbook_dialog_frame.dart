@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/ui/widgets/responsive_dialog.dart';
 
 /// A centered dialog of readable width that becomes near full-screen on
 /// phones. Header and footer stay fixed while the body scrolls.
@@ -26,6 +27,7 @@ class CashbookDialogFrame extends StatelessWidget {
     final narrow = MediaQuery.sizeOf(context).width < 600;
     final padding = narrow ? 16.0 : 24.0;
     return Dialog(
+      alignment: phoneDialogAlignment(context),
       insetPadding: EdgeInsets.symmetric(
         horizontal: narrow ? 8 : 24,
         vertical: narrow ? 12 : 24,

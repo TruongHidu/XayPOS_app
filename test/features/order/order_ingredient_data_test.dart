@@ -307,7 +307,8 @@ void main() {
           permissions: {...ingredientReadPermissions}..remove(p),
           features: ingredientReadFeatures,
         );
-        expect(AccessPolicy.canViewOrderItemAllocation(s), isFalse);
+        // Recipe rights are guarded per line by the server: direct lines skip them.
+        expect(AccessPolicy.canViewOrderItemAllocation(s), p == 'RECIPE_VIEW');
         expect(
           AccessPolicy.canViewOrderRecipeSnapshot(s),
           p == 'INVENTORY_VIEW',
@@ -318,7 +319,10 @@ void main() {
           permissions: ingredientReadPermissions,
           features: {...ingredientReadFeatures}..remove(f),
         );
-        expect(AccessPolicy.canViewOrderItemAllocation(s), isFalse);
+        expect(
+          AccessPolicy.canViewOrderItemAllocation(s),
+          f == 'RECIPE_MANAGEMENT',
+        );
       }
       final s = makeAppSession(
         permissions: {'ORDER_UPDATE'},

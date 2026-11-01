@@ -205,7 +205,8 @@ REST và nút tải lại luôn hoạt động theo quyền.
 
 `RealtimeEnvelope` parse JSON an toàn. Handler inventory chỉ nhận schemaVersion=1,
 type=INVENTORY_LOW_STOCK_ALERT_CHANGED, resourceType=LOW_STOCK_ALERT, có identity,
-version không âm và payload warehouse/ingredient/status hợp lệ. Payload không
+version không âm và payload warehouse/status hợp lệ, có `itemId` hoặc `ingredientId`
+(null với MENU_ITEM, xem [hàng trừ tồn trực tiếp](direct-stock-menu-items.md)). Payload không
 được chuyển thành InventoryAlert DTO. Unknown type/schema hoặc JSON hỏng bị bỏ qua.
 
 Coordinator theo scope giữ tối đa 512 eventId và 512 alert-version, TTL 10 phút;

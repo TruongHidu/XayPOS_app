@@ -416,14 +416,14 @@ void main() {
       await c.load();
       pending.complete(Success(inventoryPage([balance(i: 'old')])));
       await old;
-      expect(c.rows.single.ingredientId, 'new');
+      expect(c.rows.single.stockItemId, 'new');
       final late = Completer<Result<InventoryPage<InventoryBalance>>>();
       repo.onList = (w, q) => late.future;
       final load = c.load();
       s = _session(tenant: 'different-tenant');
       late.complete(Success(inventoryPage([balance(i: 'wrong-tenant')])));
       await load;
-      expect(c.rows.single.ingredientId, 'new');
+      expect(c.rows.single.stockItemId, 'new');
     },
   );
 

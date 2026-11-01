@@ -19,10 +19,12 @@ class ReferenceCostField extends StatelessWidget {
     this.errorText,
     this.baseUnit = '',
     this.manualBackup = false,
+    this.receiptCosted = false,
   });
   final TextEditingController controller;
   final String fieldKey, baseUnit;
   final bool configured, edited, creating, canConfirmZero, manualBackup;
+  final bool receiptCosted;
   final bool? configurationChange;
   final String? errorText;
   final ValueChanged<String> onChanged;
@@ -69,6 +71,10 @@ class ReferenceCostField extends StatelessWidget {
         if (manualBackup)
           const Text(
             'Giá thủ công này được lưu riêng với giá vốn ước tính từ công thức.',
+          ),
+        if (receiptCosted)
+          const Text(
+            'Xác nhận phiếu nhập kho sẽ tính lại giá vốn này theo bình quân.',
           ),
         if (!creating)
           Wrap(

@@ -755,6 +755,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
     final application = AccessPolicy.canMenu(session, 'MENU_UPDATE')
         ? ref.watch(recipeApplicationProvider(widget.menuItemId))
         : null;
+    final directStock = application?.item?.trackInventory == true;
     final canRead = AccessPolicy.canIngredient(session, 'INGREDIENT_VIEW');
     final available =
         !_savedWithoutApplication &&
@@ -808,7 +809,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                                 ],
                               ),
                       ),
-                    if (_savedWithoutApplication)
+                    if (_savedWithoutApplication && !directStock)
                       RecipeNotice(
                         message:
                             'Công thức đã được lưu. Chỉ cần kiểm tra và bật sử dụng; không lưu lại công thức.',
@@ -937,6 +938,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
                 ),
                 if (_baseline == null &&
                     application?.canSet(true) == true &&
+                    !directStock &&
                     !_savedWithoutApplication)
                   FilledButton.icon(
                     key: const ValueKey('recipe-submit-and-enable'),

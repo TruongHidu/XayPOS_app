@@ -1,5 +1,6 @@
 import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/inventory_quantity.dart';
+import 'stock_item_ref_dto.dart';
 
 abstract final class InventoryDto {
   static Map<String, dynamic> object(Object? value) {
@@ -81,12 +82,14 @@ abstract final class InventoryDto {
     if (!j.containsKey('version')) {
       throw const FormatException('Missing version');
     }
+    final item = StockItemRefDto.parse(j);
     final row = InventoryBalance(
       balanceId: optionalText(j, 'balanceId'),
       configured: boolean(j, 'configured'),
       warehouseId: text(j, 'warehouseId'),
       warehouseCode: text(j, 'warehouseCode'),
-      ingredientId: text(j, 'ingredientId'),
+      stockItemId: item.stockItemId,
+      itemType: item.itemType,
       ingredientSku: optionalText(j, 'ingredientSku'),
       ingredientName: text(j, 'ingredientName'),
       baseUnit: text(j, 'baseUnit'),

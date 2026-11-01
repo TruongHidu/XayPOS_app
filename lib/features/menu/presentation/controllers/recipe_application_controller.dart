@@ -83,6 +83,12 @@ class RecipeApplicationController extends ChangeNotifier {
     code: 'INVALID_MENU_RESPONSE',
     message: 'Chưa xác minh được cấu hình món. Hãy tải lại để kiểm tra.',
   );
+  static const directStock = Failure(
+    type: FailureType.conflict,
+    code: 'INVENTORY_TRACKING_MODE_CONFLICT',
+    message:
+        'Món đang trừ tồn trực tiếp. Hãy đổi cách theo dõi tồn kho trong “Sửa thông tin” trước khi bật công thức.',
+  );
 
   void _changed() {
     if (current) notifyListeners();
@@ -172,6 +178,10 @@ class RecipeApplicationController extends ChangeNotifier {
     _item = baseline;
     needsVerification = false;
     stale = false;
+    if (enabled && baseline.trackInventory) {
+      failure = directStock;
+      return const Error(directStock);
+    }
     if (baseline.recipeEnabled == enabled) {
       if (enabled) savedDefinition = null;
       return Success(baseline);
@@ -225,6 +235,8 @@ class RecipeApplicationController extends ChangeNotifier {
     if (busy) return const Error(pending);
     if (needsVerification) return Error(failure ?? unexpected);
     if (savedDefinition != null) return Error(failure ?? unexpected);
+    // Saving first would leave a recipe the following PATCH must reject.
+    if (_item?.trackInventory == true) return const Error(directStock);
     _busy = true;
     ++_generation;
     loading = false;

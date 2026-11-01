@@ -5,6 +5,7 @@ import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/errors/failure.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/core/result/result.dart';
+import 'package:pos_saas_app/core/values/inventory_mode.dart';
 import 'package:pos_saas_app/features/menu/data/dto/ingredient_dto.dart';
 import 'package:pos_saas_app/features/menu/data/dto/ingredient_requests.dart';
 import 'package:pos_saas_app/features/menu/data/dto/menu_dto.dart';
@@ -13,7 +14,7 @@ import 'package:pos_saas_app/features/menu/presentation/widgets/ingredient_form.
 import 'package:pos_saas_app/features/menu/presentation/widgets/menu_item_form.dart';
 import '../../helpers/auth_fakes.dart';
 import 'ingredient_fakes.dart';
-import 'menu_fakes.dart';
+import 'menu_fakes.dart' hide group;
 
 class _Rig {
   final items = FakeMenuItems();
@@ -28,6 +29,8 @@ Future<_Rig> _pump(
   bool storedZero = false,
   bool recipeEnabled = false,
   bool recipeFeature = true,
+  bool inventoryFeature = true,
+  bool trackInventory = false,
   double width = 800,
   double scale = 1,
   bool keyboard = false,
@@ -50,7 +53,7 @@ Future<_Rig> _pump(
         makeEntitlement(
           features: {
             'MENU_MANAGEMENT',
-            'INVENTORY_MANAGEMENT',
+            if (inventoryFeature) 'INVENTORY_MANAGEMENT',
             if (recipeFeature) 'RECIPE_MANAGEMENT',
           },
         ),
@@ -64,8 +67,11 @@ Future<_Rig> _pump(
   );
   final rig = _Rig();
   rig.items.current = MenuItemDto.fromJson(
-    itemJson(costConfigured: configured, recipeEnabled: recipeEnabled)
-      ..['costPrice'] = storedZero ? 0 : 12500,
+    itemJson(
+      costConfigured: configured,
+      recipeEnabled: recipeEnabled,
+      trackInventory: trackInventory,
+    )..['costPrice'] = storedZero ? 0 : 12500,
   ).toEntity();
   rig.ingredients.current = IngredientDto.fromJson(
     ingredientJson(costConfigured: configured)
@@ -110,6 +116,12 @@ Future<_Rig> _pump(
   return rig;
 }
 
+Finder _modeFinder(InventoryMode mode) =>
+    find.byKey(ValueKey('menu-item-inventory-${mode.code}'));
+
+RadioListTile<InventoryMode> _mode(WidgetTester tester, InventoryMode mode) =>
+    tester.widget(_modeFinder(mode));
+
 Finder _field(bool menu, String field) =>
     find.byKey(ValueKey('${menu ? 'menu-item' : 'ingredient'}-$field'));
 String _submit(bool menu, bool creating) =>
@@ -153,11 +165,9 @@ void main() {
           expect(find.text('Chưa cấu hình giá vốn'), findsOneWidget);
           await _fillCreate(tester, menu);
           if (menu) {
-            final toggle = tester.widget<SwitchListTile>(
-              find.byKey(const ValueKey('menu-item-recipeEnabled')),
-            );
-            expect(toggle.value, false);
-            expect(toggle.onChanged, null);
+            final recipe = _mode(tester, InventoryMode.recipe);
+            expect(recipe.groupValue, InventoryMode.none);
+            expect(recipe.onChanged, null);
           }
           if (explicitZero) {
             await tester.enterText(_field(menu, 'costPrice'), '0');
@@ -334,13 +344,12 @@ void main() {
         recipeEnabled: true,
         recipeFeature: false,
       );
-      final finder = find.byKey(const ValueKey('menu-item-recipeEnabled'));
-      final toggle = tester.widget<SwitchListTile>(finder);
-      expect(toggle.value, true);
-      expect(toggle.onChanged, isNotNull);
-      await _tap(tester, finder);
-      expect(tester.widget<SwitchListTile>(finder).value, false);
-      expect(tester.widget<SwitchListTile>(finder).onChanged, null);
+      expect(
+        _mode(tester, InventoryMode.recipe).groupValue,
+        InventoryMode.recipe,
+      );
+      await _tap(tester, _modeFinder(InventoryMode.none));
+      expect(_mode(tester, InventoryMode.none).groupValue, InventoryMode.none);
       await _tap(tester, find.text('Lưu thay đổi'));
       expect(_patchBody(rig, true), {
         'recipeEnabled': false,
@@ -353,12 +362,89 @@ void main() {
     tester,
   ) async {
     final rig = await _pump(tester, menu: true, recipeFeature: false);
-    final toggle = tester.widget<SwitchListTile>(
-      find.byKey(const ValueKey('menu-item-recipeEnabled')),
-    );
-    expect(toggle.value, false);
-    expect(toggle.onChanged, null);
+    final recipe = _mode(tester, InventoryMode.recipe);
+    expect(recipe.groupValue, InventoryMode.none);
+    expect(recipe.onChanged, null);
     expect(rig.items.lastUpdate, null);
     expect(tester.takeException(), null);
+  });
+
+  group('inventory mode', () {
+    testWidgets('create sends trackInventory only for direct items', (
+      tester,
+    ) async {
+      final rig = await _pump(tester, menu: true, creating: true);
+      await _fillCreate(tester, true);
+      await _tap(tester, _modeFinder(InventoryMode.direct));
+      expect(find.textContaining('Không quy đổi thùng/lon'), findsOneWidget);
+      await _tap(tester, find.text('Tạo món'));
+      final body = _createBody(rig, true);
+      expect(body['trackInventory'], true);
+      expect(body['recipeEnabled'], false);
+      expect(body.containsKey('inventoryMode'), false);
+      expect(tester.takeException(), null);
+    });
+
+    testWidgets('recipe to direct sends both flags in one patch', (
+      tester,
+    ) async {
+      final rig = await _pump(tester, menu: true, recipeEnabled: true);
+      await _tap(tester, _modeFinder(InventoryMode.direct));
+      await _tap(tester, find.text('Lưu thay đổi'));
+      expect(_patchBody(rig, true), {
+        'recipeEnabled': false,
+        'trackInventory': true,
+        'expectedVersion': 9,
+      });
+    });
+
+    testWidgets('direct to recipe sends both flags in one patch', (
+      tester,
+    ) async {
+      final rig = await _pump(tester, menu: true, trackInventory: true);
+      await _tap(tester, _modeFinder(InventoryMode.recipe));
+      await _tap(tester, find.text('Lưu thay đổi'));
+      expect(_patchBody(rig, true), {
+        'recipeEnabled': true,
+        'trackInventory': false,
+        'expectedVersion': 9,
+      });
+    });
+
+    testWidgets('lost inventory plan blocks enabling but keeps renaming', (
+      tester,
+    ) async {
+      var rig = await _pump(tester, menu: true, inventoryFeature: false);
+      expect(_mode(tester, InventoryMode.direct).onChanged, null);
+      expect(find.text('Cần tính năng quản lý kho để bật.'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      rig = await _pump(
+        tester,
+        menu: true,
+        inventoryFeature: false,
+        trackInventory: true,
+      );
+      expect(_mode(tester, InventoryMode.direct).onChanged, isNotNull);
+      await tester.enterText(_field(true, 'name'), 'Coca lon');
+      await _tap(tester, find.text('Lưu thay đổi'));
+      expect(_patchBody(rig, true), {'name': 'Coca lon', 'expectedVersion': 9});
+    });
+
+    testWidgets('fits 320px at 200% text', (tester) async {
+      await _pump(tester, menu: true, width: 320, scale: 2);
+      expect(_modeFinder(InventoryMode.direct), findsOneWidget);
+      expect(tester.takeException(), null);
+    });
+
+    testWidgets('direct items describe receipt costing, not recipes', (
+      tester,
+    ) async {
+      await _pump(tester, menu: true, trackInventory: true);
+      expect(find.textContaining('tính lại giá vốn'), findsOneWidget);
+      expect(
+        find.textContaining('giá vốn ước tính từ công thức'),
+        findsNothing,
+      );
+    });
   });
 }

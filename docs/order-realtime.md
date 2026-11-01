@@ -60,7 +60,7 @@ Màn chưa mở sẽ đọc snapshot khi mở, không GET mọi order trong nề
 | QR_ORDER_REQUEST_CHANGED | Inbox/badge tại bàn; review trùng request/table/session | GET qr-order-requests; GET request review |
 | ORDER_CHANGED | List giữ query/page; detail liên quan; workspace bàn; review liên quan | GET orders/order detail; GET tables và serving order snapshot |
 | ORDER_CHANGED qua kitchen-orders | KDS đang hiển thị | GET kitchen/items theo các status/paging hiện có |
-| INVENTORY_LOW_STOCK_ALERT_CHANGED | List/detail cảnh báo, badge tồn thấp | API inventory đang có |
+| INVENTORY_LOW_STOCK_ALERT_CHANGED | List/detail cảnh báo, badge tồn thấp, gồm cả món trừ tồn trực tiếp | API inventory đang có |
 
 Active-order của phiên tiếp tục được xác minh qua REST khi chọn bàn. Tổng tiền thẻ
 bàn lấy từ serving-order REST snapshot, không cộng số tiền từ event. Cancel/complete

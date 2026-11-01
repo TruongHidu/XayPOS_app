@@ -167,7 +167,7 @@ class InventoryRemoteDataSource {
 
   InventoryBalance _balance(Object? json, String w, String i) {
     final value = InventoryDto.balance(json);
-    if (value.warehouseId != w || value.ingredientId != i) {
+    if (value.warehouseId != w || value.stockItemId != i) {
       throw const FormatException('Wrong balance identity');
     }
     return value;

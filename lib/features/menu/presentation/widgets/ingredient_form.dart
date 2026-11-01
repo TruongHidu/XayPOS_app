@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
@@ -263,7 +264,7 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
                   ),
                   const Text(
                     'Trạng thái được đổi bằng thao tác riêng.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: AppColors.grey500),
                   ),
                 ],
               ),

@@ -134,6 +134,7 @@ Protected recipe snapshot bổ sung:
 | Bật, có feature và recipe hợp lệ | CAPTURED | RECIPE | Theo tracked ingredient policy |
 | Bật nhưng thiếu feature | FEATURE_DISABLED | RECIPE | Bỏ qua theo quyết định đã chốt, không fallback thủ công |
 | Bật, có feature, thiếu active recipe | 409 ACTIVE_RECIPE_REQUIRED | Chưa có quyết định mới | Không có reservation mới |
+| Món DIRECT | RECIPE_DISABLED | MANUAL | Reservation trực tiếp, xem [hàng trừ tồn trực tiếp](direct-stock-menu-items.md) |
 
 RECIPE_DISABLED là quyết định đã persist, có capturedAt. NOT_SUBMITTED chưa chốt.
 Legacy fields thiếu/null giữ null; tiếp tục đọc NO_RECIPE và các trạng thái cũ.

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/table_entities.dart';
 import '../widgets/table_dialogs.dart';
 import '../widgets/table_area_picker.dart';
@@ -192,17 +194,16 @@ class _TablesTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (c.loading) const LinearProgressIndicator(),
+          LoadingStrip(loading: c.loading),
           TableFailurePanel(failure: c.failure, onReload: c.load),
+          if (c.loading && !c.hasLoaded)
+            const ListSkeleton(minColumnWidth: 150, maxColumns: 5, height: 120),
           if (c.hasLoaded && c.rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                filtered
-                    ? 'Không có kết quả phù hợp.'
-                    : 'Chưa có bàn. Thêm bàn để bắt đầu phục vụ.',
-                textAlign: TextAlign.center,
-              ),
+            EmptyState(
+              icon: Icons.table_restaurant_outlined,
+              message: filtered
+                  ? 'Không có kết quả phù hợp.'
+                  : 'Chưa có bàn. Thêm bàn để bắt đầu phục vụ.',
             ),
           ResponsiveColumns(
             maxColumns: 5,
@@ -243,10 +244,10 @@ class _TableCard extends StatelessWidget {
         : table.occupied
         ? (
             'Có khách${session == null ? '' : ' • ${session.guestCount} người'}',
-            const Color(0xFFB45309),
-            const Color(0xFFFEF3C7),
+            AppColors.warning,
+            AppColors.warningSoft,
           )
-        : ('Trống', const Color(0xFF0F766E), const Color(0xFFCCFBF1));
+        : ('Trống', AppColors.success, AppColors.successSoft);
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: colors.onSurfaceVariant,
     );
@@ -414,24 +415,34 @@ class _AreasTabState extends ConsumerState<_AreasTab> {
             ),
           ),
           const SizedBox(height: 12),
-          if (c.loading) const LinearProgressIndicator(),
+          LoadingStrip(loading: c.loading),
           TableFailurePanel(failure: c.failure, onReload: c.load),
+          if (c.loading && !c.hasLoaded) const ListSkeleton(height: 96),
           if (c.hasLoaded && c.rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                c.query.q.isEmpty && c.query.active == null
-                    ? 'Chưa có khu vực.'
-                    : 'Không có kết quả phù hợp.',
-              ),
+            EmptyState(
+              icon: Icons.layers_outlined,
+              message: c.query.q.isEmpty && c.query.active == null
+                  ? 'Chưa có khu vực.'
+                  : 'Không có kết quả phù hợp.',
             ),
           ResponsiveColumns(
             maxColumns: 4,
             children: [
               for (final a in c.rows)
                 Card(
+                  margin: EdgeInsets.zero,
+                  elevation: 0,
+                  color: Theme.of(context).colorScheme.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(14, 8, 4, 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -440,7 +451,8 @@ class _AreasTabState extends ConsumerState<_AreasTab> {
                             Expanded(
                               child: Text(
                                 a.name,
-                                style: Theme.of(context).textTheme.titleMedium,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
                             PopupMenuButton<String>(

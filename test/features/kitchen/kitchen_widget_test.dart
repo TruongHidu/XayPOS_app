@@ -198,6 +198,18 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('swiping a card runs its next step', (tester) async {
+    final repo = FakeKitchen();
+    await pumpKitchen(tester, repo);
+    await tester.drag(
+      find.byKey(const ValueKey('kitchen-swipe-o1/i1')),
+      const Offset(600, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(repo.writes, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('new items alert the kitchen unless the sound is off', (
     tester,
   ) async {

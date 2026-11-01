@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/payment_method_report_row.dart';
 import '../../domain/entities/report_enums.dart';
 
@@ -97,7 +98,7 @@ class PaymentMethodsCard extends StatelessWidget {
                             1000,
                           ),
                           child: Container(
-                            color: const Color(0xFF10B981), // Emerald Green
+                            color: AppColors.success, // Emerald Green
                           ),
                         ),
                       if (transferRow != null && transferRow.percentage > 0)
@@ -119,7 +120,7 @@ class PaymentMethodsCard extends StatelessWidget {
               // Breakdown items
               _buildMethodRow(
                 context: context,
-                color: const Color(0xFF10B981),
+                color: AppColors.success,
                 title: 'Tiền mặt (CASH)',
                 row: cashRow,
               ),
@@ -199,7 +200,7 @@ class PaymentMethodsCard extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.bold,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
         ),

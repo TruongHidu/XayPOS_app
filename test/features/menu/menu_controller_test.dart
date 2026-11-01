@@ -61,6 +61,21 @@ void main() {
     events.dispose();
   });
 
+  test('an unnamed item change refreshes rows, a named one does not', () async {
+    session = makeAppSession(
+      permissions: menuPermissions,
+      features: {'MENU_MANAGEMENT'},
+    );
+    await controller.load();
+    final reads = items.queries.length;
+    events.itemChanged('i1');
+    await Future<void>.delayed(Duration.zero);
+    expect(items.queries.length, reads);
+    events.itemChanged(null);
+    await Future<void>.delayed(Duration.zero);
+    expect(items.queries.length, reads + 1);
+  });
+
   test(
     'all allowed roles need exact permissions, feature, tenant and active subscription',
     () {

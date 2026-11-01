@@ -6,6 +6,7 @@ import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_queries.dart';
 import 'inventory_widgets.dart';
@@ -184,7 +185,7 @@ class StockDocumentList extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         InventoryFailurePanel(
           failure: c.failure,
           retry: c.loading ? null : c.load,
@@ -192,9 +193,9 @@ class StockDocumentList extends ConsumerWidget {
         if (c.failure != null && c.hasLoaded)
           const Text('Đang giữ kết quả lần tải trước.'),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text('Chưa có chứng từ phù hợp.'),
+          const EmptyState(
+            icon: Icons.receipt_long_outlined,
+            message: 'Chưa có chứng từ phù hợp.',
           ),
         LayoutBuilder(
           builder: (context, box) {

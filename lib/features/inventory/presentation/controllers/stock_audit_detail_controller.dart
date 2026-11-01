@@ -577,7 +577,8 @@ class StockAuditDetailController extends StockAuditController {
         if (accepted[row.id] case final StockAuditDraftRow edit)
           StockAuditItem(
             id: row.id,
-            ingredientId: row.ingredientId,
+            stockItemId: row.stockItemId,
+            itemType: row.itemType,
             sku: row.sku,
             name: row.name,
             unit: row.unit,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/ingredient.dart';
 import '../controllers/ingredient_controller.dart';
+import 'menu_details.dart';
 import 'menu_dialogs.dart';
 
 class IngredientList extends StatefulWidget {
@@ -38,33 +40,25 @@ class _IngredientListState extends State<IngredientList> {
       builder: (context, constraints) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (state.loading) const LinearProgressIndicator(),
+          LoadingStrip(loading: state.loading),
           MenuFailurePanel(
             failure: state.failure,
             onReload: controller.load,
             reloadLabel: 'Thử lại',
           ),
+          if (state.loading && !state.hasLoaded) const ListSkeleton(),
           if (state.hasLoaded &&
               !state.loading &&
               state.failure == null &&
               state.rows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  const Icon(Icons.kitchen_outlined, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    query.hasFilters
-                        ? 'Không có kết quả phù hợp với bộ lọc.'
-                        : 'Chưa có nguyên liệu.',
-                  ),
-                  if (widget.canCreate && !query.hasFilters) ...[
-                    const SizedBox(height: 8),
-                    const Text('Dùng nút + ở góc dưới bên phải để bắt đầu.'),
-                  ],
-                ],
-              ),
+            EmptyState(
+              icon: Icons.kitchen_outlined,
+              message: query.hasFilters
+                  ? 'Không có kết quả phù hợp với bộ lọc.'
+                  : 'Chưa có nguyên liệu.',
+              hint: widget.canCreate && !query.hasFilters
+                  ? 'Dùng nút + ở góc dưới bên phải để bắt đầu.'
+                  : null,
             ),
           if (state.rows.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -112,55 +106,63 @@ class _IngredientListState extends State<IngredientList> {
 
   Widget _card(Ingredient item) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Card(
       margin: EdgeInsets.zero,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      color: colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
+      ),
       child: InkWell(
         onTap: _busy(item) ? null : () => widget.onAction(item, 'view'),
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(14, 8, 4, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
                       item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                   _actions(item),
                 ],
               ),
-              const SizedBox(height: 8),
               Text(
                 item.costConfigured
                     ? 'Giá vốn tham chiếu: ${menuMoney(item.costPrice)} / ${item.baseUnit}'
                     : 'Chưa cấu hình giá vốn',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.primary,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: item.costConfigured
+                      ? colors.primary
+                      : colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text('SKU: ${item.sku ?? 'Chưa có'}'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  Chip(
-                    label: Text(item.active ? 'Đang sử dụng' : 'Ngừng sử dụng'),
+                  MenuBadge(
+                    label: item.active ? 'Đang sử dụng' : 'Ngừng sử dụng',
+                    positive: item.active,
                   ),
-                  Chip(
-                    label: Text(
-                      item.trackInventory
-                          ? 'Theo dõi tồn kho'
-                          : 'Không theo dõi tồn kho',
-                    ),
+                  MenuBadge(
+                    label: item.trackInventory
+                        ? 'Theo dõi tồn kho'
+                        : 'Không theo dõi tồn kho',
+                    positive: item.trackInventory,
                   ),
                 ],
               ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/order_entities.dart';
 import '../controllers/order_list_controller.dart';
 import '../widgets/order_widgets.dart';
@@ -78,16 +80,16 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           decoration: InputDecoration(
             isDense: true,
             hintText: 'Tìm theo mã đơn (ví dụ: OD-001)...',
-            hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+            hintStyle: TextStyle(fontSize: 13, color: AppColors.grey400),
             prefixIcon: const Icon(
               Icons.search_rounded,
-              color: OrderPalette.orange,
+              color: OrderPalette.primary,
               size: 20,
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.cancel_rounded, size: 18),
-                    color: Colors.grey.shade400,
+                    color: AppColors.grey400,
                     onPressed: () {
                       _searchController.clear();
                       c.search('');
@@ -96,23 +98,23 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                   )
                 : null,
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
+            fillColor: AppColors.grey50,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
               vertical: 10,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: AppColors.grey200),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey.shade200),
+              borderSide: BorderSide(color: AppColors.grey200),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(
-                color: OrderPalette.orange,
+                color: OrderPalette.primary,
                 width: 1.5,
               ),
             ),
@@ -199,7 +201,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+        side: const BorderSide(color: AppColors.grey200),
       ),
       color: Colors.white,
       child: ListTile(
@@ -216,7 +218,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
             order.serviceType == ServiceType.takeaway
                 ? Icons.shopping_cart_outlined
                 : Icons.table_restaurant_outlined,
-            color: OrderPalette.orange,
+            color: OrderPalette.primary,
             size: 22,
           ),
         ),
@@ -225,7 +227,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 15,
-            color: Color(0xFF111827),
+            color: AppColors.grey900,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -246,15 +248,15 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                       vertical: 1.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppColors.grey100,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       order.serviceType.label,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.grey.shade700,
+                        color: AppColors.grey700,
                       ),
                     ),
                   ),
@@ -266,22 +268,22 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: order.status == OrderStatus.cancelled
-                          ? const Color(0xFFFEE2E2)
+                          ? AppColors.dangerSoft
                           : (order.status == OrderStatus.completed
-                                ? const Color(0xFFF3F4F6)
-                                : const Color(0xFFE0F2FE)),
+                                ? AppColors.grey100
+                                : AppColors.infoSoft),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       order.status.label,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: order.status == OrderStatus.cancelled
-                            ? const Color(0xFFDC2626)
+                            ? AppColors.danger
                             : (order.status == OrderStatus.completed
-                                  ? const Color(0xFF4B5563)
-                                  : const Color(0xFF0284C7)),
+                                  ? AppColors.grey600
+                                  : AppColors.info),
                       ),
                     ),
                   ),
@@ -293,18 +295,18 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: order.paymentStatus == OrderPaymentStatus.paid
-                          ? const Color(0xFFDCFCE7)
-                          : const Color(0xFFFEF3C7),
+                          ? AppColors.successSoft
+                          : AppColors.warningSoft,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       order.paymentStatus.label,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: order.paymentStatus == OrderPaymentStatus.paid
-                            ? const Color(0xFF15803D)
-                            : const Color(0xFFB45309),
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ),
                   ),
@@ -313,7 +315,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
               const SizedBox(height: 4),
               Text(
                 formatLocalDate(order.createdAt),
-                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 12, color: AppColors.grey500),
               ),
             ],
           ),
@@ -326,7 +328,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           style: const TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 15,
-            color: OrderPalette.orange,
+            color: OrderPalette.primary,
           ),
         ),
       ),
@@ -343,7 +345,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
 
     return Column(
       children: [
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         OrderFailurePanel(failure: c.failure, retry: c.load),
         Expanded(
           child: RefreshIndicator(
@@ -370,7 +372,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                           Icon(
                             Icons.info_outline,
                             size: 16,
-                            color: OrderPalette.orange,
+                            color: OrderPalette.primary,
                           ),
                           SizedBox(width: 8),
                           Expanded(
@@ -391,15 +393,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 _buildFilterCard(c),
 
                 // ── Danh sách đơn hàng ─────────────────────────────────
+                if (c.page == null && c.loading)
+                  const ListSkeleton(count: 5, height: 84, maxColumns: 1),
                 if (c.page?.content.isEmpty == true)
-                  const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Center(
-                      child: Text(
-                        'Chưa có đơn phù hợp.',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                    ),
+                  const EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    message: 'Chưa có đơn phù hợp.',
                   ),
                 for (final order in c.page?.content ?? <OrderSummary>[])
                   _buildOrderCard(order),

@@ -269,7 +269,7 @@ class FakeBalances implements InventoryBalanceRepository {
     return onDetail != null
         ? onDetail!(w, i)
         : Success(
-            rows.firstWhere((r) => r.warehouseId == w && r.ingredientId == i),
+            rows.firstWhere((r) => r.warehouseId == w && r.stockItemId == i),
           );
   }
 
@@ -283,7 +283,7 @@ class FakeBalances implements InventoryBalanceRepository {
     lastInput = input;
     if (onSave != null) return onSave!(w, i, input);
     final old = rows.firstWhere(
-      (r) => r.warehouseId == w && r.ingredientId == i,
+      (r) => r.warehouseId == w && r.stockItemId == i,
     );
     final updated = balance(
       w: w,

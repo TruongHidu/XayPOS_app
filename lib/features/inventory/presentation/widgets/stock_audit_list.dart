@@ -6,6 +6,7 @@ import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/stock_audit.dart';
 import '../../domain/entities/stock_audit_queries.dart';
 import 'inventory_widgets.dart';
@@ -55,7 +56,7 @@ class StockAuditList extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'Kiểm kê toàn bộ nguyên liệu được theo dõi tại thời điểm bắt đầu. Nên thực hiện cuối ca hoặc lúc ít giao dịch.',
+          'Kiểm kê toàn bộ hàng hóa được theo dõi tại thời điểm bắt đầu. Nên thực hiện cuối ca hoặc lúc ít giao dịch.',
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
@@ -151,7 +152,7 @@ class StockAuditList extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         InventoryFailurePanel(
           failure: c.failure,
           retry: c.loading ? null : c.load,
@@ -159,9 +160,9 @@ class StockAuditList extends ConsumerWidget {
         if (c.failure != null && c.hasLoaded)
           const Text('Đang giữ kết quả lần tải trước.'),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Text('Chưa có phiên kiểm kê phù hợp.'),
+          const EmptyState(
+            icon: Icons.fact_check_outlined,
+            message: 'Chưa có phiên kiểm kê phù hợp.',
           ),
         LayoutBuilder(
           builder: (context, box) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
 
@@ -8,19 +9,19 @@ abstract final class KitchenStyle {
   static const borderColor = Color(0xFFE2E8F0);
 
   static Color color(OrderItemStatus status) => switch (status) {
-    OrderItemStatus.pending => const Color(0xFFB45309),
+    OrderItemStatus.pending => AppColors.warning,
     OrderItemStatus.cooking => const Color(0xFF1D4ED8),
-    _ => const Color(0xFF15803D),
+    _ => AppColors.success,
   };
 
   static Color bgColor(OrderItemStatus status) => switch (status) {
-    OrderItemStatus.pending => const Color(0xFFFFFBEB),
+    OrderItemStatus.pending => AppColors.warningTint,
     OrderItemStatus.cooking => const Color(0xFFEFF6FF),
     _ => const Color(0xFFF0FDF4),
   };
 
   static Color borderColorFor(OrderItemStatus status) => switch (status) {
-    OrderItemStatus.pending => const Color(0xFFFDE68A),
+    OrderItemStatus.pending => AppColors.warningBorder,
     OrderItemStatus.cooking => const Color(0xFFBFDBFE),
     _ => const Color(0xFFBBF7D0),
   };
@@ -156,7 +157,7 @@ class KitchenItemCard extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppColors.grey200),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -218,9 +219,9 @@ class KitchenItemCard extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEB),
+                      color: AppColors.warningTint,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFFDE68A)),
+                      border: Border.all(color: AppColors.warningBorder),
                     ),
                     child: Text(
                       'Ghi chú: ${item.note}',
@@ -247,13 +248,13 @@ class KitchenItemCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.check_circle_outline,
-                        color: Color(0xFF15803D),
+                        color: AppColors.success,
                         size: 18,
                       ),
                       Text(
                         'Sẵn sàng phục vụ',
                         style: TextStyle(
-                          color: Color(0xFF15803D),
+                          color: AppColors.success,
                           fontWeight: FontWeight.w700,
                           fontSize: 13.5,
                         ),
@@ -343,10 +344,10 @@ class KitchenOrderCard extends StatelessWidget {
       (r) => r.itemStatus == OrderItemStatus.cooking,
     );
     final headerAccentColor = allReady
-        ? const Color(0xFF15803D)
+        ? AppColors.success
         : hasCooking
         ? const Color(0xFF1D4ED8)
-        : const Color(0xFFB45309);
+        : AppColors.warning;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -354,7 +355,7 @@ class KitchenOrderCard extends StatelessWidget {
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: AppColors.grey200),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -458,7 +459,7 @@ class KitchenOrderCard extends StatelessWidget {
                   const Text(
                     '✓ Đơn đã sẵn sàng',
                     style: TextStyle(
-                      color: Color(0xFF15803D),
+                      color: AppColors.success,
                       fontWeight: FontWeight.w700,
                       fontSize: 13.5,
                     ),

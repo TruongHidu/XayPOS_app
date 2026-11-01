@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../controllers/report_orders_controller.dart';
@@ -276,7 +277,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         title: 'Tiền đã thu',
         money: data.collections.collectedAmount,
         icon: Icons.account_balance_wallet_outlined,
-        color: const Color(0xFF0284C7),
+        color: AppColors.info,
         tooltip:
             'Tổng tiền các giao dịch thanh toán SUCCESS theo thời điểm thu (paidAt) trong khoảng.',
         secondaryText:
@@ -295,7 +296,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         title: 'Đơn hoàn tất',
         count: data.orders.completedOrderCount,
         icon: Icons.check_circle_outline,
-        color: const Color(0xFF10B981),
+        color: AppColors.success,
         unit: 'đơn',
         tooltip: 'Số lượng đơn COMPLETED theo completedAt.',
         secondaryText:

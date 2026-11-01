@@ -270,6 +270,22 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('long press offers the card actions in a sheet', (tester) async {
+    final row = item();
+    final items = FakeMenuItems()
+      ..rows = [row]
+      ..current = row;
+    await _pump(tester, await _auth(), items, FakeMenuGroups());
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text(row.name));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    await tester.tap(find.text('Sửa thông tin'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsNothing);
+    expect(find.byType(MenuItemForm), findsOneWidget);
+  });
+
   // ── Endless list ──
   MenuItem row(int index) => MenuItemDto.fromJson(
     itemJson()

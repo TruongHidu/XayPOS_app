@@ -190,7 +190,7 @@ void main() {
         );
         expect(find.text('Sinh từ kiểm kê — chỉ đọc'), findsOneWidget);
         expect(find.text('Sửa ghi chú'), findsNothing);
-        expect(find.text('Thêm nguyên liệu'), findsNothing);
+        expect(find.text('Thêm hàng hóa'), findsNothing);
         expect(find.text('Sửa dòng'), findsNothing);
         expect(find.text('Xóa dòng'), findsNothing);
         expect(find.text('Xác nhận chứng từ'), findsNothing);
@@ -233,7 +233,7 @@ void main() {
           '/app/inventory/transactions?warehouseId=w1&ingredientId=i1&documentId=d1',
     );
     expect(find.text('Kho: KHO-W1'), findsOneWidget);
-    expect(find.text('Nguyên liệu: Nguyên liệu i1'), findsOneWidget);
+    expect(find.text('Hàng hóa: Nguyên liệu i1'), findsOneWidget);
     expect(find.text('Phiếu: ISS-d1'), findsOneWidget);
     expect(find.textContaining('Kho: w1'), findsNothing);
     await _tap(tester, find.text('Xóa bộ lọc'));
@@ -449,7 +449,7 @@ void main() {
       await _tap(tester, find.text('Tạo phiếu nhập kho'));
       await _tap(tester, find.text('Chọn kho'));
       await _tap(tester, find.byKey(const ValueKey('select-warehouse-w1')));
-      await _tap(tester, find.text('Thêm nguyên liệu'));
+      await _tap(tester, find.text('Thêm hàng hóa'));
       expect(balances.queries.last.q.ingredientActive, true);
       expect(balances.lowCalls, 0);
       await _tap(tester, find.byKey(const ValueKey('stock-pick-i2')));
@@ -463,7 +463,7 @@ void main() {
       );
       await _tap(tester, find.text('Lưu dòng'));
       await _tap(tester, find.text('Lưu nháp'));
-      expect(docs.sentInputs.single.items.single.ingredientId, 'i2');
+      expect(docs.sentInputs.single.items.single.stockItemId, 'i2');
       expect(docs.confirms, 0);
       expect(find.text('Nháp'), findsWidgets);
       await _tap(tester, find.text('Xác nhận chứng từ'));
@@ -501,12 +501,12 @@ void main() {
       router.go('/app/inventory/stock-documents/d1');
       await tester.pumpAndSettle();
       expect(find.text('Sửa ghi chú'), findsNothing);
-      expect(find.text('Thêm nguyên liệu'), findsNothing);
+      expect(find.text('Thêm hàng hóa'), findsNothing);
       expect(find.text('Xác nhận chứng từ'), findsNothing);
       router.go('/app/inventory/transactions?warehouseId=w1');
       await tester.pumpAndSettle();
       await _tap(tester, find.byTooltip('Bộ lọc'));
-      await _tap(tester, find.text('Tất cả nguyên liệu'));
+      await _tap(tester, find.text('Tất cả hàng hóa'));
       expect(find.byKey(const ValueKey('stock-pick-i3')), findsOneWidget);
       expect(balances.queries.last.q.ingredientActive, isNull);
       expect(balances.lowCalls, 0);
@@ -528,7 +528,7 @@ void main() {
       );
       await _tap(tester, find.text('Chọn kho'));
       await _tap(tester, find.byKey(const ValueKey('select-warehouse-w1')));
-      await _tap(tester, find.text('Thêm nguyên liệu'));
+      await _tap(tester, find.text('Thêm hàng hóa'));
       expect(balances.queries.last.q.ingredientActive, isNull);
       await _tap(tester, find.byKey(const ValueKey('stock-pick-i3')));
       expect(find.byType(StockLineEditor), findsOneWidget);
@@ -600,7 +600,7 @@ void main() {
         docs: docs,
         location: '/app/inventory/stock-documents/d1',
       );
-      await _tap(tester, find.text('Thêm nguyên liệu'));
+      await _tap(tester, find.text('Thêm hàng hóa'));
       await _tap(tester, find.byKey(const ValueKey('stock-pick-i2')));
       await tester.enterText(
         find.byKey(const ValueKey('stock-line-quantity')),
@@ -707,7 +707,7 @@ void main() {
       final Widget dialog = kind == 'line'
           ? StockLineEditor(
               type: d.type,
-              ingredientId: 'i1',
+              stockItemId: 'i1',
               name: 'Nguyên liệu với tên rất dài khi phóng chữ',
               unit: 'g',
               baseline: d,

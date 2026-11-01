@@ -24,7 +24,7 @@ class StockAuditDetailScreen extends ConsumerWidget {
       permission: 'STOCK_AUDIT_MANAGE',
       title: 'Bắt đầu kiểm kê?',
       message:
-          '${c.audit!.auditCode} · ${c.audit!.warehouseName}\n\nHệ thống chốt toàn bộ nguyên liệu được theo dõi, gồm cả nguyên liệu ngừng hoạt động. Kho vẫn có thể phát sinh giao dịch; nhập, xuất hoặc chế biến có thể khiến bạn phải hủy phiên và đếm lại. Nên kiểm kê lúc ít giao dịch.',
+          '${c.audit!.auditCode} · ${c.audit!.warehouseName}\n\nHệ thống chốt toàn bộ hàng hóa được theo dõi, gồm cả hàng hóa ngừng hoạt động. Kho vẫn có thể phát sinh giao dịch; nhập, xuất hoặc chế biến có thể khiến bạn phải hủy phiên và đếm lại. Nên kiểm kê lúc ít giao dịch.',
       confirm: 'Bắt đầu kiểm kê',
     )) {
       await c.startCounting();

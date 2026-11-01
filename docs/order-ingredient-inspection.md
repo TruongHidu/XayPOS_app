@@ -28,7 +28,7 @@ Giỏ cục bộ không có nút gọi API lịch sử này.
 | Phần | Permission đồng thời | Feature đồng thời |
 | --- | --- | --- |
 | Snapshot | ORDER_VIEW, RECIPE_VIEW | ORDER_MANAGEMENT, RECIPE_MANAGEMENT |
-| Allocation | Các quyền snapshot và INVENTORY_VIEW | Các feature snapshot và INVENTORY_MANAGEMENT |
+| Allocation | ORDER_VIEW, INVENTORY_VIEW; server đòi thêm RECIPE_VIEW với dòng không DIRECT | ORDER_MANAGEMENT, INVENTORY_MANAGEMENT; server đòi thêm RECIPE_MANAGEMENT với dòng không DIRECT |
 | Ledger | INVENTORY_VIEW | INVENTORY_MANAGEMENT |
 
 `AccessPolicy.canViewOrderRecipeSnapshot` và `canViewOrderItemAllocation` giữ

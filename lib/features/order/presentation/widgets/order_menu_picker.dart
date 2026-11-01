@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
@@ -116,7 +119,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                           Text(
                             'THỰC ĐƠN',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w800,
                               color: Color(0xFFC2410C),
                               letterSpacing: 0.8,
@@ -130,7 +133,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF111827),
+                              color: AppColors.grey900,
                             ),
                           ),
                         ],
@@ -144,7 +147,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey.shade600,
+                            color: AppColors.grey600,
                           ),
                         ),
                       ),
@@ -164,21 +167,21 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                     child: ChoiceChip(
                       label: const Text('Tất cả'),
                       selected: picker.query.groupId == null,
-                      selectedColor: OrderPalette.orange,
+                      selectedColor: OrderPalette.primary,
                       backgroundColor: Colors.white,
                       showCheckmark: false,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
                           color: picker.query.groupId == null
-                              ? OrderPalette.orange
-                              : Colors.grey.shade300,
+                              ? OrderPalette.primary
+                              : AppColors.grey300,
                         ),
                       ),
                       labelStyle: TextStyle(
                         color: picker.query.groupId == null
                             ? Colors.white
-                            : const Color(0xFF374151),
+                            : AppColors.grey700,
                         fontWeight: picker.query.groupId == null
                             ? FontWeight.w700
                             : FontWeight.w500,
@@ -193,21 +196,21 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                       child: ChoiceChip(
                         label: Text(group.name),
                         selected: picker.query.groupId == group.id,
-                        selectedColor: OrderPalette.orange,
+                        selectedColor: OrderPalette.primary,
                         backgroundColor: Colors.white,
                         showCheckmark: false,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
                             color: picker.query.groupId == group.id
-                                ? OrderPalette.orange
-                                : Colors.grey.shade300,
+                                ? OrderPalette.primary
+                                : AppColors.grey300,
                           ),
                         ),
                         labelStyle: TextStyle(
                           color: picker.query.groupId == group.id
                               ? Colors.white
-                              : const Color(0xFF374151),
+                              : AppColors.grey700,
                           fontWeight: picker.query.groupId == group.id
                               ? FontWeight.w700
                               : FontWeight.w500,
@@ -239,14 +242,11 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                 },
                 decoration: InputDecoration(
                   hintText: 'Tìm món...',
-                  hintStyle: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 13,
-                  ),
+                  hintStyle: TextStyle(color: AppColors.grey400, fontSize: 13),
                   prefixIcon: const Icon(
                     Icons.search,
                     size: 20,
-                    color: Colors.grey,
+                    color: AppColors.grey500,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -266,15 +266,15 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: AppColors.grey200),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(color: AppColors.grey200),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: OrderPalette.orange),
+                    borderSide: const BorderSide(color: OrderPalette.primary),
                   ),
                   counterText: '',
                 ),
@@ -301,9 +301,9 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                   ),
                   if (items.isEmpty)
                     const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(child: Text('Không có món phù hợp.')),
+                      child: EmptyState(
+                        icon: Icons.restaurant_menu,
+                        message: 'Không có món phù hợp.',
                       ),
                     )
                   else
@@ -322,10 +322,18 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                             enabled: widget.enabled,
                             hasMultipleConfigurations: hasMultiple,
                             currencyCode: widget.currencyCode,
-                            onAdd: () => widget.onSelect(item),
-                            onIncrement: () => widget.onIncrement != null
-                                ? widget.onIncrement!(item)
-                                : widget.onSelect(item),
+                            onAdd: () {
+                              HapticFeedback.selectionClick();
+                              widget.onSelect(item);
+                            },
+                            onIncrement: () {
+                              HapticFeedback.selectionClick();
+                              if (widget.onIncrement != null) {
+                                widget.onIncrement!(item);
+                              } else {
+                                widget.onSelect(item);
+                              }
+                            },
                             onDecrement: () => widget.onDecrement?.call(item),
                             onEdit: () => widget.onEditLine?.call(item),
                           );

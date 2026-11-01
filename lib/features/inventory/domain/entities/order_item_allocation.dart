@@ -1,7 +1,8 @@
 import '../../../../core/values/ingredient_quantity.dart';
+import '../../../../core/values/item_type.dart';
 
 enum AllocationStatus {
-  reserved('RESERVED', 'Đang giữ nguyên liệu'),
+  reserved('RESERVED', 'Đang giữ hàng hóa'),
   consumed('CONSUMED', 'Đã tiêu thụ'),
   released('RELEASED', 'Đã giải phóng giữ chỗ'),
   skipped('SKIPPED', 'Không áp dụng quản lý kho'),
@@ -27,11 +28,11 @@ enum AllocationSkipReason {
   ),
   noTrackedIngredients(
     'NO_TRACKED_INGREDIENTS',
-    'Không có nguyên liệu cần theo dõi tồn.',
+    'Không có hàng hóa cần theo dõi tồn.',
   ),
   legacyUnavailable(
     'LEGACY_UNAVAILABLE',
-    'Dòng món cũ chưa có dữ liệu giữ/tiêu thụ nguyên liệu.',
+    'Dòng món cũ chưa có dữ liệu giữ/tiêu thụ hàng hóa.',
   );
 
   const AllocationSkipReason(this.code, this.label);
@@ -51,7 +52,9 @@ class OrderItemAllocation {
     required this.consumedAt,
     required this.releasedAt,
     required List<AllocationIngredient> ingredients,
+    this.directStock = false,
   }) : ingredients = List.unmodifiable(ingredients);
+  final bool directStock;
   final String orderId, orderItemId;
   final String? id, recipeSnapshotId, warehouseId;
   final AllocationStatus status;
@@ -64,13 +67,15 @@ class AllocationIngredient {
   const AllocationIngredient({
     required this.reservationId,
     required this.recipeUsageId,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.sku,
     required this.name,
     required this.unit,
     required this.quantity,
   });
-  final String reservationId, recipeUsageId, ingredientId, name, unit;
-  final String? sku;
+  final String reservationId, stockItemId, name, unit;
+  final ItemType itemType;
+  final String? recipeUsageId, sku;
   final IngredientQuantity quantity;
 }

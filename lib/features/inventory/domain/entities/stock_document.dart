@@ -1,3 +1,4 @@
+import '../../../../core/values/item_type.dart';
 import 'inventory_quantity.dart';
 import 'stock_numbers.dart';
 
@@ -29,6 +30,7 @@ enum AdjustmentDirection {
 
 enum InventoryTransactionType {
   recipeUse('RECIPE_USE', 'Tiêu thụ theo món'),
+  directUse('DIRECT_USE', 'Trừ kho trực tiếp'),
   receipt('RECEIPT', 'Nhập kho'),
   issue('ISSUE', 'Xuất kho'),
   adjustmentIncrease('ADJUSTMENT_INCREASE', 'Điều chỉnh tăng'),
@@ -113,7 +115,8 @@ class StockDocumentDetail extends StockDocumentSummary {
 class StockDocumentItem {
   const StockDocumentItem({
     required this.id,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.ingredientSku,
     required this.ingredientName,
     required this.unit,
@@ -123,7 +126,8 @@ class StockDocumentItem {
     required this.totalCost,
     required this.note,
   });
-  final String id, ingredientId, ingredientName, unit;
+  final String id, stockItemId, ingredientName, unit;
+  final ItemType itemType;
   final String? ingredientSku, note;
   final InventoryQuantity quantity;
   final AdjustmentDirection? direction;
@@ -140,7 +144,8 @@ class InventoryTransaction {
     required this.id,
     required this.warehouseId,
     required this.warehouseCode,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.ingredientSku,
     required this.ingredientName,
     required this.unit,
@@ -158,10 +163,11 @@ class InventoryTransaction {
   final String id,
       warehouseId,
       warehouseCode,
-      ingredientId,
+      stockItemId,
       ingredientName,
       unit,
       createdBy;
+  final ItemType itemType;
   final String? ingredientSku, documentId, documentCode;
   final String? orderId, orderItemId, reservationId, recipeUsageId;
   final InventoryTransactionSource source;

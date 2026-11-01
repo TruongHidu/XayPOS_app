@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/menu_item.dart';
 import 'menu_details.dart';
 import 'menu_dialogs.dart';
@@ -76,7 +79,7 @@ class MenuItemCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${item.group?.name ?? "Chưa phân nhóm"}${item.group?.active == false ? " · Nhóm ngừng" : ""}',
+                      '${item.group?.name ?? "Chưa phân nhóm"}${item.group?.active == false ? " · Nhóm ngừng" : ""}${item.trackInventory ? " · Trừ tồn" : ""}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -112,7 +115,12 @@ class MenuItemCard extends StatelessWidget {
           Positioned.fill(
             child: Material(
               type: MaterialType.transparency,
-              child: InkWell(onTap: busy ? null : onTap),
+              child: InkWell(
+                onTap: busy ? null : onTap,
+                onLongPress: busy || actions.isEmpty
+                    ? null
+                    : () => _showActions(context),
+              ),
             ),
           ),
           Positioned(
@@ -128,6 +136,35 @@ class MenuItemCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Long press offers the ⋯ actions in a sheet within reach of the thumb.
+  Future<void> _showActions(BuildContext context) async {
+    unawaited(HapticFeedback.mediumImpact());
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              title: Text(
+                item.name,
+                style: Theme.of(sheetContext).textTheme.titleMedium,
+              ),
+            ),
+            for (final entry in actions.whereType<PopupMenuItem<String>>())
+              ListTile(
+                enabled: entry.enabled,
+                title: entry.child,
+                onTap: () => Navigator.of(sheetContext).pop(entry.value),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (action != null) onAction(action);
   }
 
   Widget _menuButton(ColorScheme colors) {
@@ -173,11 +210,11 @@ class _StatusPill extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final (label, color) = item.sellable
-        ? ('Có thể bán', const Color(0xFF0D9488))
+        ? ('Có thể bán', AppColors.success)
         : !item.active
         ? ('Ngừng bán', colors.outline)
         : item.availabilityStatus == AvailabilityStatus.outOfStock
-        ? ('Hết hàng', const Color(0xFFDC2626))
+        ? ('Hết hàng', AppColors.danger)
         : ('Chưa thể bán', const Color(0xFFD97706));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

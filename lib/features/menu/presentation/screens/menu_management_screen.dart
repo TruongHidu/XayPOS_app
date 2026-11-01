@@ -7,6 +7,7 @@ import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
@@ -489,7 +490,14 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                           ),
                       ] else ...[
                         // ── Loading indicator ──
-                        if (menuState!.loading) const LinearProgressIndicator(),
+                        LoadingStrip(loading: menuState!.loading),
+
+                        if (menuState.loading && !menuState.hasLoaded)
+                          const ListSkeleton(
+                            minColumnWidth: 140,
+                            maxColumns: 6,
+                            height: 200,
+                          ),
 
                         // ── Error panel ──
                         MenuFailurePanel(

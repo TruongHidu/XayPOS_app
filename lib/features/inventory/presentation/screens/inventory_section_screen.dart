@@ -53,16 +53,13 @@ class InventorySectionScreen extends ConsumerWidget {
 }
 
 enum InventorySection {
-  balances('Tồn kho', 'Theo dõi số lượng nguyên liệu tại từng kho.'),
-  warehouses('Quản lý kho', 'Quản lý kho nguyên liệu và kho mặc định.'),
-  lowStock(
-    'Tồn thấp hiện tại',
-    'Theo dõi nguyên liệu đang chạm ngưỡng tồn thấp.',
-  ),
+  balances('Tồn kho', 'Theo dõi số lượng hàng hóa tại từng kho.'),
+  warehouses('Quản lý kho', 'Quản lý kho hàng và kho mặc định.'),
+  lowStock('Tồn thấp hiện tại', 'Theo dõi hàng hóa đang chạm ngưỡng tồn thấp.'),
   documents('Chứng từ kho', 'Theo dõi phiếu nhập, xuất và điều chỉnh tồn kho.'),
   transactions(
     'Biến động kho',
-    'Xem lại mọi lần nhập, xuất, điều chỉnh và tiêu thụ nguyên liệu.',
+    'Xem lại mọi lần nhập, xuất, điều chỉnh và tiêu thụ hàng hóa.',
   ),
   alerts('Cảnh báo tồn kho', 'Theo dõi và xử lý các đợt cảnh báo tồn kho.'),
   audits('Kiểm kê', 'Đối chiếu tồn thực tế và chốt kết quả kiểm kê.');

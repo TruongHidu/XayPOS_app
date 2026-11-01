@@ -96,18 +96,17 @@ class StockDocumentCreateController extends InventoryController {
     }
     final errors = StockDocumentValidation.line(type, input);
     if (ingredient.warehouseId != warehouse?.id ||
-        ingredient.ingredientId != input.ingredientId ||
+        ingredient.stockItemId != input.stockItemId ||
         type == StockDocumentType.receipt && !ingredient.ingredientActive) {
-      errors['ingredientId'] = 'Nguyên liệu không phù hợp phiếu/kho hiện tại.';
+      errors['ingredientId'] = 'Hàng hóa không phù hợp phiếu/kho hiện tại.';
     }
     if (index != null && (index < 0 || index >= _lines.length)) {
       errors['items'] = 'Dòng không còn tồn tại.';
     }
     if (_lines.indexed.any(
-      (row) =>
-          row.$1 != index && row.$2.input.ingredientId == input.ingredientId,
+      (row) => row.$1 != index && row.$2.input.stockItemId == input.stockItemId,
     )) {
-      errors['ingredientId'] = 'Nguyên liệu đã có trong phiếu.';
+      errors['ingredientId'] = 'Hàng hóa đã có trong phiếu.';
     }
     if (index == null && _lines.length >= 100) {
       errors['items'] = 'Tạo mới tối đa 100 dòng.';

@@ -117,6 +117,8 @@ Nhóm **Kho** trên sidebar có mũi tên mở rộng/thu gọn, gồm Tồn kho
 Chứng từ kho, Biến động kho, Tồn thấp hiện tại, Cảnh báo tồn kho và Kiểm kê.
 Mỗi chức năng có màn hình/đường dẫn riêng và chỉ hiển thị khi đủ quyền/feature.
 Xem [điều hướng Kho](docs/inventory-navigation.md) để biết cấu trúc và route.
+Món bán sẵn có thể tự là hàng tồn kho: xem
+[hàng trừ tồn trực tiếp](docs/direct-stock-menu-items.md).
 
 ## Công thức và giá vốn
 

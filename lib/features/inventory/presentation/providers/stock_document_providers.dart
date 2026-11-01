@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../../../../app/providers.dart';
+import '../../../menu/presentation/controllers/menu_catalog_events.dart';
 import '../../data/data_sources/stock_document_remote_data_source.dart';
 import '../../data/repositories/stock_document_repository_impl.dart';
 import '../../data/stock_key_generator.dart';
@@ -46,6 +47,12 @@ final stockDocumentListProvider = ChangeNotifierProvider((ref) {
   return c;
 });
 
+/// A confirmed receipt recalculates the cost of ingredients and direct menu items.
+void _receiptApplied(MenuCatalogEvents events) {
+  events.ingredientChanged();
+  events.itemChanged(null);
+}
+
 /// Retained within identity/tenant/permission scope so navigation cannot replace an uncertain create intent.
 final stockDocumentCreateProvider = ChangeNotifierProvider((ref) {
   ref.watch(inventoryScopeProvider);
@@ -58,7 +65,7 @@ final stockDocumentCreateProvider = ChangeNotifierProvider((ref) {
     getWarehouse: GetWarehouse(ref.watch(warehouseRepositoryProvider)),
     keys: ref.watch(stockKeyGeneratorProvider),
     onReceiptApplied: () {
-      if (ref.mounted) ref.read(menuCatalogEventsProvider).ingredientChanged();
+      if (ref.mounted) _receiptApplied(ref.read(menuCatalogEventsProvider));
     },
   );
   if (controller.allowedTypes.isNotEmpty) {
@@ -85,9 +92,7 @@ final stockDocumentDetailProvider = ChangeNotifierProvider.autoDispose
         cancel: CancelStockDocument(repo),
         getWarehouse: GetWarehouse(ref.watch(warehouseRepositoryProvider)),
         onReceiptApplied: () {
-          if (ref.mounted) {
-            ref.read(menuCatalogEventsProvider).ingredientChanged();
-          }
+          if (ref.mounted) _receiptApplied(ref.read(menuCatalogEventsProvider));
         },
       );
       void Function()? release;

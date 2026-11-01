@@ -1,3 +1,4 @@
+import '../../../../core/values/inventory_mode.dart';
 import 'menu_group.dart';
 import 'menu_item.dart';
 import 'menu_price.dart';
@@ -43,6 +44,7 @@ class CreateMenuItemInput {
     this.costPrice,
     this.costConfigured,
     this.recipeEnabled = false,
+    this.trackInventory = false,
     this.groupId,
     this.sku,
     this.description,
@@ -55,6 +57,7 @@ class CreateMenuItemInput {
   final MenuPrice? costPrice;
   final bool? costConfigured;
   final bool recipeEnabled;
+  final bool trackInventory;
   final String? groupId;
   final String? sku;
   final String? description;
@@ -71,6 +74,7 @@ class UpdateMenuItemInput {
     this.costPrice,
     this.costConfigured,
     this.recipeEnabled,
+    this.trackInventory,
     this.sku,
     this.description,
     this.imageUrl,
@@ -84,6 +88,7 @@ class UpdateMenuItemInput {
   final MenuPrice? costPrice;
   final bool? costConfigured;
   final bool? recipeEnabled;
+  final bool? trackInventory;
   final String? sku;
   final String? description;
   final String? imageUrl;
@@ -94,6 +99,7 @@ class UpdateMenuItemInput {
       costPrice == null &&
       costConfigured == null &&
       recipeEnabled == null &&
+      trackInventory == null &&
       sku == null &&
       description == null &&
       imageUrl == null;
@@ -105,7 +111,7 @@ class UpdateMenuItemInput {
     required MenuPrice salePrice,
     MenuPrice? costPrice,
     bool? costConfigured,
-    bool? recipeEnabled,
+    InventoryMode? inventoryMode,
     required String sku,
     required String description,
     required String imageUrl,
@@ -117,7 +123,18 @@ class UpdateMenuItemInput {
     // Presence carries user intent even if a stored, unconfirmed zero is equal.
     costPrice: costPrice,
     costConfigured: costConfigured,
-    recipeEnabled: recipeEnabled,
+    // PATCH merges with stored values, so a switch between DIRECT and RECIPE
+    // must send both flags to reach a valid final state.
+    recipeEnabled:
+        inventoryMode == null ||
+            (inventoryMode == InventoryMode.recipe) == baseline.recipeEnabled
+        ? null
+        : inventoryMode == InventoryMode.recipe,
+    trackInventory:
+        inventoryMode == null ||
+            (inventoryMode == InventoryMode.direct) == baseline.trackInventory
+        ? null
+        : inventoryMode == InventoryMode.direct,
     sku: sku.trim() == (baseline.sku ?? '') ? null : sku.trim(),
     description: description.trim() == (baseline.description ?? '')
         ? null

@@ -1,3 +1,4 @@
+import '../../../../core/values/inventory_mode.dart';
 import 'menu_group.dart';
 import 'menu_price.dart';
 
@@ -28,6 +29,7 @@ class MenuItem {
     this.costPrice,
     this.costConfigured = false,
     this.recipeEnabled = false,
+    this.trackInventory = false,
     required this.active,
     required this.availabilityStatus,
     required this.sellable,
@@ -52,10 +54,19 @@ class MenuItem {
   /// It does not describe recipe ingredient cost completeness.
   final bool costConfigured;
   final bool recipeEnabled;
+
+  /// The item itself is a stock item. Stock never decides [availabilityStatus].
+  final bool trackInventory;
   final bool active;
   final AvailabilityStatus availabilityStatus;
   final bool sellable;
   final int version;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  InventoryMode get inventoryMode => trackInventory
+      ? InventoryMode.direct
+      : recipeEnabled
+      ? InventoryMode.recipe
+      : InventoryMode.none;
 }

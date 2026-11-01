@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/report_money.dart';
 
 class ReportKpiCard extends StatelessWidget {
@@ -125,7 +126,7 @@ class ReportKpiCard extends StatelessWidget {
                               fontSize: 13,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade900,
+                              color: AppColors.grey900,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(

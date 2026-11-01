@@ -6,9 +6,9 @@ abstract final class StockDocumentRequests {
       value == null || value.trim().isEmpty ? null : value.trim();
   static Map<String, dynamic> line(
     StockLineInput input, {
-    bool includeIngredient = true,
+    bool includeItem = true,
   }) => {
-    if (includeIngredient) 'ingredientId': input.ingredientId,
+    if (includeItem) 'itemId': input.stockItemId,
     'quantity': input.quantity.toNumber(),
     'unitCost': input.unitCost.toUnitCostNumber(),
     'adjustmentDirection': input.direction?.code,

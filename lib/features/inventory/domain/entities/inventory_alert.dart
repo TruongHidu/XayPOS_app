@@ -1,3 +1,4 @@
+import '../../../../core/values/item_type.dart';
 import 'inventory_quantity.dart';
 
 enum InventoryAlertStatus {
@@ -14,11 +15,11 @@ enum InventoryAlertResolution {
   thresholdDisabled('THRESHOLD_DISABLED', 'Đã tắt ngưỡng cảnh báo'),
   warehouseInactive('WAREHOUSE_INACTIVE', 'Kho ngừng hoạt động'),
   warehouseDeleted('WAREHOUSE_DELETED', 'Kho đã xóa'),
-  ingredientUntracked('INGREDIENT_UNTRACKED', 'Nguyên liệu ngừng theo dõi tồn'),
-  ingredientDeleted('INGREDIENT_DELETED', 'Nguyên liệu đã xóa'),
+  ingredientUntracked('INGREDIENT_UNTRACKED', 'Hàng hóa ngừng theo dõi tồn'),
+  ingredientDeleted('INGREDIENT_DELETED', 'Hàng hóa đã xóa'),
   ingredientUnitChanged(
     'INGREDIENT_UNIT_CHANGED',
-    'Đơn vị nguyên liệu đã thay đổi',
+    'Đơn vị hàng hóa đã thay đổi',
   );
 
   const InventoryAlertResolution(this.code, this.label);
@@ -33,7 +34,8 @@ class InventoryAlert {
     required this.warehouseId,
     required this.warehouseCode,
     required this.warehouseName,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.ingredientSku,
     required this.ingredientName,
     required this.unit,
@@ -54,7 +56,8 @@ class InventoryAlert {
     required this.updatedAt,
   });
   final String id, warehouseId, warehouseCode, warehouseName;
-  final String ingredientId, ingredientName, unit;
+  final String stockItemId, ingredientName, unit;
+  final ItemType itemType;
   final String? ingredientSku, acknowledgedBy;
   final InventoryAlertStatus status;
   final InventoryQuantity quantityAtTrigger, thresholdQuantity;

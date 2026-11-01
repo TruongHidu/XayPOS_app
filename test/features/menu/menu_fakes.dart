@@ -33,6 +33,7 @@ Map<String, dynamic> itemJson({
   bool sellable = true,
   bool costConfigured = false,
   bool recipeEnabled = false,
+  bool trackInventory = false,
 }) => {
   'id': 'i1',
   'name': 'Trà đào',
@@ -40,6 +41,7 @@ Map<String, dynamic> itemJson({
   'salePrice': 35000.5,
   'costConfigured': costConfigured,
   'recipeEnabled': recipeEnabled,
+  if (trackInventory) 'trackInventory': true,
   'active': active,
   'availabilityStatus': 'AVAILABLE',
   'sellable': sellable,
@@ -56,12 +58,14 @@ MenuItem item({
   bool active = true,
   bool costConfigured = false,
   bool recipeEnabled = false,
+  bool trackInventory = false,
 }) => MenuItemDto.fromJson(
   itemJson(
     version: version,
     active: active,
     costConfigured: costConfigured,
     recipeEnabled: recipeEnabled,
+    trackInventory: trackInventory,
   ),
 ).toEntity();
 MenuGroup group({int version = 7, bool active = true}) => MenuGroupDto.fromJson(

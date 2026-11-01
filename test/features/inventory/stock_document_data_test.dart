@@ -206,7 +206,7 @@ void main() {
         'note': 'ghi chú',
         'items': [
           {
-            'ingredientId': 'i1',
+            'itemId': 'i1',
             'quantity': 2,
             'unitCost': 100,
             'adjustmentDirection': null,
@@ -217,7 +217,7 @@ void main() {
       expect(requests[3].data, {'expectedVersion': 3, 'note': null});
       expect(requests[4].data, {
         'expectedVersion': 3,
-        'ingredientId': 'i1',
+        'itemId': 'i1',
         'quantity': 2,
         'unitCost': 100,
         'adjustmentDirection': null,

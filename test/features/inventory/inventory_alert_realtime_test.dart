@@ -72,6 +72,24 @@ void main() {
     );
   }
 
+  test('direct menu item events reload with null ingredientId', () {
+    fakeAsync((clock) {
+      final scope = _Scope();
+      scope.load(clock);
+      final body = jsonDecode(alertEvent(version: 3)) as Map<String, dynamic>;
+      (body['payload'] as Map<String, dynamic>)
+        ..['ingredientId'] = null
+        ..['itemId'] = 'coca'
+        ..['itemType'] = 'MENU_ITEM';
+      scope.repo.rows = [inventoryAlert(status: 'ACKNOWLEDGED', version: 3)];
+      scope.coordinator.receive(jsonEncode(body));
+      clock.elapse(const Duration(milliseconds: 400));
+      clock.flushMicrotasks();
+      expect(scope.repo.queries.length, 2);
+      scope.dispose();
+    });
+  });
+
   test('malformed JSON and unknown schema/type are ignored safely', () {
     fakeAsync((clock) {
       final scope = _Scope();

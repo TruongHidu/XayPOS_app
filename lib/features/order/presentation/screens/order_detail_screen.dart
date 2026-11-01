@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
@@ -150,7 +151,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         ),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: OrderPalette.orange,
+                          color: OrderPalette.primary,
                           fontSize: 16,
                         ),
                       ),
@@ -160,7 +161,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 const Text(
                   'Bản xem tạm tính không thay đổi trạng thái và không tạo hóa đơn chính thức.',
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                  style: TextStyle(fontSize: 12, color: AppColors.grey500),
                 ),
               ],
             ),
@@ -183,20 +184,20 @@ class OrderDetailScreen extends ConsumerWidget {
       child: Container(
         width: 48,
         height: 48,
-        color: Colors.grey.shade100,
+        color: AppColors.grey100,
         child: cached != null
             ? Image.network(
                 cached,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => const Icon(
                   Icons.restaurant,
-                  color: OrderPalette.orange,
+                  color: OrderPalette.primary,
                   size: 24,
                 ),
               )
             : const Icon(
                 Icons.restaurant,
-                color: OrderPalette.orange,
+                color: OrderPalette.primary,
                 size: 24,
               ),
       ),
@@ -276,7 +277,7 @@ class OrderDetailScreen extends ConsumerWidget {
           !settlement.uncertain &&
           !settlement.paymentRecordedAwaitingRefresh,
       child: Material(
-        color: Colors.grey.shade50,
+        color: AppColors.grey50,
         child: LayoutBuilder(
           builder: (context, screenConstraints) => Column(
             children: [
@@ -321,7 +322,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade700,
+                                      color: AppColors.grey700,
                                     ),
                                   ),
                                 Container(
@@ -336,7 +337,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                   child: Text(
                                     s.status.label,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color: Colors.blue.shade900,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -358,7 +359,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                   child: Text(
                                     s.paymentStatus.label,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       color:
                                           s.paymentStatus ==
                                               OrderPaymentStatus.paid
@@ -498,7 +499,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade200),
+                            side: BorderSide(color: AppColors.grey200),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
@@ -510,7 +511,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     Icon(
                                       Icons.info_outline,
                                       size: 16,
-                                      color: Colors.grey.shade700,
+                                      color: AppColors.grey700,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
@@ -519,7 +520,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
-                                          color: Colors.grey.shade800,
+                                          color: AppColors.grey800,
                                         ),
                                       ),
                                     ),
@@ -607,7 +608,7 @@ class OrderDetailScreen extends ConsumerWidget {
                             margin: const EdgeInsets.only(bottom: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade200),
+                              side: BorderSide(color: AppColors.grey200),
                             ),
                             child: OrderLineActions(
                               order: order,
@@ -633,7 +634,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                           color:
                                               line.status ==
                                                   OrderItemStatus.cancelled
-                                              ? Colors.grey
+                                              ? AppColors.grey500
                                               : null,
                                         ),
                                       ),
@@ -642,7 +643,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                         '${line.quantity} ${line.unit} × ${orderMoney(BigInt.from(line.unitPrice.minorUnits), currency: s.currencyCode)}',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey.shade700,
+                                          color: AppColors.grey700,
                                         ),
                                       ),
                                       if (line.note != null &&
@@ -660,7 +661,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                         Text(
                                           'Lý do hủy: ${line.cancelReason}',
                                           style: const TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             color: Colors.red,
                                           ),
                                         ),
@@ -671,7 +672,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
+                                          color: AppColors.grey100,
                                           borderRadius: BorderRadius.circular(
                                             4,
                                           ),
@@ -679,8 +680,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                         child: Text(
                                           line.status.label,
                                           style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.grey.shade800,
+                                            fontSize: 12,
+                                            color: AppColors.grey800,
                                           ),
                                         ),
                                       ),
@@ -707,8 +708,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                           color:
                                               line.status ==
                                                   OrderItemStatus.cancelled
-                                              ? Colors.grey
-                                              : OrderPalette.orange,
+                                              ? AppColors.grey500
+                                              : OrderPalette.primary,
                                         ),
                                       ),
                                       OrderIngredientsButton(
@@ -768,7 +769,7 @@ class OrderDetailScreen extends ConsumerWidget {
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade200),
+                            side: BorderSide(color: AppColors.grey200),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(14),
@@ -807,14 +808,14 @@ class OrderDetailScreen extends ConsumerWidget {
                                           .titleMedium
                                           ?.copyWith(
                                             fontWeight: FontWeight.bold,
-                                            color: OrderPalette.orange,
+                                            color: OrderPalette.primary,
                                           ),
                                     ),
                                     Text(
                                       'Đã trả: ${orderMoney(BigInt.from(s.paidAmount.minorUnits), currency: s.currencyCode)}',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: Colors.grey.shade700,
+                                        color: AppColors.grey700,
                                       ),
                                     ),
                                   ],
@@ -914,7 +915,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         child: FloatingActionButton(
                           heroTag: 'order-append-$id',
                           tooltip: 'Gọi thêm món',
-                          backgroundColor: OrderPalette.orange,
+                          backgroundColor: OrderPalette.primary,
                           foregroundColor: Colors.white,
                           onPressed: () => _openAppend(
                             context,
@@ -958,7 +959,7 @@ class OrderDetailScreen extends ConsumerWidget {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: OrderPalette.orange,
+                              color: OrderPalette.primary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -975,9 +976,9 @@ class OrderDetailScreen extends ConsumerWidget {
                                   currentTableName,
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: OrderPalette.orange,
+                                  foregroundColor: OrderPalette.primary,
                                   side: const BorderSide(
-                                    color: OrderPalette.orange,
+                                    color: OrderPalette.primary,
                                   ),
                                 ),
                                 child: const Text('Tạm tính'),

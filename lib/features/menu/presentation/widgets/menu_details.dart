@@ -160,6 +160,12 @@ class MenuItemBadges extends StatelessWidget {
         positive: item.sellable,
         icon: item.sellable ? Icons.check_circle_outline : Icons.block_outlined,
       ),
+      if (item.trackInventory)
+        const MenuBadge(
+          label: 'Trừ tồn trực tiếp',
+          positive: true,
+          icon: Icons.warehouse_outlined,
+        ),
     ],
   );
 }
@@ -342,7 +348,9 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
                                 Expanded(
                                   child: _priceColumn(
                                     theme,
-                                    label: 'Giá vốn thủ công',
+                                    label: _item.trackInventory
+                                        ? 'Giá vốn'
+                                        : 'Giá vốn thủ công',
                                     value: hasCost
                                         ? '${menuMoney(_item.costPrice!)} / ${_item.baseUnit}'
                                         : 'Chưa cấu hình giá vốn',
@@ -358,6 +366,12 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
                               ],
                             ),
                           ),
+                          if (_item.trackInventory) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Tồn của món xem tại mục Kho. Xác nhận phiếu nhập kho sẽ tính lại giá vốn.',
+                            ),
+                          ],
                           if (_item.description?.isNotEmpty == true) ...[
                             const SizedBox(height: 16),
                             _sectionLabel(theme, 'Mô tả'),

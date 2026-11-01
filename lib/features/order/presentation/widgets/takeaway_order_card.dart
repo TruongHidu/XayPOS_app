@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
@@ -157,8 +158,8 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: order.status == OrderStatus.ready
-              ? const Color(0xFF16A34A)
-              : const Color(0xFFE5E7EB),
+              ? AppColors.success
+              : AppColors.grey200,
           width: order.status == OrderStatus.ready ? 1.5 : 1,
         ),
       ),
@@ -181,24 +182,20 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      color: Color(0xFF111827),
+                      color: AppColors.grey900,
                     ),
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.schedule,
-                        size: 14,
-                        color: Colors.grey.shade600,
-                      ),
+                      Icon(Icons.schedule, size: 14, color: AppColors.grey600),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           takeawayWaited(order.createdAt, DateTime.now()),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: AppColors.grey700,
                           ),
                         ),
                       ),
@@ -225,20 +222,18 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
                   _Badge(
                     order.status.label,
                     background: order.status == OrderStatus.ready
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFE0F2FE),
+                        ? AppColors.successSoft
+                        : AppColors.infoSoft,
                     foreground: order.status == OrderStatus.ready
-                        ? const Color(0xFF15803D)
-                        : const Color(0xFF0284C7),
+                        ? AppColors.success
+                        : AppColors.info,
                   ),
                   _Badge(
                     order.paymentStatus.label,
                     background: paid
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFFEF3C7),
-                    foreground: paid
-                        ? const Color(0xFF15803D)
-                        : const Color(0xFFB45309),
+                        ? AppColors.successSoft
+                        : AppColors.warningSoft,
+                    foreground: paid ? AppColors.success : AppColors.warning,
                   ),
                   Text(
                     orderMoney(
@@ -247,7 +242,7 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
                     ),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      color: OrderPalette.orange,
+                      color: OrderPalette.primary,
                     ),
                   ),
                 ],
@@ -305,7 +300,7 @@ class _Badge extends StatelessWidget {
     child: Text(
       label,
       style: TextStyle(
-        fontSize: 11,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
         color: foreground,
       ),

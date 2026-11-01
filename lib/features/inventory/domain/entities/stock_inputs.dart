@@ -4,13 +4,13 @@ import 'stock_document.dart';
 
 class StockLineInput {
   const StockLineInput({
-    required this.ingredientId,
+    required this.stockItemId,
     required this.quantity,
     required this.unitCost,
     this.direction,
     this.note,
   });
-  final String ingredientId;
+  final String stockItemId;
   final InventoryQuantity quantity;
   final StockMoney unitCost;
   final AdjustmentDirection? direction;

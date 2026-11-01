@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../domain/entities/permission_catalog_item.dart';
@@ -294,7 +295,7 @@ class _StaffPermissionDialogState extends ConsumerState<StaffPermissionDialog> {
                 child: Text(
                   dirty ? '$count thay đổi chưa lưu' : state.successMessage!,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: dirty ? colors.primary : const Color(0xFF0D9488),
+                    color: dirty ? colors.primary : AppColors.success,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -449,7 +450,7 @@ class _PermissionTile extends StatelessWidget {
             Text(
               note,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: enabled ? const Color(0xFF0D9488) : colors.error,
+                color: enabled ? AppColors.success : colors.error,
                 fontWeight: FontWeight.w600,
               ),
             ),

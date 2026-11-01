@@ -88,7 +88,7 @@ class InventoryBalanceDetailController extends InventoryController {
     }
     if (b case Success(value: final value)) {
       if (value.warehouseId != warehouseId ||
-          value.ingredientId != ingredientId ||
+          value.stockItemId != ingredientId ||
           balance?.version != null &&
               (value.version == null || value.version! < balance!.version!)) {
         failure = InventoryController.invalidResponse;

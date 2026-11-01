@@ -35,37 +35,48 @@ class MenuItemDto {
     if (costPrice != null && costPrice is! num) {
       throw const FormatException('Invalid costPrice');
     }
-    return MenuItemDto._(
-      MenuItem(
-        id: _string(json, 'id'),
-        name: _string(json, 'name'),
-        group: group == null
-            ? null
-            : MenuItemGroupSummary(
-                id: _string(group, 'id'),
-                name: _string(group, 'name'),
-                active: _boolean(group, 'active'),
-              ),
-        sku: _nullableString(json, 'sku'),
-        baseUnit: _string(json, 'baseUnit'),
-        description: _nullableString(json, 'description'),
-        imageUrl: _nullableString(json, 'imageUrl'),
-        salePrice: MenuPrice.fromNumber(price),
-        costPrice: json.containsKey('costPrice')
-            ? MenuPrice.fromNumber((costPrice ?? 0) as num)
-            : null,
-        costConfigured: _boolean(json, 'costConfigured'),
-        recipeEnabled: _boolean(json, 'recipeEnabled'),
-        active: _boolean(json, 'active'),
-        availabilityStatus: AvailabilityStatus.parse(
-          _string(json, 'availabilityStatus'),
-        ),
-        sellable: _boolean(json, 'sellable'),
-        version: _integer(json, 'version'),
-        createdAt: _date(json, 'createdAt'),
-        updatedAt: _date(json, 'updatedAt'),
+    final recipeEnabled = _boolean(json, 'recipeEnabled');
+    // Responses from before backend V40 omit both inventory fields.
+    final trackInventory =
+        json.containsKey('trackInventory') && _boolean(json, 'trackInventory');
+    if (trackInventory && recipeEnabled) {
+      throw const FormatException('Conflicting inventory configuration');
+    }
+    final item = MenuItem(
+      id: _string(json, 'id'),
+      name: _string(json, 'name'),
+      group: group == null
+          ? null
+          : MenuItemGroupSummary(
+              id: _string(group, 'id'),
+              name: _string(group, 'name'),
+              active: _boolean(group, 'active'),
+            ),
+      sku: _nullableString(json, 'sku'),
+      baseUnit: _string(json, 'baseUnit'),
+      description: _nullableString(json, 'description'),
+      imageUrl: _nullableString(json, 'imageUrl'),
+      salePrice: MenuPrice.fromNumber(price),
+      costPrice: json.containsKey('costPrice')
+          ? MenuPrice.fromNumber((costPrice ?? 0) as num)
+          : null,
+      costConfigured: _boolean(json, 'costConfigured'),
+      recipeEnabled: recipeEnabled,
+      trackInventory: trackInventory,
+      active: _boolean(json, 'active'),
+      availabilityStatus: AvailabilityStatus.parse(
+        _string(json, 'availabilityStatus'),
       ),
+      sellable: _boolean(json, 'sellable'),
+      version: _integer(json, 'version'),
+      createdAt: _date(json, 'createdAt'),
+      updatedAt: _date(json, 'updatedAt'),
     );
+    final mode = json['inventoryMode'];
+    if (mode != null && mode != item.inventoryMode.code) {
+      throw const FormatException('Invalid inventoryMode');
+    }
+    return MenuItemDto._(item);
   }
   MenuItem toEntity() => _entity;
 }

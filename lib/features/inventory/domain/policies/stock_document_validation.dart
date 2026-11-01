@@ -26,8 +26,8 @@ abstract final class StockDocumentValidation {
 
   static Map<String, String> line(StockDocumentType type, StockLineInput line) {
     final errors = <String, String>{};
-    if (line.ingredientId.trim().isEmpty) {
-      errors['ingredientId'] = 'Chọn nguyên liệu.';
+    if (line.stockItemId.trim().isEmpty) {
+      errors['ingredientId'] = 'Chọn hàng hóa.';
     }
     if (line.quantity.scaled <= 0) {
       errors['quantity'] = 'Số lượng phải lớn hơn 0.';
@@ -59,9 +59,9 @@ abstract final class StockDocumentValidation {
       errors['note'] = 'Ghi chú tối đa 2000 ký tự.';
     }
     if (input.items.length > 100) errors['items'] = 'Tạo mới tối đa 100 dòng.';
-    if (input.items.map((r) => r.ingredientId).toSet().length !=
+    if (input.items.map((r) => r.stockItemId).toSet().length !=
         input.items.length) {
-      errors['items'] = 'Mỗi nguyên liệu chỉ xuất hiện một lần.';
+      errors['items'] = 'Mỗi hàng hóa chỉ xuất hiện một lần.';
     }
     var total = BigInt.zero;
     for (var i = 0; i < input.items.length; i++) {

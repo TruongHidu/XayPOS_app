@@ -5,6 +5,7 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/inventory_alert.dart';
 import '../../domain/entities/inventory_entities.dart';
 import 'inventory_alert_widgets.dart';
@@ -43,7 +44,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
       children: [
         const InventoryAlertSyncStatus(),
         const Text(
-          'Danh sách các lần nguyên liệu chạm ngưỡng tồn thấp, kể cả đã xử lý. Đánh dấu “Đã xem” không bổ sung hàng; mở “Tồn thấp hiện tại” để xem hàng đang thiếu.',
+          'Danh sách các lần hàng hóa chạm ngưỡng tồn thấp, kể cả đã xử lý. Đánh dấu “Đã xem” không bổ sung hàng; mở “Tồn thấp hiện tại” để xem hàng đang thiếu.',
         ),
         const SizedBox(height: 16),
         StockFilterLayout(
@@ -164,9 +165,9 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
         if (c.failure != null && c.hasLoaded)
           const Text('Đang hiển thị kết quả lần tải trước.'),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Text('Không có đợt cảnh báo phù hợp với bộ lọc.'),
+          const EmptyState(
+            icon: Icons.notifications_none,
+            message: 'Không có đợt cảnh báo phù hợp với bộ lọc.',
           ),
         const SizedBox(height: 12),
         LayoutBuilder(
@@ -182,7 +183,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
                     dataRowMinHeight: 100,
                     dataRowMaxHeight: 120,
                     columns: const [
-                      DataColumn(label: Text('Nguyên liệu / SKU')),
+                      DataColumn(label: Text('Hàng hóa / SKU')),
                       DataColumn(label: Text('Kho')),
                       DataColumn(label: Text('Trạng thái')),
                       DataColumn(label: Text('Lúc phát / Ngưỡng')),
@@ -213,7 +214,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
                                         ),
                                       ),
                                       Text(
-                                        row.ingredientSku ?? 'Chưa có SKU',
+                                        row.ingredientSku ?? '—',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -269,7 +270,6 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          Text(row.ingredientSku ?? 'Chưa có SKU'),
                           const SizedBox(height: 8),
                           Wrap(children: [InventoryAlertBadge(row.status)]),
                           const SizedBox(height: 12),

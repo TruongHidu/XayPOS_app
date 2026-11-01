@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/formatters/money_format.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
@@ -41,9 +42,7 @@ class OrderMenuItemCard extends StatelessWidget {
         : canSell
         ? 'Còn món'
         : 'Chưa thể bán';
-    final statusColor = canSell
-        ? const Color(0xFF0D9488)
-        : const Color(0xFFDC2626);
+    final statusColor = canSell ? AppColors.success : AppColors.danger;
 
     return Card(
       elevation: 0,
@@ -52,8 +51,8 @@ class OrderMenuItemCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isSelected
-              ? OrderPalette.orange.withValues(alpha: 0.35)
-              : Colors.grey.shade200,
+              ? OrderPalette.primary.withValues(alpha: 0.35)
+              : AppColors.grey200,
           width: isSelected ? 1.5 : 1,
         ),
       ),
@@ -96,7 +95,7 @@ class OrderMenuItemCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
+                      color: AppColors.grey900,
                     ),
                   ),
 
@@ -110,7 +109,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: AppColors.grey600,
                         height: 1.25,
                       ),
                     ),
@@ -131,13 +130,13 @@ class OrderMenuItemCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEE2E2),
+                            color: AppColors.dangerSoft,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             statusLabel,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: statusColor,
                             ),
@@ -160,7 +159,7 @@ class OrderMenuItemCard extends StatelessWidget {
                               child: Text(
                                 statusLabel,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: statusColor,
                                 ),
@@ -172,8 +171,8 @@ class OrderMenuItemCard extends StatelessWidget {
                         Text(
                           '• ${item.baseUnit}',
                           style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                            color: AppColors.grey500,
                           ),
                         ),
                       if (hasMultipleConfigurations)
@@ -186,13 +185,13 @@ class OrderMenuItemCard extends StatelessWidget {
                               vertical: 1.5,
                             ),
                             decoration: BoxDecoration(
-                              color: OrderPalette.white,
+                              color: OrderPalette.clear,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'Nhiều ghi chú',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 color: Colors.brown,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -213,7 +212,7 @@ class OrderMenuItemCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: OrderPalette.orange,
+                      color: OrderPalette.primary,
                     ),
                   ),
                 ],
@@ -237,18 +236,18 @@ class OrderMenuItemCard extends StatelessWidget {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       backgroundColor: isSelected && canInteract
                           ? const Color(0xFFFFF2EB)
-                          : const Color(0xFFF9FAFB),
+                          : AppColors.grey50,
                       foregroundColor: isSelected && canInteract
-                          ? OrderPalette.orange
-                          : Colors.grey.shade300,
-                      disabledBackgroundColor: const Color(0xFFF9FAFB),
-                      disabledForegroundColor: Colors.grey.shade300,
+                          ? OrderPalette.primary
+                          : AppColors.grey300,
+                      disabledBackgroundColor: AppColors.grey50,
+                      disabledForegroundColor: AppColors.grey300,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                         side: BorderSide(
                           color: isSelected && canInteract
                               ? const Color(0xFFFFD8C2)
-                              : Colors.grey.shade200,
+                              : AppColors.grey200,
                         ),
                       ),
                       padding: EdgeInsets.zero,
@@ -272,7 +271,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: AppColors.grey900,
                       ),
                     ),
                   ),
@@ -292,13 +291,13 @@ class OrderMenuItemCard extends StatelessWidget {
                     style: IconButton.styleFrom(
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       backgroundColor: canInteract
-                          ? OrderPalette.orange
-                          : Colors.grey.shade200,
+                          ? OrderPalette.primary
+                          : AppColors.grey200,
                       foregroundColor: canInteract
                           ? Colors.white
-                          : Colors.grey.shade400,
-                      disabledBackgroundColor: Colors.grey.shade200,
-                      disabledForegroundColor: Colors.grey.shade400,
+                          : AppColors.grey400,
+                      disabledBackgroundColor: AppColors.grey200,
+                      disabledForegroundColor: AppColors.grey400,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -347,6 +346,6 @@ class OrderMenuItemCard extends StatelessWidget {
   Widget _placeholder() => Container(
     color: const Color(0xFFFFF7F2),
     alignment: Alignment.center,
-    child: const Icon(Icons.restaurant, color: OrderPalette.orange, size: 28),
+    child: const Icon(Icons.restaurant, color: OrderPalette.primary, size: 28),
   );
 }

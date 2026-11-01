@@ -1,3 +1,4 @@
+import '../../../../core/values/item_type.dart';
 import 'inventory_quantity.dart';
 
 class Warehouse {
@@ -23,7 +24,8 @@ class InventoryBalance {
     required this.configured,
     required this.warehouseId,
     required this.warehouseCode,
-    required this.ingredientId,
+    required this.stockItemId,
+    required this.itemType,
     required this.ingredientSku,
     required this.ingredientName,
     required this.baseUnit,
@@ -40,9 +42,10 @@ class InventoryBalance {
   final String? balanceId, ingredientSku;
   final String warehouseId,
       warehouseCode,
-      ingredientId,
+      stockItemId,
       ingredientName,
       baseUnit;
+  final ItemType itemType;
   final bool configured, ingredientActive, lowStock;
   final InventoryQuantity quantity,
       reservedQuantity,
@@ -50,7 +53,7 @@ class InventoryBalance {
       minQuantity;
   final int? version;
   final DateTime? createdAt, updatedAt;
-  String get key => '$warehouseId:$ingredientId';
+  String get key => '$warehouseId:$stockItemId';
 }
 
 class InventoryPage<T> {

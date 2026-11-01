@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../domain/entities/order_entities.dart';
@@ -46,7 +47,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
     final paid = s.paymentStatus == OrderPaymentStatus.paid;
 
     return Material(
-      color: Colors.grey.shade50,
+      color: AppColors.grey50,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -71,7 +72,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF111827),
+                        color: AppColors.grey900,
                       ),
                     ),
                   ),
@@ -96,7 +97,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                           size: 56,
                           color: draft
                               ? const Color(0xFF9A6700)
-                              : const Color(0xFF16A34A),
+                              : AppColors.success,
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -131,8 +132,8 @@ class TakeawaySubmittedView extends ConsumerWidget {
                             Chip(
                               label: Text(s.paymentStatus.label),
                               backgroundColor: paid
-                                  ? const Color(0xFFDCFCE7)
-                                  : const Color(0xFFFEF3C7),
+                                  ? AppColors.successSoft
+                                  : AppColors.warningSoft,
                             ),
                             Text(
                               orderMoney(
@@ -142,7 +143,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
-                                color: OrderPalette.orange,
+                                color: OrderPalette.primary,
                               ),
                             ),
                           ],

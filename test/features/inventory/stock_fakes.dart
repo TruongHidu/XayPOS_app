@@ -23,7 +23,7 @@ StockLineInput stockLine({
   AdjustmentDirection? direction,
   String? note,
 }) => StockLineInput(
-  ingredientId: id,
+  stockItemId: id,
   quantity: InventoryQuantity.parse(quantity),
   unitCost: StockMoney.unitCost(cost),
   direction: direction,
@@ -239,8 +239,8 @@ class FakeStockDocuments implements StockDocumentRepository {
       items: [
         for (final row in input.items)
           stockItemJson(
-            id: 'line-${row.ingredientId}',
-            ingredient: row.ingredientId,
+            id: 'line-${row.stockItemId}',
+            ingredient: row.stockItemId,
             quantity: row.quantity.toNumber(),
             cost: row.unitCost.toUnitCostNumber(),
             direction: row.direction?.code,
@@ -284,8 +284,8 @@ class FakeStockDocuments implements StockDocumentRepository {
       items: [
         ...(value['items'] as List).cast<Map<String, dynamic>>(),
         stockItemJson(
-          id: 'line-${row.ingredientId}',
-          ingredient: row.ingredientId,
+          id: 'line-${row.stockItemId}',
+          ingredient: row.stockItemId,
           quantity: row.quantity.toNumber(),
           cost: row.unitCost.toUnitCostNumber(),
           direction: row.direction?.code,
@@ -406,7 +406,7 @@ class FakeStockTransactions implements InventoryTransactionRepository {
                         (q.warehouseId == null ||
                             q.warehouseId == r.warehouseId) &&
                         (q.ingredientId == null ||
-                            q.ingredientId == r.ingredientId) &&
+                            q.ingredientId == r.stockItemId) &&
                         (q.documentId == null ||
                             q.documentId == r.documentId) &&
                         (q.type == null || q.type == r.type),

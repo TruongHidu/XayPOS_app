@@ -60,6 +60,31 @@ class _Harness {
 
 void main() {
   test(
+    'direct items cannot enable a recipe through the instant toggle',
+    () async {
+      final h = _Harness();
+      h.repo.current = item(trackInventory: true);
+      await h.controller.load();
+      final result = await h.controller.setEnabled(true);
+      expect(result, isA<Error<MenuItem>>());
+      expect(h.controller.failure, RecipeApplicationController.directStock);
+      expect(h.writes, isEmpty);
+    },
+  );
+  test('direct items reject saveAndEnable before saving the recipe', () async {
+    final h = _Harness();
+    h.repo.current = item(trackInventory: true);
+    await h.controller.load();
+    var saved = false;
+    final result = await h.controller.saveAndEnable(() async {
+      saved = true;
+      return const Error(RecipeApplicationController.unexpected);
+    });
+    expect(result, isA<Error<Recipe>>());
+    expect(saved, false);
+    expect(h.writes, isEmpty);
+  });
+  test(
     'application uses latest menu version and menu permission, without recipe-update/inventory/cost gates',
     () async {
       final h = _Harness();

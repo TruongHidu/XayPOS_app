@@ -128,7 +128,7 @@ class StockAuditRemoteDataSource {
       query.size,
     );
     if (value.content.map((r) => r.id).toSet().length != value.content.length ||
-        value.content.map((r) => r.ingredientId).toSet().length !=
+        value.content.map((r) => r.stockItemId).toSet().length !=
             value.content.length ||
         value.content.any(
           (row) =>

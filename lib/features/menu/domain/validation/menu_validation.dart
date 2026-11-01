@@ -105,6 +105,9 @@ abstract final class MenuValidation {
       input.costConfigured,
       creating: false,
     ),
+    'inventoryMode': input.trackInventory == true && input.recipeEnabled == true
+        ? 'Chỉ chọn một cách theo dõi tồn kho.'
+        : null,
     'expectedVersion': input.expectedVersion < 0
         ? 'Version không hợp lệ.'
         : null,

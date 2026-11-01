@@ -38,7 +38,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
           ref,
           warehouseId: warehouse.id,
           type: c.type,
-          excluded: c.lines.map((r) => r.input.ingredientId).toSet(),
+          excluded: c.lines.map((r) => r.input.stockItemId).toSet(),
         );
     if (!context.mounted || ingredient == null || !c.current || !c.editable) {
       return;
@@ -49,7 +49,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
       permission: c.type.permission,
       child: StockLineEditor(
         type: c.type,
-        ingredientId: ingredient.ingredientId,
+        stockItemId: ingredient.stockItemId,
         name: ingredient.ingredientName,
         unit: ingredient.baseUnit,
         sku: ingredient.ingredientSku,
@@ -208,7 +208,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
                               permission: c.type.permission,
                               title: 'Đổi kho của phiếu?',
                               message:
-                                  'Các dòng đang nhập sẽ được bỏ. Hãy chọn lại nguyên liệu và số dư của kho mới.',
+                                  'Các dòng đang nhập sẽ được bỏ. Hãy chọn lại hàng hóa và số dư của kho mới.',
                               confirm: 'Đổi kho',
                             )) {
                           return;
@@ -247,7 +247,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
-                '${c.lines.length} dòng nguyên liệu',
+                '${c.lines.length} dòng hàng hóa',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               OutlinedButton.icon(
@@ -256,7 +256,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
                     ? null
                     : () => _line(context, ref),
                 icon: const Icon(Icons.add),
-                label: const Text('Thêm nguyên liệu'),
+                label: const Text('Thêm hàng hóa'),
               ),
             ],
           ),
@@ -268,7 +268,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'Chưa có dòng nguyên liệu. Có thể lưu nháp rỗng và bổ sung sau.',
+                'Chưa có dòng hàng hóa. Có thể lưu nháp rỗng và bổ sung sau.',
               ),
             ),
           for (final row in c.lines.indexed)
@@ -283,9 +283,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
                       row.$2.ingredient.ingredientName,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Text(
-                      '${row.$2.ingredient.ingredientSku ?? 'Chưa có SKU'} · ${row.$2.ingredient.baseUnit}',
-                    ),
+                    Text('${row.$2.ingredient.baseUnit}'),
                     const SizedBox(height: 8),
                     Text(
                       'Số lượng: ${inventoryAmount(row.$2.input.quantity, row.$2.ingredient.baseUnit)}',

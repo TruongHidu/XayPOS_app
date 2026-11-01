@@ -34,6 +34,16 @@ class RecipeApplicationControl extends ConsumerWidget {
     final controller = ref.watch(recipeApplicationProvider(menuItemId));
     controller.seed(initialMenuItem);
     final item = controller.item;
+    if (item?.trackInventory == true) {
+      // Leaving DIRECT must clear both flags in one PATCH, which this toggle can't.
+      return const Padding(
+        key: ValueKey('recipe-application-direct'),
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          'Món đang trừ tồn trực tiếp nên chưa dùng công thức. Hãy đổi cách theo dõi tồn kho trong “Sửa thông tin”.',
+        ),
+      );
+    }
     final enabled = item?.recipeEnabled ?? false;
     final allowed =
         item != null &&

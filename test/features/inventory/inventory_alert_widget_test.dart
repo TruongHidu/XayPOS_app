@@ -365,7 +365,7 @@ void main() {
       );
       expect(find.text('Không còn dữ liệu so sánh'), findsOneWidget);
       expect(
-        find.textContaining('Đơn vị nguyên liệu đã thay đổi'),
+        find.textContaining('Đơn vị hàng hóa đã thay đổi'),
         findsOneWidget,
       );
       expect(

@@ -4,8 +4,8 @@ abstract final class AppRoutes {
   static const appHome = '/app/home';
   static const menu = '/app/menu';
   static const recipe = '/app/menu/items/:menuItemId/recipes';
-  static String recipeFor(String menuItemId) =>
-      '/app/menu/items/${Uri.encodeComponent(menuItemId)}/recipes';
+  static String recipeFor(String menuItemId, {bool setup = false}) =>
+      '/app/menu/items/${Uri.encodeComponent(menuItemId)}/recipes${setup ? '?setup=1' : ''}';
   static const kitchen = '/app/kitchen';
   static const tables = '/app/tables';
   static const orders = '/app/orders';

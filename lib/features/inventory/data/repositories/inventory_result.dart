@@ -41,7 +41,7 @@ Future<Result<T>> inventoryResult<T>(Future<T> Function() operation) async {
       'DEFAULT_WAREHOUSE_CANNOT_BE_DELETED' =>
         'Không thể xóa kho mặc định. Hãy chọn kho mặc định khác trước.',
       'WAREHOUSE_HAS_STOCK' =>
-        'Kho vẫn còn nguyên liệu có tồn khác 0 nên không thể tắt hoặc xóa.',
+        'Kho vẫn còn hàng hóa có tồn khác 0 nên không thể tắt hoặc xóa.',
       'CONCURRENT_WAREHOUSE_UPDATE' =>
         'Kho đã thay đổi. Hãy tải lại, đối chiếu rồi xác nhận lại.',
       'CONCURRENT_INVENTORY_UPDATE' =>
@@ -51,13 +51,13 @@ Future<Result<T>> inventoryResult<T>(Future<T> Function() operation) async {
       'STOCK_DOCUMENT_NOT_FOUND' =>
         'Chứng từ không còn tồn tại hoặc bạn không có quyền truy cập.',
       'STOCK_DOCUMENT_ITEM_NOT_FOUND' =>
-        'Dòng nguyên liệu không còn trong phiếu. Hãy tải lại để đối chiếu.',
+        'Dòng hàng hóa không còn trong phiếu. Hãy tải lại để đối chiếu.',
       'TRACKED_INGREDIENT_NOT_FOUND' =>
-        'Nguyên liệu không còn tồn tại hoặc không còn theo dõi tồn.',
+        'Hàng hóa không còn tồn tại hoặc không còn theo dõi tồn.',
       'STOCK_DOCUMENT_EMPTY' =>
         'Phiếu cần ít nhất một dòng trước khi xác nhận.',
       'DUPLICATE_STOCK_DOCUMENT_ITEM' =>
-        'Nguyên liệu đã có trong phiếu; mỗi nguyên liệu chỉ được xuất hiện một lần.',
+        'Hàng hóa đã có trong phiếu; mỗi hàng hóa chỉ được xuất hiện một lần.',
       'CONFIRMED_STOCK_DOCUMENT_IMMUTABLE' =>
         'Phiếu đã xác nhận nên không thể sửa hoặc hủy.',
       'STOCK_DOCUMENT_CANCELLED' =>
@@ -68,9 +68,9 @@ Future<Result<T>> inventoryResult<T>(Future<T> Function() operation) async {
       'INVALID_ADJUSTMENT_DIRECTION' =>
         'Chọn hướng tăng/giảm đúng loại chứng từ.',
       'INGREDIENT_INACTIVE_FOR_RECEIPT' =>
-        'Nguyên liệu đã ngừng hoạt động, không thể nhập kho.',
+        'Hàng hóa đã ngừng hoạt động, không thể nhập kho.',
       'INGREDIENT_UNIT_CHANGED' =>
-        'Đơn vị nguyên liệu đã thay đổi so với phiếu. Hãy đối chiếu; không tự quy đổi hoặc xác nhận lại.',
+        'Đơn vị hàng hóa đã thay đổi so với phiếu. Hãy đối chiếu; không tự quy đổi hoặc xác nhận lại.',
       'INSUFFICIENT_STOCK' =>
         'Tồn hiện tại không đủ. Toàn bộ phiếu chưa được ghi nhận; hãy kiểm tra tồn rồi đối chiếu lại.',
       'IDEMPOTENCY_KEY_REQUIRED' =>

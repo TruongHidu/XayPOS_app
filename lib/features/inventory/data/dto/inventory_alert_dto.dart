@@ -3,6 +3,7 @@ import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/inventory_quantity.dart';
 import 'inventory_dto.dart';
 import 'stock_document_dto.dart';
+import 'stock_item_ref_dto.dart';
 
 abstract final class InventoryAlertDto {
   static InventoryQuantity? _optionalQuantity(
@@ -14,13 +15,14 @@ abstract final class InventoryAlertDto {
   }
 
   static InventoryAlert parse(Object? raw) {
-    final j = InventoryDto.object(raw);
+    final j = InventoryDto.object(raw), stockItem = StockItemRefDto.parse(j);
     final value = InventoryAlert(
       id: InventoryDto.text(j, 'id'),
       warehouseId: InventoryDto.text(j, 'warehouseId'),
       warehouseCode: InventoryDto.text(j, 'warehouseCode'),
       warehouseName: InventoryDto.text(j, 'warehouseName'),
-      ingredientId: InventoryDto.text(j, 'ingredientId'),
+      stockItemId: stockItem.stockItemId,
+      itemType: stockItem.itemType,
       ingredientSku: InventoryDto.optionalText(j, 'ingredientSku'),
       ingredientName: InventoryDto.text(j, 'ingredientName'),
       unit: InventoryDto.text(j, 'unit'),

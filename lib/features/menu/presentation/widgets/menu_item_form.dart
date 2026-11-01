@@ -1,16 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/errors/failure.dart';
-import '../../../../core/auth/access_policy.dart';
 import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/values/inventory_mode.dart';
 import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/menu_inputs.dart';
 import '../../domain/entities/menu_price.dart';
 import '../../domain/validation/menu_validation.dart';
 import '../providers/menu_providers.dart';
+import 'inventory_mode_selector.dart';
 import 'menu_dialogs.dart';
 import 'menu_group_picker.dart';
 import 'reference_cost_field.dart';
@@ -43,7 +47,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
   bool _busy = false;
   bool _costPriceEdited = false;
   bool? _costConfigured;
-  bool _recipeEnabled = false;
+  InventoryMode _inventoryMode = InventoryMode.none;
   Failure? _failure;
 
   @override
@@ -74,7 +78,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
         : '';
     _costPriceEdited = false;
     _costConfigured = null;
-    _recipeEnabled = item?.recipeEnabled ?? false;
+    _inventoryMode = item?.inventoryMode ?? InventoryMode.none;
     _fields['description']!.text = item?.description ?? '';
     _fields['imageUrl']!.text = item?.imageUrl ?? '';
     _group = item?.group;
@@ -125,6 +129,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
               salePrice: price,
               costPrice: costPrice,
               costConfigured: _costConfigured,
+              trackInventory: _inventoryMode == InventoryMode.direct,
               description: _text('description'),
               imageUrl: _text('imageUrl'),
               groupId: _group?.id,
@@ -142,9 +147,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
               salePrice: price,
               costPrice: costPrice,
               costConfigured: _costConfigured,
-              recipeEnabled: _recipeEnabled == baseline.recipeEnabled
-                  ? null
-                  : _recipeEnabled,
+              inventoryMode: _inventoryMode,
               description: _text('description'),
               imageUrl: _text('imageUrl'),
             ),
@@ -152,10 +155,19 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
     if (!mounted) return;
     if (result is Success<MenuItem>) {
       _setBusy(false);
+      // The recipe needs the saved item, so its form follows the create dialog.
+      final router = GoRouter.maybeOf(context);
+      final setupRecipe =
+          baseline == null && _inventoryMode == InventoryMode.recipe;
       if (widget.onSuccess != null) {
         widget.onSuccess!();
       } else {
         Navigator.of(context).pop(true);
+      }
+      if (setupRecipe && router != null) {
+        unawaited(
+          router.push(AppRoutes.recipeFor(result.value.id, setup: true)),
+        );
       }
     } else if (result case Error(failure: final failure)) {
       _setBusy(false);
@@ -215,17 +227,18 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
     final controller = ref.watch(menuItemControllerProvider);
     final creating = _baseline == null;
     final session = ref.watch(authControllerProvider).state.session;
-    final canChangeRecipeApplication = AccessPolicy.canSetRecipeApplication(
-      session,
-      enabled: !_recipeEnabled,
-    );
+    final direct = _inventoryMode == InventoryMode.direct;
     return Form(
       key: _form,
       child: MenuFormLayout(
         title: creating ? 'Thêm món' : 'Sửa thông tin món',
         header: widget.typeSelector,
         busy: _busy,
-        submitLabel: creating ? 'Tạo món' : 'Lưu thay đổi',
+        submitLabel: !creating
+            ? 'Lưu thay đổi'
+            : _inventoryMode == InventoryMode.recipe
+            ? 'Lưu & thêm công thức'
+            : 'Tạo món',
         onSubmit:
             (!creating && menuNeedsReload(_failure)) ||
                 !controller.can(creating ? 'MENU_CREATE' : 'MENU_UPDATE')
@@ -259,7 +272,9 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
                 'baseUnit',
                 'Đơn vị *',
                 (v) => MenuValidation.text(v ?? '', max: 30, required: true),
-                helper: 'Ví dụ: ly, phần, đĩa.',
+                helper: direct
+                    ? 'Đơn vị nhập và trừ kho, ví dụ: lon, chai. Không quy đổi thùng/lon.'
+                    : 'Ví dụ: ly, phần, đĩa.',
               ),
               _field(
                 'salePrice',
@@ -276,7 +291,8 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
                 edited: _costPriceEdited,
                 creating: creating,
                 baseUnit: _text('baseUnit'),
-                manualBackup: true,
+                manualBackup: !direct,
+                receiptCosted: direct,
                 configurationChange: _costConfigured,
                 errorText: _errors['costPrice'] ?? _errors['costConfigured'],
                 onChanged: (_) => _edited('costPrice'),
@@ -324,26 +340,18 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
             ],
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            key: const ValueKey('menu-item-recipeEnabled'),
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Sử dụng công thức'),
-            value: _recipeEnabled,
-            subtitle: Text(
-              creating
-                  ? 'Tạo món và công thức trước khi bật sử dụng.'
-                  : !canChangeRecipeApplication
-                  ? !AccessPolicy.canMenu(session, 'MENU_UPDATE')
-                        ? 'Cần quyền cập nhật món để thay đổi lựa chọn này.'
-                        : 'Cần tính năng quản lý công thức để bật sử dụng.'
-                  : _recipeEnabled
-                  ? 'Sẽ dùng công thức cho các lần gửi món tiếp theo.'
-                  : 'Tắt sử dụng vẫn giữ công thức và các phiên bản đã lưu.',
-            ),
-            onChanged: !creating && canChangeRecipeApplication
-                ? (value) => setState(() => _recipeEnabled = value)
-                : null,
+          InventoryModeSelector(
+            session: session,
+            value: _inventoryMode,
+            baseline: _baseline?.inventoryMode ?? InventoryMode.none,
+            creating: creating,
+            errorText: _errors['inventoryMode'],
+            onChanged: (value) {
+              _edited('inventoryMode');
+              setState(() => _inventoryMode = value);
+            },
           ),
+          const SizedBox(height: 16),
           _field(
             'description',
             'Mô tả',

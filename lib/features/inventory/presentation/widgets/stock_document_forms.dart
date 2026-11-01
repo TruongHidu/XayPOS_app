@@ -16,7 +16,7 @@ class StockLineEditor extends ConsumerStatefulWidget {
   const StockLineEditor({
     super.key,
     required this.type,
-    required this.ingredientId,
+    required this.stockItemId,
     required this.name,
     required this.unit,
     this.sku,
@@ -26,7 +26,7 @@ class StockLineEditor extends ConsumerStatefulWidget {
     this.onSave,
   });
   final StockDocumentType type;
-  final String ingredientId, name, unit;
+  final String stockItemId, name, unit;
   final String? sku, itemId;
   final StockLineInput? initial;
   final StockDocumentDetail? baseline;
@@ -66,7 +66,7 @@ class _StockLineEditorState extends ConsumerState<StockLineEditor> {
     StockLineInput input;
     try {
       input = StockLineInput(
-        ingredientId: widget.ingredientId,
+        stockItemId: widget.stockItemId,
         quantity: InventoryQuantity.parse(quantity.text),
         unitCost: StockMoney.unitCost(cost.text),
         direction: direction,
@@ -125,7 +125,7 @@ class _StockLineEditorState extends ConsumerState<StockLineEditor> {
         if (row != null) {
           _fill(
             StockLineInput(
-              ingredientId: row.ingredientId,
+              stockItemId: row.stockItemId,
               quantity: row.quantity,
               unitCost: row.unitCost,
               direction: row.direction,
@@ -162,8 +162,8 @@ class _StockLineEditorState extends ConsumerState<StockLineEditor> {
     }
     return InventoryDialogFrame(
       title: widget.itemId == null && widget.initial == null
-          ? 'Thêm dòng nguyên liệu'
-          : 'Sửa dòng nguyên liệu',
+          ? 'Thêm dòng hàng hóa'
+          : 'Sửa dòng hàng hóa',
       busy: busy,
       canClose:
           c == null ||
@@ -181,7 +181,7 @@ class _StockLineEditorState extends ConsumerState<StockLineEditor> {
       ],
       children: [
         Text(widget.name, style: Theme.of(context).textTheme.titleMedium),
-        Text('${widget.sku ?? 'Chưa có SKU'} · Đơn vị: ${widget.unit}'),
+        Text('Đơn vị: ${widget.unit}'),
         const SizedBox(height: 16),
         TextField(
           key: const ValueKey('stock-line-quantity'),
@@ -205,6 +205,9 @@ class _StockLineEditorState extends ConsumerState<StockLineEditor> {
         ),
         const SizedBox(height: 8),
         Text('Thành tiền tạm tính: ${preview ?? '—'}'),
+        Text(
+          'Nhập theo đơn vị ${widget.unit}. Hệ thống không tự quy đổi đơn vị, ví dụ thùng sang lon.',
+        ),
         const Text(
           'Dùng dấu chấm thập phân. Số lượng tối đa 3 chữ số lẻ, đơn giá tối đa 2 chữ số lẻ.',
         ),

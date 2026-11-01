@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/values/item_type.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/inventory_quantity.dart';
 import 'inventory_widgets.dart';
@@ -28,7 +31,7 @@ class InventoryBalanceList extends ConsumerWidget {
       permission: edit ? 'INVENTORY_THRESHOLD_UPDATE' : 'INVENTORY_VIEW',
       child: InventoryThresholdDialog(
         warehouseId: row.warehouseId,
-        ingredientId: row.ingredientId,
+        ingredientId: row.stockItemId,
         edit: edit,
       ),
     );
@@ -46,6 +49,8 @@ class InventoryBalanceList extends ConsumerWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
+        if (row.itemType == ItemType.menuItem)
+          InventoryBadge(row.itemType.label),
         if (row.lowStock) const InventoryBadge('Tồn thấp', warning: true),
         if (row.minQuantity == InventoryQuantity.zero)
           const InventoryBadge('Đã tắt cảnh báo'),
@@ -53,7 +58,7 @@ class InventoryBalanceList extends ConsumerWidget {
           const InventoryBadge('Trong ngưỡng', positive: true),
         if (!row.configured) const InventoryBadge('Chưa cấu hình'),
         if (!row.ingredientActive)
-          const InventoryBadge('Nguyên liệu ngừng hoạt động'),
+          const InventoryBadge('Hàng hóa ngừng hoạt động'),
       ],
     );
     Widget actions(InventoryBalance row) => Wrap(
@@ -93,7 +98,7 @@ class InventoryBalanceList extends ConsumerWidget {
           sortBy: () => c.query.sortBy,
           direction: () => c.query.direction,
           sorts: const {
-            'ingredientName': 'Tên nguyên liệu',
+            'ingredientName': 'Tên hàng hóa',
             'sku': 'SKU',
             'quantity': 'Số lượng',
             'minQuantity': 'Ngưỡng',
@@ -104,7 +109,7 @@ class InventoryBalanceList extends ConsumerWidget {
               c.filter(active: c.query.ingredientActive, direction: v),
         ),
         const SizedBox(height: 16),
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         InventoryFailurePanel(
           failure: c.failure,
           retry: c.loading ? null : c.load,
@@ -113,14 +118,13 @@ class InventoryBalanceList extends ConsumerWidget {
           const Text(
             'Đang giữ dữ liệu lần tải trước. Tải lại để kiểm tra số dư mới nhất.',
           ),
+        if (c.loading && !c.hasLoaded) const ListSkeleton(height: 180),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            child: Text(
-              target.lowStock
-                  ? 'Không có dòng tồn thấp phù hợp.'
-                  : 'Chưa có nguyên liệu phù hợp đang theo dõi tồn trong kho này.',
-            ),
+          EmptyState(
+            icon: Icons.inventory_2_outlined,
+            message: target.lowStock
+                ? 'Không có dòng tồn thấp phù hợp.'
+                : 'Chưa có hàng hóa phù hợp đang theo dõi tồn trong kho này.',
           ),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -138,7 +142,7 @@ class InventoryBalanceList extends ConsumerWidget {
                       Theme.of(context).colorScheme.surfaceContainerLow,
                     ),
                     columns: [
-                      const DataColumn(label: Text('Nguyên liệu')),
+                      const DataColumn(label: Text('Hàng hóa')),
                       if (target.lowStock) const DataColumn(label: Text('Kho')),
                       const DataColumn(label: Text('Trong kho'), numeric: true),
                       const DataColumn(label: Text('Đang giữ'), numeric: true),
@@ -155,7 +159,9 @@ class InventoryBalanceList extends ConsumerWidget {
                         DataRow(
                           key: ValueKey('balance-${row.key}'),
                           color: row.lowStock
-                              ? const WidgetStatePropertyAll(Color(0xFFFFFAF2))
+                              ? const WidgetStatePropertyAll(
+                                  AppColors.warningTint,
+                                )
                               : null,
                           cells: [
                             DataCell(
@@ -177,7 +183,7 @@ class InventoryBalanceList extends ConsumerWidget {
                                         ),
                                       ),
                                       Text(
-                                        row.ingredientSku ?? 'Chưa có SKU',
+                                        row.ingredientSku ?? '—',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -246,7 +252,7 @@ class InventoryBalanceList extends ConsumerWidget {
           EndlessListFooter(
             hasMore: c.hasMore,
             failureMessage: c.endless.failure?.message,
-            endLabel: 'Đã hiển thị tất cả ${c.totalElements} nguyên liệu',
+            endLabel: 'Đã hiển thị tất cả ${c.totalElements} hàng hóa',
             onLoadMore: c.loadMore,
           ),
       ],
@@ -279,19 +285,17 @@ class _BalanceCard extends StatelessWidget {
       color: colors.onSurfaceVariant,
     );
     final tracked = row.minQuantity != InventoryQuantity.zero;
-    final level = row.lowStock
-        ? const Color(0xFFB45309)
-        : const Color(0xFF0F766E);
+    final level = row.lowStock ? AppColors.warning : AppColors.success;
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
       clipBehavior: Clip.antiAlias,
-      color: row.lowStock ? const Color(0xFFFFFAF2) : colors.surface,
+      color: row.lowStock ? AppColors.warningTint : colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: row.lowStock
-              ? const Color(0xFFFDE68A)
+              ? AppColors.warningBorder
               : colors.outlineVariant.withValues(alpha: 0.6),
         ),
       ),

@@ -66,7 +66,7 @@ class InventoryAlertDetailController extends InventoryController {
             change.warehouseId != old.warehouseId ||
         old != null &&
             change.ingredientId != null &&
-            change.ingredientId != old.ingredientId) {
+            change.ingredientId != old.stockItemId) {
       return;
     }
     _refreshPending = true;
@@ -141,7 +141,7 @@ class InventoryAlertDetailController extends InventoryController {
           InventoryChange(
             InventoryChangeKind.alert,
             fresh.warehouseId,
-            ingredientId: fresh.ingredientId,
+            ingredientId: fresh.stockItemId,
             alertId: id,
             resourceVersion: fresh.version,
           ),

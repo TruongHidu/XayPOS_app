@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../controllers/daily_report_controller.dart';
 import '../providers/report_providers.dart';
 import '../widgets/completed_orders_breakdown_card.dart';
@@ -137,7 +138,7 @@ class DailyRevenueScreen extends ConsumerWidget {
         title: 'Tiền đã thu',
         money: data.collections.collectedAmount,
         icon: Icons.account_balance_wallet_outlined,
-        color: const Color(0xFF0284C7),
+        color: AppColors.info,
         tooltip:
             'Tổng tiền các giao dịch thanh toán SUCCESS theo thời điểm thu (paidAt) trong ngày.',
         secondaryText:
@@ -156,7 +157,7 @@ class DailyRevenueScreen extends ConsumerWidget {
         title: 'Đơn hoàn tất',
         count: data.orders.completedOrderCount,
         icon: Icons.check_circle_outline,
-        color: const Color(0xFF10B981),
+        color: AppColors.success,
         unit: 'đơn',
         tooltip: 'Số lượng đơn COMPLETED theo completedAt.',
         secondaryText:

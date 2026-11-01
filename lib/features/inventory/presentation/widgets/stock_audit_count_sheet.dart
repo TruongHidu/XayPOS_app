@@ -33,7 +33,7 @@ class StockAuditCountSheet extends ConsumerWidget {
             initialValue: q.q,
             maxLength: 100,
             decoration: inventoryField(
-              'Tìm nguyên liệu hoặc SKU trong phiên',
+              'Tìm hàng hóa hoặc SKU trong phiên',
             ).copyWith(prefixIcon: const Icon(Icons.search), counterText: ''),
             onChanged: c.search,
           ),
@@ -66,7 +66,7 @@ class StockAuditCountSheet extends ConsumerWidget {
                 label: 'Sắp xếp',
                 value: q.sortBy,
                 items: const {
-                  'name': 'Tên nguyên liệu',
+                  'name': 'Tên hàng hóa',
                   'sku': 'SKU',
                   'systemQuantity': 'Tồn lúc bắt đầu',
                   'countedQuantity': 'Số đếm đã lưu',
@@ -113,7 +113,7 @@ class StockAuditCountSheet extends ConsumerWidget {
         if (c.itemsLoaded && c.rows.isEmpty && c.itemFailure == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Text('Không có nguyên liệu nào khớp bộ lọc.'),
+            child: Text('Không có hàng hóa nào khớp bộ lọc.'),
           ),
         LayoutBuilder(
           builder: (context, box) {
@@ -130,7 +130,7 @@ class StockAuditCountSheet extends ConsumerWidget {
                     dataRowMinHeight: 190,
                     dataRowMaxHeight: 260,
                     columns: const [
-                      DataColumn(label: Text('Nguyên liệu / Đơn vị')),
+                      DataColumn(label: Text('Hàng hóa / Đơn vị')),
                       DataColumn(label: Text('Tồn lúc bắt đầu')),
                       DataColumn(label: Text('Số đếm thực tế')),
                       DataColumn(label: Text('Chênh lệch')),
@@ -161,7 +161,7 @@ class StockAuditCountSheet extends ConsumerWidget {
                                         ),
                                       ),
                                       Text(
-                                        '${row.sku ?? 'Chưa có SKU'} · ${row.unit}',
+                                        'Đơn vị: ${row.unit}',
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -223,9 +223,7 @@ class StockAuditCountSheet extends ConsumerWidget {
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
-                          Text(
-                            '${row.sku ?? 'Chưa có SKU'} · Đơn vị: ${row.unit}',
-                          ),
+                          Text('Đơn vị: ${row.unit}'),
                           const SizedBox(height: 12),
                           Text(
                             'Tồn lúc bắt đầu: ${inventoryAmount(row.systemQuantity, row.unit)}',

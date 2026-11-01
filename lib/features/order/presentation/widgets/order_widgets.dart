@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/formatters/money_format.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../domain/entities/order_quantity.dart';
 
 abstract final class OrderPalette {
-  static const white = Color(0x000063E2);
-  static const orange = Color(0xFF0063E2);
+  static const clear = Colors.transparent;
+  static const primary = AppTheme.primaryColor;
   static const grey = Color(0xFFD0D0D0);
 }
 
@@ -46,10 +49,33 @@ class OrderFailurePanel extends StatelessWidget {
                   Text(failure!.fieldErrors.values.join('\n')),
                 if (retry != null)
                   TextButton(onPressed: retry, child: Text(label)),
+                if (failure!.code == 'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED')
+                  const _WarehouseSettingsLink(),
               ],
             ),
           ),
         );
+}
+
+/// Pushed over the order screen so the cart survives; dialogs keep their draft
+/// by not offering the link.
+class _WarehouseSettingsLink extends ConsumerWidget {
+  const _WarehouseSettingsLink();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = GoRouter.maybeOf(context);
+    final allowed = AccessPolicy.canInventory(
+      ref.watch(authControllerProvider).state.session,
+      'WAREHOUSE_UPDATE',
+    );
+    if (!allowed || router == null || ModalRoute.of(context) is PopupRoute) {
+      return const SizedBox.shrink();
+    }
+    return TextButton(
+      onPressed: () => router.push(AppRoutes.inventoryWarehouses),
+      child: const Text('Mở quản lý kho'),
+    );
+  }
 }
 
 Future<T?> showOrderDialog<T>(

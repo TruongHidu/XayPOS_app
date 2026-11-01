@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/revenue_series_point.dart';
 
@@ -134,7 +135,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
                     width: 12,
                     height: 12,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF0284C7), // Blue
+                      color: AppColors.info, // Blue
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -277,7 +278,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         constraints: const BoxConstraints(maxWidth: 240),
         decoration: BoxDecoration(
-          color: Colors.grey.shade900.withValues(alpha: 0.95),
+          color: AppColors.grey900.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -303,7 +304,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
             if (widget.showCollected) ...[
               Row(
                 children: [
-                  const Icon(Icons.circle, size: 8, color: Color(0xFF0284C7)),
+                  const Icon(Icons.circle, size: 8, color: AppColors.info),
                   const SizedBox(width: 6),
                   const Text(
                     'Tiền đã thu: ',
@@ -528,7 +529,7 @@ class _SeriesChartPainter extends CustomPainter {
         canvas: canvas,
         points: points.map((p) => p.collectedAmount.toDouble()).toList(),
         maxVal: maxVal,
-        color: const Color(0xFF0284C7),
+        color: AppColors.info,
         leftPad: leftPad,
         topPad: topPad,
         chartHeight: chartHeight,

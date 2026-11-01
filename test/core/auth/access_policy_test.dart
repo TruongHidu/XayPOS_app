@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/auth/access_policy.dart';
+import 'package:pos_saas_app/core/values/inventory_mode.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
 
 import '../../helpers/auth_fakes.dart';
@@ -41,6 +42,61 @@ void main() {
     }
     expect(
       AccessPolicy.canOpenRoute(full, '/app/inventory/audits/new'),
+      isFalse,
+    );
+  });
+
+  test('inventory mode needs a feature only when switching it on', () {
+    bool can(
+      Set<String> features, {
+      InventoryMode from = InventoryMode.none,
+      required InventoryMode to,
+      bool creating = false,
+    }) => AccessPolicy.canSetInventoryMode(
+      makeAppSession(
+        permissions: {'MENU_CREATE', 'MENU_UPDATE'},
+        features: {'MENU_MANAGEMENT', ...features},
+      ),
+      creating: creating,
+      from: from,
+      to: to,
+    );
+    expect(can({'INVENTORY_MANAGEMENT'}, to: InventoryMode.direct), isTrue);
+    expect(can({}, to: InventoryMode.direct), isFalse);
+    expect(can({}, to: InventoryMode.direct, creating: true), isFalse);
+    expect(
+      can({}, from: InventoryMode.direct, to: InventoryMode.direct),
+      isTrue,
+    );
+    expect(can({}, from: InventoryMode.direct, to: InventoryMode.none), isTrue);
+    expect(can({'RECIPE_MANAGEMENT'}, to: InventoryMode.recipe), isTrue);
+    expect(can({}, to: InventoryMode.recipe), isFalse);
+    expect(
+      can({'RECIPE_MANAGEMENT'}, to: InventoryMode.recipe, creating: true),
+      isFalse,
+    );
+    expect(
+      AccessPolicy.canSetInventoryMode(
+        makeAppSession(
+          permissions: const {'MENU_CREATE', 'RECIPE_CREATE'},
+          features: const {'MENU_MANAGEMENT', 'RECIPE_MANAGEMENT'},
+        ),
+        creating: true,
+        from: InventoryMode.none,
+        to: InventoryMode.recipe,
+      ),
+      isTrue,
+    );
+    expect(
+      AccessPolicy.canSetInventoryMode(
+        makeAppSession(
+          permissions: {'MENU_VIEW'},
+          features: {'MENU_MANAGEMENT', 'INVENTORY_MANAGEMENT'},
+        ),
+        creating: false,
+        from: InventoryMode.none,
+        to: InventoryMode.direct,
+      ),
       isFalse,
     );
   });

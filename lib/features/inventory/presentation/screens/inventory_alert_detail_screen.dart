@@ -92,7 +92,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    Text(row.ingredientSku ?? 'Chưa có SKU'),
+                    if (row.ingredientSku != null) Text(row.ingredientSku!),
                     Text('Kho: ${row.warehouseName} · ${row.warehouseCode}'),
                     const SizedBox(height: 12),
                     Wrap(children: [InventoryAlertBadge(row.status)]),
@@ -222,7 +222,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
                           onPressed: () => context.push(
                             stockHistoryLocation(
                               warehouseId: row.warehouseId,
-                              ingredientId: row.ingredientId,
+                              ingredientId: row.stockItemId,
                             ),
                           ),
                           icon: const Icon(Icons.history),

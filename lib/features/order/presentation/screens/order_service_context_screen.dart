@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../../tables/domain/entities/table_entities.dart';
 import '../../../qr_order/presentation/widgets/qr_request_inbox.dart';
 import '../../../qr_order/presentation/widgets/qr_inbox_visibility.dart';
@@ -59,7 +61,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     style: TextButton.styleFrom(
                       foregroundColor: c.query.occupied == filter.$1
                           ? Colors.black
-                          : Colors.grey,
+                          : AppColors.grey500,
                       minimumSize: const Size(0, 48),
                     ),
                     onPressed: c.selecting
@@ -129,7 +131,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     child: ChoiceChip(
                       label: const Text('Tất cả khu vực'),
                       selected: c.query.areaId == null,
-                      selectedColor: OrderPalette.white,
+                      selectedColor: OrderPalette.clear,
                       onSelected: c.selecting
                           ? null
                           : (_) => c.filter(occupied: c.query.occupied),
@@ -141,7 +143,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                       child: ChoiceChip(
                         label: Text(area.name),
                         selected: c.query.areaId == area.id,
-                        selectedColor: OrderPalette.white,
+                        selectedColor: OrderPalette.clear,
                         backgroundColor: OrderPalette.grey,
                         onSelected: c.selecting
                             ? null
@@ -275,9 +277,9 @@ class OrderServiceContextScreen extends ConsumerWidget {
               !c.loading &&
               c.failure == null &&
               c.tables.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text('Không có bàn phù hợp.'),
+            const EmptyState(
+              icon: Icons.table_restaurant_outlined,
+              message: 'Không có bàn phù hợp.',
             ),
         ],
       ),
@@ -367,7 +369,7 @@ class OrderContextCard extends StatelessWidget {
         ? const Color(0xFF9A6700)
         : hasOrder
         ? const Color(0xFF2E7D32)
-        : OrderPalette.orange;
+        : OrderPalette.primary;
     return Semantics(
       button: true,
       enabled: onTap != null,
@@ -380,7 +382,7 @@ class OrderContextCard extends StatelessWidget {
             ? const Color(0xFFFFF8E1)
             : hasOrder
             ? const Color(0xFFE8F5E9)
-            : OrderPalette.white,
+            : OrderPalette.clear,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(color: accent, width: 1.2),
@@ -428,7 +430,7 @@ class OrderContextCard extends StatelessWidget {
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

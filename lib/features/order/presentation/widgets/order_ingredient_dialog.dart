@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
+import '../../../../core/errors/failure.dart';
 import '../../../../core/ui/controllers/scoped_read_controller.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../inventory/domain/entities/order_item_allocation.dart';
@@ -24,16 +25,16 @@ class OrderIngredientsButton extends ConsumerWidget {
   final OrderLine line;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!AccessPolicy.canViewOrderRecipeSnapshot(
-      ref.watch(authControllerProvider).state.session,
-    )) {
+    final session = ref.watch(authControllerProvider).state.session;
+    final recipeAllowed = AccessPolicy.canViewOrderRecipeSnapshot(session);
+    if (!recipeAllowed && !AccessPolicy.canViewOrderItemAllocation(session)) {
       return const SizedBox.shrink();
     }
     return TextButton.icon(
       key: ValueKey('order-ingredients-${line.id}'),
       style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
       icon: const Icon(Icons.receipt_long_outlined),
-      label: const Text('Xem nguyên liệu'),
+      label: Text(recipeAllowed ? 'Xem nguyên liệu' : 'Xem kho của món'),
       onPressed: () => showOrderDialog<void>(
         context,
         ref,
@@ -62,18 +63,32 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(authControllerProvider).state.session;
-    if (!AccessPolicy.canViewOrderRecipeSnapshot(session)) {
+    final recipeAllowed = AccessPolicy.canViewOrderRecipeSnapshot(session);
+    final allocationAllowed = AccessPolicy.canViewOrderItemAllocation(session);
+    if (!recipeAllowed && !allocationAllowed) {
       return const SizedBox.shrink();
     }
     final target = (orderId: widget.order.id, orderItemId: widget.line.id);
-    final snapshot = ref.watch(orderRecipeSnapshotProvider(target));
-    final allocationAllowed = AccessPolicy.canViewOrderItemAllocation(session);
-    final allocation = allocationAllowed && _allocationRequested
+    final snapshot = recipeAllowed
+        ? ref.watch(orderRecipeSnapshotProvider(target))
+        : null;
+    final showAllocation = _allocation || !recipeAllowed;
+    final allocation =
+        allocationAllowed && (_allocationRequested || !recipeAllowed)
         ? ref.watch(orderItemAllocationProvider(target))
         : null;
-    final ScopedReadController<Object>? selected = _allocation
+    final ScopedReadController<Object>? selected = showAllocation
         ? allocation
         : snapshot;
+    final failure = selected?.failure;
+    // Without recipe rights the server only opens direct stock lines, so a
+    // refused line is an expected outcome of a mode the app can't know upfront.
+    final recipeOnlyLine =
+        !recipeAllowed &&
+        const {
+          FailureType.forbidden,
+          FailureType.featureNotEntitled,
+        }.contains(failure?.type);
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
@@ -87,7 +102,7 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Nguyên liệu của món',
+                      recipeAllowed ? 'Nguyên liệu của món' : 'Kho của món',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -106,7 +121,7 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                   key: PageStorageKey((
                     'order-ingredient-detail',
                     target,
-                    _allocation,
+                    showAllocation,
                   )),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -120,32 +135,33 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                         '${widget.line.quantity} ${widget.line.unit} · ${widget.line.status.label}',
                       ),
                       const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: const Text('Công thức đã chốt'),
-                            selected: !_allocation,
-                            onSelected: (_) =>
-                                setState(() => _allocation = false),
-                          ),
-                          if (allocationAllowed)
+                      if (recipeAllowed)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
                             ChoiceChip(
-                              label: const Text('Giữ & tiêu thụ kho'),
-                              selected: _allocation,
-                              onSelected: (_) => setState(() {
-                                _allocationRequested = true;
-                                _allocation = true;
-                              }),
+                              label: const Text('Công thức đã chốt'),
+                              selected: !_allocation,
+                              onSelected: (_) =>
+                                  setState(() => _allocation = false),
                             ),
-                        ],
-                      ),
+                            if (allocationAllowed)
+                              ChoiceChip(
+                                label: const Text('Giữ & tiêu thụ kho'),
+                                selected: _allocation,
+                                onSelected: (_) => setState(() {
+                                  _allocationRequested = true;
+                                  _allocation = true;
+                                }),
+                              ),
+                          ],
+                        ),
                       if (!allocationAllowed)
                         const Padding(
                           padding: EdgeInsets.only(top: 12),
                           child: Text(
-                            'Cần quyền xem kho và tính năng kho để xem giữ/tiêu thụ nguyên liệu.',
+                            'Cần quyền xem kho và tính năng kho để xem giữ/tiêu thụ hàng hóa.',
                           ),
                         ),
                       const SizedBox(height: 16),
@@ -155,15 +171,22 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                         const _Info(
                           'Dữ liệu lần tải trước. Đơn hoặc tồn kho đã thay đổi; hãy làm mới để đối chiếu.',
                         ),
-                      if (selected?.failure != null)
+                      if (recipeOnlyLine)
+                        const _Info(
+                          'Chỉ món trừ tồn trực tiếp mới xem được khi không có quyền công thức.',
+                        )
+                      else if (failure != null)
                         OrderFailurePanel(
-                          failure: selected!.failure,
-                          retry: selected.loading ? null : selected.load,
+                          failure: failure,
+                          retry: selected!.loading ? null : selected.load,
                           label: 'Thử lại',
                         ),
-                      if (!_allocation && snapshot.value != null)
-                        _SnapshotDetails(snapshot.value!),
-                      if (_allocation && allocation?.value != null)
+                      if (!showAllocation && snapshot?.value != null)
+                        _SnapshotDetails(
+                          snapshot!.value!,
+                          allocationAllowed: allocationAllowed,
+                        ),
+                      if (showAllocation && allocation?.value != null)
                         _AllocationDetails(allocation!.value!),
                     ],
                   ),
@@ -202,13 +225,19 @@ String _percent(int hundredths) => ingredientNumber(
 );
 
 class _SnapshotDetails extends StatelessWidget {
-  const _SnapshotDetails(this.value);
+  const _SnapshotDetails(this.value, {required this.allocationAllowed});
   final OrderRecipeSnapshot value;
+  final bool allocationAllowed;
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _Info(value.status.label),
+      if (allocationAllowed &&
+          value.status == RecipeSnapshotStatus.recipeDisabled)
+        const Text(
+          'Nếu món trừ tồn trực tiếp, xem số lượng tại “Giữ & tiêu thụ kho”.',
+        ),
       if (value.costSourceSnapshot != null)
         Text('Nguồn được chốt khi gửi món: ${value.costSourceSnapshot!.label}')
       else if (value.status == RecipeSnapshotStatus.notSubmitted)
@@ -269,6 +298,8 @@ class _AllocationDetails extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _Info(value.status.label),
+      if (value.directStock)
+        const Text('Món trừ tồn trực tiếp, không dùng công thức.'),
       Text(switch (value.status) {
         AllocationStatus.reserved => 'Đã giữ chỗ, chưa giảm tồn vật lý.',
         AllocationStatus.consumed =>
@@ -277,7 +308,7 @@ class _AllocationDetails extends StatelessWidget {
           'Đã trả phần giữ chỗ; không phải nhập tăng tồn vật lý.',
         AllocationStatus.skipped => value.skipReason!.label,
         AllocationStatus.notSubmitted =>
-          'Món chưa gửi, chưa có dữ liệu giữ nguyên liệu.',
+          'Món chưa gửi, chưa có dữ liệu giữ hàng hóa.',
       }),
       if (value.warehouseId != null)
         Padding(
@@ -293,6 +324,7 @@ class _AllocationDetails extends StatelessWidget {
       if (value.ingredients.isNotEmpty) ...[
         const SizedBox(height: 16),
         _IngredientRows(
+          itemLabel: 'Hàng hóa / SKU',
           headers: const ['Lượng đã chốt'],
           rows: [
             for (final row in value.ingredients)
@@ -310,7 +342,9 @@ class _AllocationDetails extends StatelessWidget {
             orderId: value.orderId,
             orderItemId: value.orderItemId,
             source: InventoryTransactionSource.orderItem,
-            type: InventoryTransactionType.recipeUse,
+            type: value.directStock
+                ? InventoryTransactionType.directUse
+                : InventoryTransactionType.recipeUse,
           );
           Navigator.of(context).pop();
           router?.go(location);
@@ -355,7 +389,12 @@ class _IngredientRow {
 }
 
 class _IngredientRows extends StatelessWidget {
-  const _IngredientRows({required this.headers, required this.rows});
+  const _IngredientRows({
+    required this.headers,
+    required this.rows,
+    this.itemLabel = 'Nguyên liệu / SKU',
+  });
+  final String itemLabel;
   final List<String> headers;
   final List<_IngredientRow> rows;
   @override
@@ -369,7 +408,7 @@ class _IngredientRows extends StatelessWidget {
             dataRowMinHeight: 72,
             dataRowMaxHeight: 112,
             columns: [
-              const DataColumn(label: Text('Nguyên liệu / SKU')),
+              DataColumn(label: Text(itemLabel)),
               for (final h in headers) DataColumn(label: Text(h)),
             ],
             rows: [

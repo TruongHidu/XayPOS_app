@@ -151,7 +151,7 @@ class InventoryTransactionController extends InventoryController {
   void _learnNames(List<InventoryTransaction> values) {
     for (final row in values) {
       names.putIfAbsent(row.warehouseId, () => row.warehouseCode);
-      names.putIfAbsent(row.ingredientId, () => row.ingredientName);
+      names.putIfAbsent(row.stockItemId, () => row.ingredientName);
       if (row.documentId case final id?) {
         names.putIfAbsent(id, () => row.documentCode!);
       }

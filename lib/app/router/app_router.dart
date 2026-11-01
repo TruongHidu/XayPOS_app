@@ -192,6 +192,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           backFallback: AppRoutes.menu,
           child: RecipeManagementScreen(
             menuItemId: state.pathParameters['menuItemId']!,
+            startSetup: state.uri.queryParameters['setup'] == '1',
           ),
         ),
       ),

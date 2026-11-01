@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../controllers/inventory_events.dart';
 import '../controllers/warehouse_list_controller.dart';
@@ -113,7 +114,7 @@ class WarehouseList extends ConsumerWidget {
           onDirection: (v) => c.filter(active: c.query.active, direction: v),
         ),
         const SizedBox(height: 16),
-        if (c.loading) const LinearProgressIndicator(),
+        LoadingStrip(loading: c.loading),
         InventoryFailurePanel(
           failure: c.failure,
           retry: c.loading ? null : c.load,
@@ -121,11 +122,10 @@ class WarehouseList extends ConsumerWidget {
         if (c.failure != null && c.hasLoaded)
           const Text('Đang giữ dữ liệu lần tải trước. Tải lại để đối chiếu.'),
         if (c.hasLoaded && c.rows.isEmpty && c.failure == null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 32),
-            child: Text(
-              'Chưa có kho phù hợp. Bạn có thể đổi bộ lọc hoặc thêm kho mới nếu được cấp quyền.',
-            ),
+          const EmptyState(
+            icon: Icons.warehouse_outlined,
+            message:
+                'Chưa có kho phù hợp. Bạn có thể đổi bộ lọc hoặc thêm kho mới nếu được cấp quyền.',
           ),
         LayoutBuilder(
           builder: (context, constraints) {

@@ -41,7 +41,7 @@ class ScopedReadController<T> extends ChangeNotifier {
       result = const Error(
         Failure(
           type: FailureType.internal,
-          message: 'Không thể tải dữ liệu nguyên liệu. Vui lòng thử lại.',
+          message: 'Không thể tải dữ liệu của món. Vui lòng thử lại.',
         ),
       );
     }

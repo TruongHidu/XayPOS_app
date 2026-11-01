@@ -68,9 +68,9 @@ abstract final class ApiErrorMapper {
           'Phiên kiểm kê vừa được cập nhật. Bản nhập được giữ; hãy tải lại và đối chiếu trước khi lưu tiếp.',
       'WAREHOUSE_STOCK_AUDIT_IN_PROGRESS':
           'Kho đã có một phiên đang kiểm kê. Hãy mở danh sách phiên của kho để kiểm tra.',
-      'STOCK_AUDIT_EMPTY': 'Không có nguyên liệu phù hợp để bắt đầu kiểm kê.',
+      'STOCK_AUDIT_EMPTY': 'Không có hàng hóa phù hợp để bắt đầu kiểm kê.',
       'STOCK_AUDIT_INCOMPLETE':
-          'Phiên còn nguyên liệu chưa đếm. Hãy mở bộ lọc Chưa đếm và lưu đủ số đếm.',
+          'Phiên còn hàng hóa chưa đếm. Hãy mở bộ lọc Chưa đếm và lưu đủ số đếm.',
       'STOCK_AUDIT_SNAPSHOT_STALE':
           'Tồn vật lý đã biến động sau khi bắt đầu. Giữ số đếm để tham khảo; cần hủy phiên và kiểm kê lại.',
       'STOCK_DOCUMENT_MANAGED_BY_AUDIT':
@@ -382,15 +382,35 @@ abstract final class ApiErrorMapper {
       'RECIPE_USAGE_QUANTITY_OUT_OF_RANGE' ||
       'INVENTORY_QUANTITY_OUT_OF_RANGE' => (
         FailureType.conflict,
-        'Lượng nguyên liệu cần dùng vượt giới hạn hỗ trợ. Giỏ món được giữ nguyên.',
+        'Lượng cần dùng vượt giới hạn hỗ trợ. Giỏ món được giữ nguyên.',
       ),
       'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED' => (
         FailureType.conflict,
-        'Chưa có kho mặc định hợp lệ để giữ nguyên liệu. Hãy liên hệ quản lý cấu hình kho rồi thử lại.',
+        'Chưa có kho mặc định hợp lệ để giữ hàng hóa. Hãy liên hệ quản lý cấu hình kho rồi thử lại.',
       ),
       'INSUFFICIENT_AVAILABLE_STOCK' => (
         FailureType.conflict,
         'Tồn khả dụng không đáp ứng thao tác hoặc số đếm thấp hơn lượng đang giữ. Yêu cầu chưa được ghi nhận; hãy đối chiếu trước khi thử lại.',
+      ),
+      'INVENTORY_TRACKING_MODE_CONFLICT' => (
+        FailureType.conflict,
+        'Món không thể vừa trừ tồn trực tiếp vừa dùng công thức. Hãy chọn một chế độ.',
+      ),
+      'STOCK_TRACKING_CHANGE_NOT_ALLOWED' => (
+        FailureType.conflict,
+        'Chưa thể đổi chế độ tồn kho vì món còn tồn, đang được giữ hoặc có phiếu kho nháp. Hãy xử lý trước rồi tải lại.',
+      ),
+      'STOCK_ITEM_UNIT_CHANGE_NOT_ALLOWED' => (
+        FailureType.conflict,
+        'Chưa thể đổi đơn vị vì hàng hóa còn tồn, đang được giữ hoặc có phiếu kho nháp. Hãy xử lý trước rồi tải lại.',
+      ),
+      'STOCK_ITEM_DELETE_NOT_ALLOWED' => (
+        FailureType.conflict,
+        'Chưa thể xóa vì hàng hóa còn tồn, đang được giữ hoặc có phiếu kho nháp. Hãy xử lý trước rồi tải lại.',
+      ),
+      'INVALID_STOCK_ITEM_REFERENCE' => (
+        FailureType.validation,
+        'Hàng hóa trong phiếu không hợp lệ. Hãy chọn lại hàng hóa.',
       ),
       'INVENTORY_ALLOCATION_NOT_FOUND' => (
         FailureType.conflict,
@@ -399,19 +419,19 @@ abstract final class ApiErrorMapper {
       'INVALID_INVENTORY_ALLOCATION_TRANSITION' ||
       'INVENTORY_ALLOCATION_CONFLICT' => (
         FailureType.conflict,
-        'Trạng thái nguyên liệu của món đã thay đổi. Hãy tải lại để đối chiếu.',
+        'Trạng thái giữ kho của món đã thay đổi. Hãy tải lại để đối chiếu.',
       ),
       'INVENTORY_RESERVATION_INVARIANT_VIOLATION' => (
         FailureType.conflict,
-        'Dữ liệu giữ nguyên liệu chưa nhất quán. Hãy kiểm tra; không tự trừ hoặc giữ bù.',
+        'Dữ liệu giữ hàng hóa chưa nhất quán. Hãy kiểm tra; không tự trừ hoặc giữ bù.',
       ),
       'WAREHOUSE_HAS_RESERVATIONS' => (
         FailureType.conflict,
-        'Kho còn nguyên liệu đang giữ cho món. Cần xử lý các món đang giữ chỗ trước khi thay đổi.',
+        'Kho còn hàng hóa đang giữ cho món. Cần xử lý các món đang giữ chỗ trước khi thay đổi.',
       ),
       'INGREDIENT_HAS_RESERVATIONS' => (
         FailureType.conflict,
-        'Nguyên liệu đang được giữ cho món. Cần xử lý phần giữ chỗ trước khi thay đổi.',
+        'Hàng hóa đang được giữ cho món. Cần xử lý phần giữ chỗ trước khi thay đổi.',
       ),
       'CONCURRENT_INVENTORY_UPDATE' => (
         FailureType.conflict,
