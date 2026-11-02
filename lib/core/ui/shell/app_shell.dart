@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/order/presentation/screens/order_list_screen.dart';
@@ -13,6 +15,7 @@ import '../sidebar/app_sidebar.dart';
 import '../sidebar/app_sidebar_registry.dart';
 import '../sidebar/sidebar_filter.dart';
 import '../sidebar/sidebar_menu_item.dart';
+import 'exit_confirm_dialog.dart';
 
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
 import '../../../features/menu/presentation/screens/menu_management_screen.dart';
@@ -131,6 +134,27 @@ class _AppShellState extends ConsumerState<AppShell>
     }
   }
 
+  /// The device back button on the bottom screen of the stack.
+  Future<void> _onRootBack() async {
+    if (!_sidebarController.isDismissed) {
+      unawaited(_sidebarController.reverse());
+      return;
+    }
+    if (widget.isInner) {
+      _goBack();
+      return;
+    }
+    final exit = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const ExitConfirmDialog(),
+    );
+    if (exit != true || !mounted) return;
+    // Leaving must not silently drop an order still being composed or sent.
+    final allowed = await ref.read(orderExitGuardProvider).allow(context);
+    if (allowed) await SystemNavigator.pop();
+  }
+
   void _onItemTap(SidebarMenuItem item) async {
     if (const {
       'orders',
@@ -221,78 +245,86 @@ class _AppShellState extends ConsumerState<AppShell>
         ? 32.0
         : 24.0;
 
-    return Scaffold(
-      appBar: widget.showAppBar
-          ? AppBar(
-              toolbarHeight: toolbarHeight,
-              leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
-              leading: Center(
-                child: SizedBox.square(
-                  dimension: menuButtonSize,
-                  child: IconButton(
-                    onPressed: widget.isInner ? _goBack : _toggleSidebar,
-                    tooltip: widget.isInner ? 'Quay lại' : 'Menu',
-                    iconSize: menuIconSize,
-                    style: IconButton.styleFrom(
-                      fixedSize: Size.square(menuButtonSize),
-                      padding: EdgeInsets.zero,
+    return PopScope(
+      canPop: ModalRoute.of(context)?.isFirst == false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_onRootBack());
+      },
+      child: Scaffold(
+        appBar: widget.showAppBar
+            ? AppBar(
+                toolbarHeight: toolbarHeight,
+                leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
+                leading: Center(
+                  child: SizedBox.square(
+                    dimension: menuButtonSize,
+                    child: IconButton(
+                      onPressed: widget.isInner ? _goBack : _toggleSidebar,
+                      tooltip: widget.isInner ? 'Quay lại' : 'Menu',
+                      iconSize: menuIconSize,
+                      style: IconButton.styleFrom(
+                        fixedSize: Size.square(menuButtonSize),
+                        padding: EdgeInsets.zero,
+                      ),
+                      icon: widget.isInner
+                          ? Icon(Icons.arrow_back, size: menuIconSize)
+                          : AnimatedIcon(
+                              icon: AnimatedIcons.menu_close,
+                              progress: _sidebarController,
+                              size: menuIconSize,
+                            ),
                     ),
-                    icon: widget.isInner
-                        ? Icon(Icons.arrow_back, size: menuIconSize)
-                        : AnimatedIcon(
-                            icon: AnimatedIcons.menu_close,
-                            progress: _sidebarController,
-                            size: menuIconSize,
-                          ),
                   ),
                 ),
-              ),
-              title: Text(widget.innerTitle ?? _currentTitle(allVisibleItems)),
-              actionsIconTheme: IconThemeData(size: menuIconSize),
-              actions: [
-                ...?widget.actions,
-                // Mirrors _buildContent, which mounts these screens itself.
-                if (widget.child == null && _selectedId == 'reports')
-                  const ReportFilterAction(),
-                if (widget.child == null && _selectedId == 'menu')
-                  const MenuFilterAction(),
-                SizedBox(width: mediumScreen ? 16 : 8),
-              ],
-              // actions: [
-              //   IconButton(
-              //     onPressed: controller.logout,
-              //     tooltip: 'Đăng xuất',
-              //     icon: const Icon(Icons.logout),
-              //   ),
-              // ],
-            )
-          : null,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Main content area
-          Positioned.fill(child: _buildContent(session, allVisibleItems)),
+                title: Text(
+                  widget.innerTitle ?? _currentTitle(allVisibleItems),
+                ),
+                actionsIconTheme: IconThemeData(size: menuIconSize),
+                actions: [
+                  ...?widget.actions,
+                  // Mirrors _buildContent, which mounts these screens itself.
+                  if (widget.child == null && _selectedId == 'reports')
+                    const ReportFilterAction(),
+                  if (widget.child == null && _selectedId == 'menu')
+                    const MenuFilterAction(),
+                  SizedBox(width: mediumScreen ? 16 : 8),
+                ],
+                // actions: [
+                //   IconButton(
+                //     onPressed: controller.logout,
+                //     tooltip: 'Đăng xuất',
+                //     icon: const Icon(Icons.logout),
+                //   ),
+                // ],
+              )
+            : null,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Main content area
+            Positioned.fill(child: _buildContent(session, allVisibleItems)),
 
-          // Sidebar overlay
-          if (!widget.isInner)
-            AppSidebar(
-              animation: _sidebarController,
-              categories: visibleCategories,
-              itemBadges: {
-                if (lowStockCount != null && lowStockCount > 0)
-                  'inventory-low-stock': lowStockCount,
-                if (takeawayCount != null && takeawayCount > 0)
-                  'takeaway-orders': takeawayCount,
-              },
-              selectedId: _selectedId,
-              onItemTap: _onItemTap,
-              onLogout: controller.logout,
-              userName: session.authenticatedUser.name,
-              userRole: _roleName(session),
-              restaurantName: session.authenticatedUser.restaurantName,
-              packageCode: session.packageCode,
-            ),
-        ],
+            // Sidebar overlay
+            if (!widget.isInner)
+              AppSidebar(
+                animation: _sidebarController,
+                categories: visibleCategories,
+                itemBadges: {
+                  if (lowStockCount != null && lowStockCount > 0)
+                    'inventory-low-stock': lowStockCount,
+                  if (takeawayCount != null && takeawayCount > 0)
+                    'takeaway-orders': takeawayCount,
+                },
+                selectedId: _selectedId,
+                onItemTap: _onItemTap,
+                onLogout: controller.logout,
+                userName: session.authenticatedUser.name,
+                userRole: _roleName(session),
+                restaurantName: session.authenticatedUser.restaurantName,
+                packageCode: session.packageCode,
+              ),
+          ],
+        ),
       ),
     );
   }
