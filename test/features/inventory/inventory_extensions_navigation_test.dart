@@ -30,6 +30,7 @@ Future<ProviderContainer> _pump(
   Set<String>? permissions,
   Set<String>? features,
   String location = '/app/inventory',
+  FakeBalances? balances,
 }) async {
   tester.view.physicalSize = const Size(1200, 1000);
   tester.view.devicePixelRatio = 1;
@@ -62,7 +63,9 @@ Future<ProviderContainer> _pump(
       inventoryAlertRepositoryProvider.overrideWithValue(alerts),
       stockAuditRepositoryProvider.overrideWithValue(audits),
       warehouseRepositoryProvider.overrideWithValue(FakeWarehouses()),
-      inventoryBalanceRepositoryProvider.overrideWithValue(FakeBalances()),
+      inventoryBalanceRepositoryProvider.overrideWithValue(
+        balances ?? FakeBalances(),
+      ),
       stockDocumentRepositoryProvider.overrideWithValue(FakeStockDocuments()),
       inventoryTransactionRepositoryProvider.overrideWithValue(
         FakeStockTransactions(),
@@ -161,6 +164,75 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets(
+    'Kho keeps four entries; the rest open from Tồn kho and return to it',
+    (tester) async {
+      final balances = FakeBalances();
+      final container = await _pump(
+        tester,
+        alerts: FakeInventoryAlerts(),
+        audits: FakeStockAudits(),
+        balances: balances,
+      );
+      final router = container.read(appRouterProvider);
+      String path() => router.routeInformationProvider.value.uri.path;
+
+      await _tap(tester, find.byTooltip('Menu'));
+      final kho = ['Tồn kho', 'Chứng từ kho', 'Cảnh báo tồn kho', 'Kiểm kê'];
+      for (final label in kho) {
+        expect(find.widgetWithText(ListTile, label), findsOneWidget);
+      }
+      for (final label in [
+        'Quản lý kho',
+        'Biến động kho',
+        'Tồn thấp hiện tại',
+      ]) {
+        expect(find.widgetWithText(ListTile, label), findsNothing);
+      }
+      await _tap(tester, find.byTooltip('Menu'));
+
+      final lowChip = find.widgetWithText(FilterChip, 'Chỉ tồn thấp');
+      expect(tester.widget<FilterChip>(lowChip).selected, isFalse);
+      // The sidebar count also reads low stock; only the list call is new.
+      final before = balances.lowCalls;
+      await _tap(tester, lowChip);
+      expect(tester.widget<FilterChip>(lowChip).selected, isTrue);
+      expect(balances.lowCalls, before + 1);
+      expect(find.widgetWithText(FilterChip, 'Tất cả kho'), findsOneWidget);
+
+      // Pushed pages keep the reported URL, so check what is on screen.
+      for (final page in [
+        (tooltip: 'Biến động kho', screen: InventoryTransactionsScreen),
+        (tooltip: 'Quản lý kho', screen: InventoryWarehousesScreen),
+      ]) {
+        await _tap(tester, find.byTooltip(page.tooltip));
+        expect(find.byType(page.screen), findsOneWidget);
+        expect(find.byType(InventoryBalancesScreen), findsNothing);
+        expect(find.byTooltip('Menu'), findsNothing);
+        await _tap(tester, find.byTooltip('Quay lại'));
+        expect(find.byType(page.screen), findsNothing);
+        expect(find.byType(InventoryBalancesScreen), findsOneWidget);
+        expect(
+          tester.widget<FilterChip>(lowChip).selected,
+          isTrue,
+          reason: 'coming back keeps the filter',
+        );
+      }
+      for (final link in [
+        AppRoutes.inventoryTransactions,
+        AppRoutes.inventoryWarehouses,
+      ]) {
+        // A direct link has no history, so back falls back to Tồn kho.
+        router.go(link);
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('Menu'), findsNothing);
+        await _tap(tester, find.byTooltip('Quay lại'));
+        expect(path(), AppRoutes.inventoryBalances);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'workspace mounts only the chosen extension and lists need no per-row detail GET',

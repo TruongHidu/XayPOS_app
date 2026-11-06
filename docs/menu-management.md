@@ -80,7 +80,8 @@ Search debounce 350 ms. Đổi query vô hiệu hóa request cũ ngay lập tứ
 - Hiển thị riêng active, availabilityStatus và sellable. Dùng sellable backend; không suy từ active. Món inactive không được đổi availability. Bật/tắt giữ tình trạng có hàng. Tắt nhóm làm món thuộc nhóm không thể bán; bật nhóm chỉ làm các món đủ điều kiện bán trở lại.
 - Đổi tên/trạng thái/xóa nhóm refresh danh sách món, selector và chi tiết món đang mở. Xóa nhóm đang lọc sẽ bỏ filter đó. Form đang sửa giữ nguyên draft.
 - Xóa món là soft delete, SKU vẫn được giữ, chưa có API restore. Nhóm còn món chưa xóa (kể cả inactive) không thể xóa; UI giải thích phải chuyển/bỏ nhóm hoặc xóa các món trước.
-- Ảnh dùng URL HTTP(S) không credentials, placeholder khi tải/thất bại. Chưa có upload ảnh.
+- Quyền máy ảnh được xin ngay trước khi chụp; nếu bị chặn hẳn thì app đưa người dùng tới Cài đặt. Chọn từ thư viện dùng trình chọn ảnh của hệ thống nên Android không cần xin quyền.
+- Ảnh món chọn từ thư viện hoặc chụp bằng máy ảnh, thu nhỏ còn tối đa 1280px và chỉ xem trước trên máy; khi bấm lưu mới tải lên `POST /images`, backend lưu trên Cloudinary và trả URL để lưu vào `imageUrl`. Tải ảnh lỗi thì món chưa được lưu; lưu món lỗi thì URL được giữ để lần sau không tải lại. Placeholder khi tải/thất bại.
 
 ## Scope phiên và phục hồi quyền
 
@@ -121,4 +122,4 @@ Không chạy tests bằng API production hoặc dữ liệu nhà hàng thật.
 
 ## Giới hạn
 
-Chưa chạy thao tác end-to-end với backend thật hoặc thiết bị thật trong phiên triển khai. Tests sử dụng fake repository và Dio interceptor, không tạo/xóa dữ liệu nhà hàng thật. Không hỗ trợ offline sync, upload ảnh, khôi phục món đã xóa hoặc filter món chưa phân nhóm vì contract hiện tại không cung cấp các API này.
+Chưa chạy thao tác end-to-end với backend thật hoặc thiết bị thật trong phiên triển khai. Tests sử dụng fake repository và Dio interceptor, không tạo/xóa dữ liệu nhà hàng thật. Không hỗ trợ offline sync, khôi phục món đã xóa hoặc filter món chưa phân nhóm vì contract hiện tại không cung cấp các API này.

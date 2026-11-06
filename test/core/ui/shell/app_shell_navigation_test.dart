@@ -31,7 +31,7 @@ void main() {
       ),
     ]) {
       testWidgets(
-        'Kho collapses, reopens and navigates from ${source.path} at ${viewport.width} px/${viewport.scale}x',
+        'Kho lists its items and navigates from ${source.path} at ${viewport.width} px/${viewport.scale}x',
         (tester) async {
           tester.view.physicalSize = Size(viewport.width, 900);
           tester.view.devicePixelRatio = 1;
@@ -98,27 +98,19 @@ void main() {
           expect(find.text(source.content), findsOneWidget);
           await tester.tap(find.byTooltip('Menu'));
           await tester.pumpAndSettle();
-          if (find.byTooltip('Thu gọn Kho').evaluate().isNotEmpty) {
-            await tester.ensureVisible(find.byTooltip('Thu gọn Kho'));
-            await tester.tap(find.byTooltip('Thu gọn Kho'));
-            await tester.pumpAndSettle();
+          // Kho lists its items like every other group, with no toggle.
+          expect(find.byTooltip('Thu gọn Kho'), findsNothing);
+          expect(find.byTooltip('Mở rộng Kho'), findsNothing);
+          expect(find.text('KHO'), findsOneWidget);
+          // These moved into Tồn kho and no longer crowd the group.
+          for (final moved in [
+            'Quản lý kho',
+            'Biến động kho',
+            'Tồn thấp hiện tại',
+          ]) {
+            expect(find.widgetWithText(ListTile, moved), findsNothing);
           }
-          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsNothing);
-          await tester.ensureVisible(find.byTooltip('Mở rộng Kho'));
-          await tester.tap(find.byTooltip('Mở rộng Kho'));
-          await tester.pumpAndSettle();
-          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsOneWidget);
           expect(router.routeInformationProvider.value.uri.path, source.path);
-          await tester.tap(find.byTooltip('Thu gọn Kho'));
-          await tester.pumpAndSettle();
-          await tester.tap(find.byTooltip('Menu'));
-          await tester.pumpAndSettle();
-          await tester.tap(find.byTooltip('Menu'));
-          await tester.pumpAndSettle();
-          expect(find.widgetWithText(ListTile, 'Tồn kho'), findsNothing);
-          await tester.ensureVisible(find.byTooltip('Mở rộng Kho'));
-          await tester.tap(find.byTooltip('Mở rộng Kho'));
-          await tester.pumpAndSettle();
           final inventory = find.widgetWithText(ListTile, 'Tồn kho');
           await tester.ensureVisible(inventory);
           await tester.tap(inventory);

@@ -130,6 +130,16 @@ void main() {
         }
         await tester.tap(find.text('Bộ lọc và sắp xếp'));
         await tester.pumpAndSettle();
+        // The app bar already names the screen; adding is a corner button.
+        expect(find.text('Quản lý nhân viên'), findsNothing);
+        final add = find.byTooltip('Thêm nhân viên');
+        expect(
+          find.ancestor(of: add, matching: find.byType(FloatingActionButton)),
+          findsOneWidget,
+        );
+        expect(tester.getBottomRight(add).dx, greaterThan(size.width - 40));
+        // Phones also have the bottom tab bar under it.
+        expect(tester.getBottomRight(add).dy, greaterThan(size.height - 120));
         for (final label in [
           'Thêm nhân viên',
           'Chi tiết',
@@ -137,13 +147,18 @@ void main() {
           'Vô hiệu hóa',
           'Phân quyền',
         ]) {
-          await tester.scrollUntilVisible(
-            find.text(label),
-            label == 'Thêm nhân viên' ? -200 : 200,
-            scrollable: find.byType(Scrollable).first,
-          );
-          await tester.pumpAndSettle();
-          await tester.tap(find.text(label).first);
+          if (label == 'Thêm nhân viên') {
+            await tester.tap(add);
+            await tester.pumpAndSettle();
+          } else {
+            await tester.scrollUntilVisible(
+              find.text(label),
+              200,
+              scrollable: find.byType(Scrollable).first,
+            );
+            await tester.pumpAndSettle();
+            await tester.tap(find.text(label).first);
+          }
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: label);
           final dialog = find.byType(Dialog);

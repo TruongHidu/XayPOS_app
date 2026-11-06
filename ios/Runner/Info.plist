@@ -43,6 +43,10 @@
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Dùng máy ảnh để chụp ảnh món ăn cho thực đơn.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Chọn ảnh từ thư viện làm ảnh món ăn cho thực đơn.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 </dict>

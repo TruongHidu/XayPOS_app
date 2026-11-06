@@ -81,13 +81,8 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byTooltip('Menu'));
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.byTooltip('Mở rộng Kho'));
-        await tester.tap(find.byTooltip('Mở rộng Kho'));
-        await tester.pumpAndSettle();
 
-        final badge = find.byKey(
-          const ValueKey('sidebar-badge-inventory-low-stock'),
-        );
+        final badge = find.byKey(const ValueKey('sidebar-badge-inventory'));
         if (entitled) {
           expect(badge, findsOneWidget);
           expect(

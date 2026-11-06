@@ -51,6 +51,22 @@ abstract final class ApiErrorMapper {
       );
     }
 
+    const imageMessages = {
+      'INVALID_IMAGE': 'Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP.',
+      'IMAGE_TOO_LARGE': 'Ảnh vượt quá 5 MB. Hãy chọn ảnh nhỏ hơn.',
+      'IMAGE_UPLOAD_FAILED': 'Chưa tải được ảnh lên. Vui lòng thử lại.',
+      'IMAGE_STORAGE_NOT_CONFIGURED':
+          'Máy chủ chưa được cấu hình nơi lưu ảnh. Hãy liên hệ quản trị viên.',
+    };
+    final imageMessage = imageMessages[apiError.code];
+    if (imageMessage != null) {
+      return Failure(
+        type: FailureType.validation,
+        code: apiError.code,
+        message: imageMessage,
+      );
+    }
+
     const inventoryExtensionMessages = {
       'LOW_STOCK_ALERT_NOT_FOUND':
           'Không tìm thấy cảnh báo hoặc bạn không có quyền truy cập.',

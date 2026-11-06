@@ -196,64 +196,51 @@ class StaffManagementScreen extends ConsumerWidget {
     final state = controller.state;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    // Roles feed the create form, so adding waits until they are loaded.
+    final canAdd = !state.isRolesLoading && state.roles.isNotEmpty;
     return Scaffold(
       backgroundColor: colors.surfaceContainerLow,
+      floatingActionButton: AccessPolicy.canStaff(session, 'STAFF_CREATE')
+          ? FloatingActionButton(
+              tooltip: 'Thêm nhân viên',
+              backgroundColor: canAdd ? null : colors.surfaceContainerHighest,
+              foregroundColor: canAdd ? null : colors.onSurfaceVariant,
+              onPressed: canAdd
+                  ? () => _dialog(
+                      context,
+                      ref,
+                      session!,
+                      'STAFF_CREATE',
+                      CreateStaffDialog(
+                        roles: state.roles,
+                        fieldErrors: () =>
+                            controller.lastFailure?.fieldErrors ?? {},
+                        onSubmit: controller.addStaff,
+                      ),
+                    )
+                  : null,
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        // The bottom inset keeps the last card's actions clear of the add button.
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quản lý nhân viên',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+              Expanded(
+                child: Text(
+                  'Thông tin, vai trò và quyền truy cập của đội ngũ.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Thông tin, vai trò và quyền truy cập của đội ngũ.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
-              Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (AccessPolicy.canStaff(session, 'STAFF_CREATE'))
-                    FilledButton.icon(
-                      onPressed: state.isRolesLoading || state.roles.isEmpty
-                          ? null
-                          : () => _dialog(
-                              context,
-                              ref,
-                              session!,
-                              'STAFF_CREATE',
-                              CreateStaffDialog(
-                                roles: state.roles,
-                                fieldErrors: () =>
-                                    controller.lastFailure?.fieldErrors ?? {},
-                                onSubmit: controller.addStaff,
-                              ),
-                            ),
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('Thêm nhân viên'),
-                    ),
-                  IconButton.outlined(
-                    onPressed: controller.loadInitial,
-                    icon: const Icon(Icons.refresh),
-                    tooltip: 'Tải lại',
-                  ),
-                ],
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                onPressed: controller.loadInitial,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Tải lại',
               ),
             ],
           ),

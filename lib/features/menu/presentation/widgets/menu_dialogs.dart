@@ -60,6 +60,7 @@ class MenuFormLayout extends StatelessWidget {
     required this.busy,
     required this.onSubmit,
     this.submitLabel = 'Lưu thay đổi',
+    this.busyLabel = 'Đang lưu…',
     this.header,
   });
   final String title;
@@ -68,65 +69,107 @@ class MenuFormLayout extends StatelessWidget {
   final bool busy;
   final VoidCallback? onSubmit;
   final String submitLabel;
+  final String busyLabel;
   @override
   Widget build(BuildContext context) => PopScope(
     canPop: !busy,
-    child: ResponsiveDialog(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        _dialog(context),
+        if (busy) Positioned.fill(child: MenuBusyOverlay(label: busyLabel)),
+      ],
+    ),
+  );
+
+  Widget _dialog(BuildContext context) => ResponsiveDialog(
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                IconButton(
-                  onPressed: busy ? null : () => Navigator.of(context).pop(),
-                  tooltip: 'Đóng',
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            if (header != null) ...[const SizedBox(height: 12), header!],
-            const SizedBox(height: 16),
-            AbsorbPointer(
-              absorbing: busy,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
               ),
+              IconButton(
+                onPressed: busy ? null : () => Navigator.of(context).pop(),
+                tooltip: 'Đóng',
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          if (header != null) ...[const SizedBox(height: 12), header!],
+          const SizedBox(height: 16),
+          AbsorbPointer(
+            absorbing: busy,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
             ),
-            const SizedBox(height: 24),
-            Wrap(
-              alignment: WrapAlignment.end,
-              spacing: 12,
-              runSpacing: 8,
-              children: [
-                TextButton(
-                  onPressed: busy ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Đóng'),
-                ),
-                FilledButton(
-                  onPressed: busy ? null : onSubmit,
-                  child: busy
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(submitLabel),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.of(context).pop(),
+                child: const Text('Đóng'),
+              ),
+              FilledButton(
+                onPressed: busy ? null : onSubmit,
+                child: Text(submitLabel),
+              ),
+            ],
+          ),
+        ],
       ),
     ),
   );
+}
+
+/// Covers the whole screen so nothing can be tapped while a save runs.
+class MenuBusyOverlay extends StatelessWidget {
+  const MenuBusyOverlay({super.key, required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color: theme.colorScheme.scrim.withValues(alpha: 0.32),
+      child: Center(
+        child: Material(
+          color: theme.colorScheme.surface,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+            child: Semantics(
+              liveRegion: true,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox.square(
+                    dimension: 40,
+                    child: CircularProgressIndicator(strokeWidth: 3.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(label, style: theme.textTheme.bodyMedium),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 bool menuNeedsReload(Failure? failure) =>

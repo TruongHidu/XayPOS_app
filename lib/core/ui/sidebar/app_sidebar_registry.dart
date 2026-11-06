@@ -155,9 +155,9 @@ abstract final class AppSidebarRegistry {
       ],
     ),
     SidebarCategory(
-      title: 'Kho',
-      collapsible: true,
+      title: 'KHO',
       icon: Icons.warehouse_outlined,
+      // Warehouses, stock history and the low-stock filter live in Tồn kho.
       items: [
         SidebarMenuItem(
           id: 'inventory',
@@ -168,36 +168,12 @@ abstract final class AppSidebarRegistry {
           requiredFeatures: ['INVENTORY_MANAGEMENT'],
         ),
         SidebarMenuItem(
-          id: 'inventory-warehouses',
-          label: 'Quản lý kho',
-          icon: Icons.warehouse_outlined,
-          routePath: '/app/inventory/warehouses',
-          requiredPermissions: ['INVENTORY_VIEW'],
-          requiredFeatures: ['INVENTORY_MANAGEMENT'],
-        ),
-        SidebarMenuItem(
           id: 'inventory-documents',
           label: 'Chứng từ kho',
           icon: Icons.receipt_long_outlined,
           routePath: '/app/inventory/stock-documents',
           requiredPermissions: ['INVENTORY_VIEW'],
           requiredFeatures: ['INVENTORY_MANAGEMENT'],
-        ),
-        SidebarMenuItem(
-          id: 'inventory-transactions',
-          label: 'Biến động kho',
-          icon: Icons.swap_vert,
-          routePath: '/app/inventory/transactions',
-          requiredPermissions: ['INVENTORY_VIEW'],
-          requiredFeatures: ['INVENTORY_MANAGEMENT'],
-        ),
-        SidebarMenuItem(
-          id: 'inventory-low-stock',
-          label: 'Tồn thấp hiện tại',
-          icon: Icons.warning_amber_outlined,
-          routePath: '/app/inventory/low-stock',
-          requiredPermissions: ['INVENTORY_VIEW'],
-          requiredFeatures: ['INVENTORY_MANAGEMENT', 'LOW_STOCK_ALERT'],
         ),
         SidebarMenuItem(
           id: 'inventory-alerts',

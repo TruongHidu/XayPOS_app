@@ -35,15 +35,10 @@ List<SidebarMenuItem> filterMenuItems(
     }
     if (item.id == 'menu') return AccessPolicy.canMenuWorkspace(session);
     if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
-    if (const {
-      'inventory',
-      'inventory-warehouses',
-      'inventory-documents',
-      'inventory-transactions',
-    }.contains(item.id)) {
+    if (item.id == 'inventory' || item.id == 'inventory-documents') {
       return AccessPolicy.canInventory(session, 'INVENTORY_VIEW');
     }
-    if (item.id == 'inventory-low-stock' || item.id == 'inventory-alerts') {
+    if (item.id == 'inventory-alerts') {
       return AccessPolicy.canViewInventoryAlerts(session);
     }
     if (item.id == 'inventory-audits') {

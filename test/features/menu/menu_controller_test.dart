@@ -42,6 +42,7 @@ void main() {
       availability: SetMenuItemAvailability(items),
       group: SetMenuItemGroup(items),
       delete: DeleteMenuItem(items),
+      uploadImage: UploadMenuImage(items),
       events: events,
     );
     groupController = MenuGroupController(

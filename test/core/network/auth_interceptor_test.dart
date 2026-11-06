@@ -34,6 +34,30 @@ void main() {
     expect(storage.tokens?.refreshToken, 'new-refresh');
   });
 
+  test('an upload survives the token refresh', () async {
+    final storage = FakeTokenStorage(makeTokens(accessToken: 'old-access'));
+    final mainAdapter = ProtectedAdapter();
+    final client = Dio()..httpClientAdapter = mainAdapter;
+    client.interceptors.add(
+      AuthInterceptor(
+        client: client,
+        refreshClient: Dio()..httpClientAdapter = RefreshAdapter(),
+        tokenStorage: storage,
+        sessionEvents: SessionEvents(),
+      ),
+    );
+
+    final response = await client.post<Map<String, dynamic>>(
+      '/protected/upload',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes([1, 2, 3], filename: 'a.jpg'),
+      }),
+    );
+
+    expect(response.statusCode, 200);
+    expect(mainAdapter.calls, 2);
+  });
+
   test('retried request does not create an infinite refresh loop', () async {
     final storage = FakeTokenStorage(makeTokens(accessToken: 'old-access'));
     final mainAdapter = ProtectedAdapter(alwaysUnauthorized: true);

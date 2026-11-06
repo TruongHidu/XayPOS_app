@@ -15,6 +15,7 @@ import '../sidebar/app_sidebar.dart';
 import '../sidebar/app_sidebar_registry.dart';
 import '../sidebar/sidebar_filter.dart';
 import '../sidebar/sidebar_menu_item.dart';
+import 'app_bottom_tabs.dart';
 import 'exit_confirm_dialog.dart';
 
 import '../../../features/staff/presentation/screens/staff_management_screen.dart';
@@ -26,10 +27,7 @@ import '../../../features/reports/presentation/screens/reports_screen.dart';
 import '../../../features/reports/presentation/widgets/report_filter_panel.dart';
 import '../../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_balances_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_documents_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_transactions_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_low_stock_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_alerts_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_audits_screen.dart';
 
@@ -170,10 +168,7 @@ class _AppShellState extends ConsumerState<AppShell>
       'reference-margin-reports',
       'cashbook',
       'inventory',
-      'inventory-warehouses',
       'inventory-documents',
-      'inventory-transactions',
-      'inventory-low-stock',
       'inventory-alerts',
       'inventory-audits',
     }.contains(item.id)) {
@@ -226,8 +221,23 @@ class _AppShellState extends ConsumerState<AppShell>
       _selectedId = allVisibleItems.first.id;
     }
 
+    final badges = {
+      // Tồn kho holds the low-stock filter, so its count shows there.
+      if (lowStockCount != null && lowStockCount > 0)
+        'inventory': lowStockCount,
+      if (takeawayCount != null && takeawayCount > 0)
+        'takeaway-orders': takeawayCount,
+    };
     final width = MediaQuery.sizeOf(context).width;
     final largeScreen = width >= 1024;
+    final tabs = bottomTabsFor(session.authenticatedUser.role, allVisibleItems);
+    final hasMoreSections = allVisibleItems.length > tabs.length;
+    // Composing and billing hide the app bar to keep the cart in full view.
+    final showTabs =
+        !largeScreen &&
+        !widget.isInner &&
+        widget.showAppBar &&
+        tabs.length + (hasMoreSections ? 1 : 0) >= 2;
     final mediumScreen = width >= 600;
     final toolbarHeight = largeScreen
         ? 80.0
@@ -309,12 +319,7 @@ class _AppShellState extends ConsumerState<AppShell>
               AppSidebar(
                 animation: _sidebarController,
                 categories: visibleCategories,
-                itemBadges: {
-                  if (lowStockCount != null && lowStockCount > 0)
-                    'inventory-low-stock': lowStockCount,
-                  if (takeawayCount != null && takeawayCount > 0)
-                    'takeaway-orders': takeawayCount,
-                },
+                itemBadges: badges,
                 selectedId: _selectedId,
                 onItemTap: _onItemTap,
                 onLogout: controller.logout,
@@ -325,6 +330,16 @@ class _AppShellState extends ConsumerState<AppShell>
               ),
           ],
         ),
+        bottomNavigationBar: showTabs
+            ? AppBottomTabs(
+                tabs: tabs,
+                selectedId: _selectedId,
+                hasMore: hasMoreSections,
+                badges: badges,
+                onTab: _onItemTap,
+                onMore: _toggleSidebar,
+              )
+            : null,
       ),
     );
   }
@@ -403,17 +418,8 @@ class _AppShellState extends ConsumerState<AppShell>
     if (selected.id == 'inventory') {
       return const InventoryBalancesScreen();
     }
-    if (selected.id == 'inventory-warehouses') {
-      return const InventoryWarehousesScreen();
-    }
     if (selected.id == 'inventory-documents') {
       return const InventoryDocumentsScreen();
-    }
-    if (selected.id == 'inventory-transactions') {
-      return const InventoryTransactionsScreen();
-    }
-    if (selected.id == 'inventory-low-stock') {
-      return const InventoryLowStockScreen();
     }
     if (selected.id == 'inventory-alerts') {
       return const InventoryAlertsScreen();

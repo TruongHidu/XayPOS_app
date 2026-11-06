@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../../domain/entities/ingredient.dart';
 import '../../domain/entities/ingredient_inputs.dart';
@@ -14,6 +15,25 @@ import '../dto/menu_requests.dart';
 class MenuRemoteDataSource {
   const MenuRemoteDataSource(this._dio);
   final Dio _dio;
+
+  Future<String> uploadImage(Uint8List bytes, String filename) async {
+    final response = await _dio.post<Object>(
+      '/api/v1/menu/images',
+      data: FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      }),
+      options: Options(
+        sendTimeout: const Duration(minutes: 1),
+        receiveTimeout: const Duration(seconds: 45),
+      ),
+    );
+    final data = response.data;
+    final url = data is Map ? data['url'] : null;
+    if (url is! String || url.isEmpty) {
+      throw const FormatException('Image response has no url');
+    }
+    return url;
+  }
 
   Future<MenuPageDto<MenuGroup>> listGroups(MenuQuery query) async {
     final response = await _dio.get<Object>(

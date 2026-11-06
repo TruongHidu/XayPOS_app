@@ -13,10 +13,13 @@ import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/menu_inputs.dart';
 import '../../domain/entities/menu_price.dart';
 import '../../domain/validation/menu_validation.dart';
+import '../controllers/menu_item_controller.dart';
+import '../providers/menu_image_picker.dart';
 import '../providers/menu_providers.dart';
 import 'inventory_mode_selector.dart';
 import 'menu_dialogs.dart';
 import 'menu_group_picker.dart';
+import 'menu_image_field.dart';
 import 'reference_cost_field.dart';
 
 class MenuItemForm extends ConsumerStatefulWidget {
@@ -44,7 +47,10 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
   MenuItem? _baseline;
   MenuItemGroupSummary? _group;
   bool _active = true;
+  final _imageField = GlobalKey();
+  PickedMenuImage? _pendingImage;
   bool _busy = false;
+  String _busyLabel = 'Đang lưu…';
   bool _costPriceEdited = false;
   bool? _costConfigured;
   InventoryMode _inventoryMode = InventoryMode.none;
@@ -81,6 +87,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
     _inventoryMode = item?.inventoryMode ?? InventoryMode.none;
     _fields['description']!.text = item?.description ?? '';
     _fields['imageUrl']!.text = item?.imageUrl ?? '';
+    _pendingImage = null;
     _group = item?.group;
   }
 
@@ -111,10 +118,45 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
     }
   });
 
+  /// Once stored, the URL replaces the photo, so a failed save does not upload
+  /// it again on the next attempt.
+  Future<bool> _uploadPendingImage(MenuItemController controller) async {
+    final image = _pendingImage;
+    if (image == null) return true;
+    final result = await controller.uploadImage(image.bytes, image.name);
+    if (!mounted) return false;
+    switch (result) {
+      case Success(value: final url):
+        _fields['imageUrl']!.text = url;
+        _pendingImage = null;
+        return true;
+      case Error(failure: final failure):
+        _setBusy(false);
+        setState(() => _errors['imageUrl'] = failure.message);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final field = _imageField.currentContext;
+          if (field != null && field.mounted) {
+            unawaited(
+              Scrollable.ensureVisible(
+                field,
+                alignment: 0.2,
+                duration: const Duration(milliseconds: 200),
+              ),
+            );
+          }
+        });
+        return false;
+    }
+  }
+
   Future<void> _save() async {
     if (_busy || !_form.currentState!.validate()) return;
+    final saving = _baseline == null ? 'Đang thêm món…' : 'Đang lưu thay đổi…';
+    _busyLabel = _pendingImage != null ? 'Đang tải ảnh lên…' : saving;
     _setBusy(true);
     final controller = ref.read(menuItemControllerProvider);
+    if (!await _uploadPendingImage(controller) || !mounted) return;
+    setState(() => _busyLabel = saving);
     final baseline = _baseline;
     final price = MenuPrice.parse(_text('salePrice'));
     final costPrice = _costPriceEdited && _text('costPrice').trim().isNotEmpty
@@ -185,6 +227,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
         !mounted) {
       return;
     }
+    _busyLabel = 'Đang tải lại…';
     _setBusy(true);
     final result = await ref
         .read(menuItemControllerProvider)
@@ -234,6 +277,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
         title: creating ? 'Thêm món' : 'Sửa thông tin món',
         header: widget.typeSelector,
         busy: _busy,
+        busyLabel: _busyLabel,
         submitLabel: !creating
             ? 'Lưu thay đổi'
             : _inventoryMode == InventoryMode.recipe
@@ -320,12 +364,23 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
                   });
                 },
               ),
-              _field(
-                'imageUrl',
-                'URL ảnh',
-                MenuValidation.imageUrl,
-                keyboard: TextInputType.url,
-                helper: 'URL HTTP(S), tối đa 500 ký tự.',
+              MenuImageField(
+                key: _imageField,
+                url: _text('imageUrl'),
+                pending: _pendingImage,
+                enabled: controller.can(
+                  creating ? 'MENU_CREATE' : 'MENU_UPDATE',
+                ),
+                errorText: _errors['imageUrl'],
+                onPicked: (image) {
+                  _pendingImage = image;
+                  _edited('imageUrl');
+                },
+                onCleared: () {
+                  _pendingImage = null;
+                  _fields['imageUrl']!.clear();
+                  _edited('imageUrl');
+                },
               ),
               if (creating)
                 MenuGroupPicker(

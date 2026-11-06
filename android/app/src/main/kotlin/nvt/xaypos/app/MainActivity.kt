@@ -1,4 +1,4 @@
-package com.example.pos_saas_app
+package nvt.xaypos.app
 
 import android.media.AudioManager
 import android.media.ToneGenerator

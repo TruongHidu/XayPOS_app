@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../../core/result/result.dart';
 import '../entities/menu_item.dart';
 import '../entities/menu_inputs.dart';
@@ -25,4 +26,5 @@ abstract interface class MenuItemRepository {
     int expectedVersion,
   );
   Future<Result<void>> delete(String id, int expectedVersion);
+  Future<Result<String>> uploadImage(Uint8List bytes, String filename);
 }

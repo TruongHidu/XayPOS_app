@@ -91,6 +91,8 @@ class AuthInterceptor extends Interceptor {
       request
         ..extra[_retriedKey] = true
         ..headers['Authorization'] = 'Bearer ${session.tokens.accessToken}';
+      // A form that was already sent cannot be read a second time.
+      if (request.data case final FormData form) request.data = form.clone();
       final response = await _client.fetch<dynamic>(request);
       handler.resolve(response);
     } on Object {

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/menu_item.dart';
 import '../../domain/entities/menu_inputs.dart';
@@ -34,6 +35,9 @@ class MenuItemRepositoryImpl implements MenuItemRepository {
   @override
   Future<Result<void>> delete(String id, int expectedVersion) =>
       menuResult(() async => _remote.deleteItem(id, expectedVersion));
+  @override
+  Future<Result<String>> uploadImage(Uint8List bytes, String filename) =>
+      menuResult(() => _remote.uploadImage(bytes, filename));
   @override
   Future<Result<MenuItem>> setAvailability(
     String id,

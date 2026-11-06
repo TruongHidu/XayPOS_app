@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/errors/failure.dart';
@@ -13,7 +14,7 @@ import 'package:pos_saas_app/features/menu/domain/entities/menu_inputs.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/menu_price.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/menu_query.dart';
 import 'package:pos_saas_app/features/menu/domain/validation/menu_validation.dart';
-import 'menu_fakes.dart';
+import 'menu_fakes.dart' hide group;
 
 void main() {
   test(
@@ -462,6 +463,65 @@ void main() {
       }
     },
   );
+  group('image upload', () {
+    MenuItemRepositoryImpl repository(
+      void Function(RequestOptions, RequestInterceptorHandler) onRequest,
+    ) {
+      final dio = Dio();
+      addTearDown(dio.close);
+      dio.interceptors.add(InterceptorsWrapper(onRequest: onRequest));
+      return MenuItemRepositoryImpl(MenuRemoteDataSource(dio));
+    }
+
+    final bytes = Uint8List.fromList([1, 2, 3]);
+
+    test('sends the file as a form and returns the stored URL', () async {
+      RequestOptions? sent;
+      final result = await repository((r, h) {
+        sent = r;
+        h.resolve(
+          Response(requestOptions: r, data: {'url': 'https://cdn.test/a'}),
+        );
+      }).uploadImage(bytes, 'a.jpg');
+      expect((result as Success<String>).value, 'https://cdn.test/a');
+      expect(sent?.method, 'POST');
+      expect(sent?.path, '/api/v1/menu/images');
+      final form = sent?.data as FormData;
+      expect(form.files.single.key, 'file');
+      expect(form.files.single.value.filename, 'a.jpg');
+      expect(form.files.single.value.length, 3);
+    });
+
+    test('a response without a URL is a failure', () async {
+      final result = await repository(
+        (r, h) => h.resolve(Response(requestOptions: r, data: {})),
+      ).uploadImage(bytes, 'a.jpg');
+      expect((result as Error).failure.code, 'INVALID_MENU_RESPONSE');
+    });
+
+    for (final (code, message) in const [
+      ('IMAGE_TOO_LARGE', 'Ảnh vượt quá 5 MB. Hãy chọn ảnh nhỏ hơn.'),
+      ('INVALID_IMAGE', 'Chỉ hỗ trợ ảnh JPG, PNG hoặc WebP.'),
+    ]) {
+      test('$code has its own message', () async {
+        final result = await repository((r, h) {
+          h.reject(
+            DioException(
+              requestOptions: r,
+              type: DioExceptionType.badResponse,
+              response: Response(
+                requestOptions: r,
+                statusCode: 400,
+                data: {'code': code, 'message': 'x'},
+              ),
+            ),
+          );
+        }).uploadImage(bytes, 'a.jpg');
+        expect((result as Error).failure.message, message);
+      });
+    }
+  });
+
   test('repository converts invalid response to failure', () async {
     final dio = Dio();
     addTearDown(dio.close);

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../../../../core/result/result.dart';
 import '../entities/menu_item.dart';
 import '../entities/menu_inputs.dart';
@@ -16,6 +17,13 @@ class GetMenuItemDetail {
   const GetMenuItemDetail(this._repository);
   final MenuItemRepository _repository;
   Future<Result<MenuItem>> call(String id) => _repository.detail(id);
+}
+
+class UploadMenuImage {
+  const UploadMenuImage(this._repository);
+  final MenuItemRepository _repository;
+  Future<Result<String>> call(Uint8List bytes, String filename) =>
+      _repository.uploadImage(bytes, filename);
 }
 
 class CreateMenuItem {

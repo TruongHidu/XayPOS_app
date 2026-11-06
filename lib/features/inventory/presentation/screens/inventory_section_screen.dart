@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../widgets/inventory_widgets.dart';
@@ -15,8 +17,15 @@ import '../widgets/stock_audit_list.dart';
 
 /// Shared presentation layout; only the selected function's content is mounted.
 class InventorySectionScreen extends ConsumerWidget {
-  const InventorySectionScreen({super.key, required this.section});
+  const InventorySectionScreen({
+    super.key,
+    required this.section,
+    this.lowStockOnly = false,
+  });
   final InventorySection section;
+
+  /// Opens Tồn kho already narrowed to low-stock rows in every warehouse.
+  final bool lowStockOnly;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scope = ref.watch(inventoryScopeProvider);
@@ -32,10 +41,9 @@ class InventorySectionScreen extends ConsumerWidget {
       );
     }
     final allowed = switch (section) {
-      InventorySection.alerts ||
-      InventorySection.lowStock => AccessPolicy.canViewInventoryAlerts(session),
+      InventorySection.alerts => AccessPolicy.canViewInventoryAlerts(session),
       InventorySection.audits => AccessPolicy.canViewStockAudits(session),
-      _ => true,
+      _ => !lowStockOnly || AccessPolicy.canViewInventoryAlerts(session),
     };
     if (!allowed) {
       return const Center(
@@ -46,8 +54,9 @@ class InventorySectionScreen extends ConsumerWidget {
       );
     }
     return _InventoryWorkspace(
-      key: ValueKey((scope, section)),
+      key: ValueKey((scope, section, lowStockOnly)),
       section: section,
+      lowStockOnly: lowStockOnly,
     );
   }
 }
@@ -55,7 +64,6 @@ class InventorySectionScreen extends ConsumerWidget {
 enum InventorySection {
   balances('Tồn kho', 'Theo dõi số lượng hàng hóa tại từng kho.'),
   warehouses('Quản lý kho', 'Quản lý kho hàng và kho mặc định.'),
-  lowStock('Tồn thấp hiện tại', 'Theo dõi hàng hóa đang chạm ngưỡng tồn thấp.'),
   documents('Chứng từ kho', 'Theo dõi phiếu nhập, xuất và điều chỉnh tồn kho.'),
   transactions(
     'Biến động kho',
@@ -69,8 +77,13 @@ enum InventorySection {
 }
 
 class _InventoryWorkspace extends ConsumerStatefulWidget {
-  const _InventoryWorkspace({super.key, required this.section});
+  const _InventoryWorkspace({
+    super.key,
+    required this.section,
+    required this.lowStockOnly,
+  });
   final InventorySection section;
+  final bool lowStockOnly;
   @override
   ConsumerState<_InventoryWorkspace> createState() =>
       _InventoryWorkspaceState();
@@ -78,6 +91,11 @@ class _InventoryWorkspace extends ConsumerStatefulWidget {
 
 class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
   InventorySection get _tab => widget.section;
+
+  late bool _lowOnly = widget.lowStockOnly;
+
+  /// Tồn kho narrowed to rows at or under their threshold.
+  bool get _low => _tab == InventorySection.balances && _lowOnly;
 
   bool _allWarehouses = true;
   Future<void> _refresh() async {
@@ -106,18 +124,16 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
     final selector = ref.read(warehouseSelectorProvider);
     final warehouse = selector.selected;
     final jobs = <Future<void>>[selector.load(), selector.refreshSelection()];
-    if (_tab == InventorySection.lowStock) {
+    if (_low) {
       jobs.add(ref.read(inventoryLowStockCountProvider).load());
     }
-    if (_tab == InventorySection.lowStock || warehouse != null) {
+    if (_low || warehouse != null) {
       jobs.add(
         ref
             .read(
               inventoryBalancesProvider((
-                warehouseId: _tab == InventorySection.lowStock && _allWarehouses
-                    ? null
-                    : warehouse?.id,
-                lowStock: _tab == InventorySection.lowStock,
+                warehouseId: _low && _allWarehouses ? null : warehouse?.id,
+                lowStock: _low,
               )),
             )
             .load(),
@@ -128,14 +144,13 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final warehouseTab = const {
-      InventorySection.balances,
-      InventorySection.lowStock,
-    }.contains(_tab);
+    final warehouseTab = _tab == InventorySection.balances;
     final selector = warehouseTab ? ref.watch(warehouseSelectorProvider) : null;
     final session = ref.watch(authControllerProvider).state.session;
     final warehouse = selector?.selected;
     final lowAllowed = session?.features.contains('LOW_STOCK_ALERT') == true;
+    final canFilterLow =
+        warehouseTab && AccessPolicy.canViewInventoryAlerts(session);
     return RefreshIndicator(
       onRefresh: _refresh,
       child: CustomScrollView(
@@ -182,6 +197,21 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                               onPressed: _refresh,
                               icon: const Icon(Icons.refresh),
                             ),
+                          // Less frequent stock pages open from Tồn kho.
+                          if (warehouseTab) ...[
+                            IconButton(
+                              tooltip: 'Biến động kho',
+                              onPressed: () =>
+                                  context.push(AppRoutes.inventoryTransactions),
+                              icon: const Icon(Icons.history),
+                            ),
+                            IconButton(
+                              tooltip: 'Quản lý kho',
+                              onPressed: () =>
+                                  context.push(AppRoutes.inventoryWarehouses),
+                              icon: const Icon(Icons.store_outlined),
+                            ),
+                          ],
                           if (_tab == InventorySection.warehouses &&
                               AccessPolicy.canInventory(
                                 session,
@@ -211,8 +241,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                       ),
                     ],
                   ),
-                  if (_tab == InventorySection.balances ||
-                      _tab == InventorySection.lowStock) ...[
+                  if (warehouseTab) ...[
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 12,
@@ -230,7 +259,17 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                         ),
                         if (warehouse?.isDefault == true)
                           const InventoryBadge('Kho mặc định', positive: true),
-                        if (_tab == InventorySection.lowStock)
+                        if (canFilterLow)
+                          FilterChip(
+                            avatar: const Icon(
+                              Icons.warning_amber_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('Chỉ tồn thấp'),
+                            selected: _lowOnly,
+                            onSelected: (v) => setState(() => _lowOnly = v),
+                          ),
+                        if (_low)
                           FilterChip(
                             label: const Text('Tất cả kho'),
                             selected: _allWarehouses,
@@ -271,21 +310,18 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                   ? const InventoryTransactionList()
                   : _tab == InventorySection.warehouses
                   ? const WarehouseList()
-                  : _tab == InventorySection.lowStock && !lowAllowed
+                  : _low && !lowAllowed
                   ? const Text('Tính năng cảnh báo tồn thấp chưa khả dụng.')
-                  : (_tab == InventorySection.lowStock && _allWarehouses ||
-                        warehouse != null)
+                  : (_low && _allWarehouses || warehouse != null)
                   ? InventoryBalanceList(
-                      key: ValueKey((warehouse?.id, _tab, _allWarehouses)),
+                      key: ValueKey((warehouse?.id, _low, _allWarehouses)),
                       target: (
-                        warehouseId:
-                            _tab == InventorySection.lowStock && _allWarehouses
+                        warehouseId: _low && _allWarehouses
                             ? null
                             : warehouse?.id,
-                        lowStock: _tab == InventorySection.lowStock,
+                        lowStock: _low,
                       ),
-                      warehouseActive:
-                          _tab == InventorySection.lowStock && _allWarehouses
+                      warehouseActive: _low && _allWarehouses
                           ? null
                           : warehouse?.active,
                     )
@@ -297,7 +333,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                             : selector?.initial == false &&
                                   selector?.totalElements == 0 &&
                                   selector?.query.q.isEmpty == true
-                            ? 'Chưa có kho nào. Vào “Quản lý kho” để tạo kho đầu tiên.'
+                            ? 'Chưa có kho nào. Bấm nút “Quản lý kho” ở trên để tạo kho đầu tiên.'
                             : 'Bấm “Chọn kho” để xem tồn.',
                       ),
                     ),

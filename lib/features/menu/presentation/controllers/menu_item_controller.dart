@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/menu_group.dart';
@@ -20,6 +21,7 @@ class MenuItemController extends MenuListController<MenuItem> {
     required SetMenuItemAvailability availability,
     required SetMenuItemGroup group,
     required DeleteMenuItem delete,
+    required UploadMenuImage uploadImage,
     required MenuCatalogEvents events,
     super.onAccessDenied,
   }) : _detail = detail,
@@ -29,6 +31,7 @@ class MenuItemController extends MenuListController<MenuItem> {
        _availability = availability,
        _group = group,
        _delete = delete,
+       _uploadImage = uploadImage,
        _events = events,
        super(list: list.call, items: true, idOf: (item) => item.id) {
     _groupRevision = events.groupRevision;
@@ -43,6 +46,7 @@ class MenuItemController extends MenuListController<MenuItem> {
   final SetMenuItemAvailability _availability;
   final SetMenuItemGroup _group;
   final DeleteMenuItem _delete;
+  final UploadMenuImage _uploadImage;
   final MenuCatalogEvents _events;
   late int _groupRevision;
   late int _itemRevision;
@@ -68,6 +72,17 @@ class MenuItemController extends MenuListController<MenuItem> {
 
   Future<Result<MenuItem>> detail(String id) =>
       readDetail(id, () => _detail(id));
+
+  /// Nothing on the list changes until the item is saved with the returned URL.
+  Future<Result<String>> uploadImage(Uint8List bytes, String filename) async {
+    if (!can('MENU_CREATE') && !can('MENU_UPDATE')) {
+      return const Error(MenuListController.expired);
+    }
+    final result = await _uploadImage(bytes, filename);
+    if (result case Error(failure: final failure)) await report(failure);
+    return isCurrent ? result : const Error(MenuListController.expired);
+  }
+
   Future<Result<MenuItem>> create(
     CreateMenuItemInput input, {
     MenuItemGroupSummary? selectedGroup,

@@ -20,6 +20,7 @@ import '../controllers/menu_catalog_events.dart';
 import '../controllers/menu_group_controller.dart';
 import '../controllers/menu_group_selector_controller.dart';
 import '../controllers/menu_item_controller.dart';
+import 'menu_image_picker.dart';
 
 final menuRemoteDataSourceProvider = Provider(
   (ref) => MenuRemoteDataSource(ref.watch(apiClientsProvider).authenticated),
@@ -202,12 +203,19 @@ final menuItemControllerProvider = ChangeNotifierProvider((ref) {
     availability: SetMenuItemAvailability(repository),
     group: SetMenuItemGroup(repository),
     delete: DeleteMenuItem(repository),
+    uploadImage: UploadMenuImage(repository),
     events: ref.read(menuCatalogEventsProvider),
     onAccessDenied: ref.read(menuAccessRecoveryProvider).handle,
   );
   Future.microtask(controller.load);
   return controller;
 });
+final menuImagePickerProvider = Provider<MenuImagePicker>(
+  (ref) => pickMenuImage,
+);
+final menuCameraPermissionProvider = Provider<MenuCameraPermission>(
+  (ref) => const MenuCameraPermission(),
+);
 final menuGroupSelectorProvider = ChangeNotifierProvider.autoDispose
     .family<MenuGroupSelectorController, bool>((ref, activeOnly) {
       ref.watch(menuScopeProvider);

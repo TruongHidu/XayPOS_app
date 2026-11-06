@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/menu/data/dto/menu_dto.dart';
 import 'package:pos_saas_app/features/menu/domain/entities/menu_group.dart';
@@ -34,6 +35,7 @@ Map<String, dynamic> itemJson({
   bool costConfigured = false,
   bool recipeEnabled = false,
   bool trackInventory = false,
+  String? imageUrl,
 }) => {
   'id': 'i1',
   'name': 'Trà đào',
@@ -48,7 +50,7 @@ Map<String, dynamic> itemJson({
   'version': version,
   'sku': 'TEA',
   'description': null,
-  'imageUrl': null,
+  'imageUrl': imageUrl,
   'group': {'id': 'g1', 'name': 'Đồ uống', 'active': true},
   'createdAt': '2026-01-01T10:00:00Z',
   'updatedAt': '2026-01-02T10:00:00+07:00',
@@ -59,6 +61,7 @@ MenuItem item({
   bool costConfigured = false,
   bool recipeEnabled = false,
   bool trackInventory = false,
+  String? imageUrl,
 }) => MenuItemDto.fromJson(
   itemJson(
     version: version,
@@ -66,6 +69,7 @@ MenuItem item({
     costConfigured: costConfigured,
     recipeEnabled: recipeEnabled,
     trackInventory: trackInventory,
+    imageUrl: imageUrl,
   ),
 ).toEntity();
 MenuGroup group({int version = 7, bool active = true}) => MenuGroupDto.fromJson(
@@ -92,6 +96,16 @@ class FakeMenuItems implements MenuItemRepository {
   Future<Result<MenuPage<MenuItem>>> Function(MenuQuery)? onList;
   Future<Result<MenuItem>> Function()? onWrite;
   Future<Result<MenuItem>> Function()? onDetail;
+  Future<Result<String>> Function()? onUploadImage;
+  final uploadedImages = <String>[];
+  @override
+  Future<Result<String>> uploadImage(Uint8List bytes, String filename) async {
+    uploadedImages.add(filename);
+    return onUploadImage != null
+        ? onUploadImage!()
+        : Success('https://cdn.test/$filename');
+  }
+
   @override
   Future<Result<MenuPage<MenuItem>>> list(MenuQuery query) async {
     queries.add(query);

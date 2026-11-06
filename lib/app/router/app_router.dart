@@ -260,8 +260,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.inventoryWarehouses,
-        builder: (context, state) => const AppShell(
-          initialSection: 'inventory-warehouses',
+        builder: (context, state) => const AppShell.inner(
+          title: 'Quản lý kho',
+          backFallback: AppRoutes.inventoryBalances,
           child: InventoryWarehousesScreen(),
         ),
       ),
@@ -275,7 +276,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.inventoryLowStock,
         builder: (context, state) => const AppShell(
-          initialSection: 'inventory-low-stock',
+          initialSection: 'inventory',
           child: InventoryLowStockScreen(),
         ),
       ),
@@ -346,8 +347,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.inventoryTransactions,
         builder: (context, state) => state.uri.queryParameters.isEmpty
-            ? const AppShell(
-                initialSection: 'inventory-transactions',
+            ? const AppShell.inner(
+                title: 'Biến động kho',
+                backFallback: AppRoutes.inventoryBalances,
                 child: InventoryTransactionsScreen(),
               )
             : AppShell.inner(
