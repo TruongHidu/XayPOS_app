@@ -22,6 +22,7 @@ import '../../features/reports/presentation/widgets/report_filter_panel.dart';
 import '../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
 import '../../features/cashbook/presentation/screens/cashbook_screen.dart';
 import '../../features/cashbook/presentation/widgets/cashbook_filter_panel.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_warehouses_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_documents_screen.dart';
@@ -373,6 +374,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SessionBootstrapScreen(),
       ),
 
+      GoRoute(
+        path: AppRoutes.settings,
+        builder: (context, state) =>
+            const AppShell(initialSection: 'settings', child: SettingsScreen()),
+      ),
       // ── Unified application shell ─────────────────────────
       GoRoute(
         path: AppRoutes.appHome,

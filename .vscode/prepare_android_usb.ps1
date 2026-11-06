@@ -36,11 +36,24 @@ if (-not $adbExecutable) {
     throw 'ADB was not found. Install Android SDK platform-tools or set sdk.dir in android/local.properties.'
 }
 
-# -d selects a physical USB device and fails when more than one is connected.
+# Works for a physical device (preferred) or an emulator: adb reverse maps the
+# device's 127.0.0.1:8080 to this PC's port 8080 in both cases.
 # Reapply on every F5: the mapping is lost after disconnecting/restarting ADB.
-& $adbExecutable -d reverse tcp:8080 tcp:8080
+$readyDevices = @(
+    & $adbExecutable devices |
+        Select-Object -Skip 1 |
+        Where-Object { $_ -match '^\S+\s+device$' } |
+        ForEach-Object { ($_ -split '\s+')[0] }
+)
+if ($readyDevices.Count -eq 0) {
+    throw 'No Android device found. Start an emulator, or connect a phone with USB debugging enabled and accept its authorization prompt, then retry.'
+}
+$physicalDevices = @($readyDevices | Where-Object { $_ -notlike 'emulator-*' })
+$targetDevice = if ($physicalDevices.Count -gt 0) { $physicalDevices[0] } else { $readyDevices[0] }
+
+& $adbExecutable -s $targetDevice reverse tcp:8080 tcp:8080
 if ($LASTEXITCODE -ne 0) {
-    throw 'USB setup failed. Connect one Android device, enable USB debugging and accept its authorization prompt, then retry.'
+    throw "adb reverse failed on $targetDevice."
 }
 
-Write-Host 'USB backend ready at http://127.0.0.1:8080. Keep the USB cable connected and the backend running.'
+Write-Host "Backend ready at http://127.0.0.1:8080 on $targetDevice. Keep the device connected and the backend running."

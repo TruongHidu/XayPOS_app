@@ -579,6 +579,8 @@ abstract final class AccessPolicy {
     if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
     if (path == '/app/menu') return canMenuWorkspace(session);
     if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
+    // Cài đặt holds the account's own pages, so whoever reaches the shell may open it.
+    if (path == '/app/settings') return canOpenRoute(session, '/app/home');
     // Unified app shell — allowed if subscribed and has features.
     if (location == '/app/home') {
       final user = session.authenticatedUser;

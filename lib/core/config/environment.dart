@@ -21,6 +21,10 @@ abstract final class Environment {
       'REALTIME_TRANSPORT': String.fromEnvironment('REALTIME_TRANSPORT'),
     if (bool.hasEnvironment('REALTIME_URL'))
       'REALTIME_URL': String.fromEnvironment('REALTIME_URL'),
+    if (bool.hasEnvironment('PRIVACY_POLICY_URL'))
+      'PRIVACY_POLICY_URL': String.fromEnvironment('PRIVACY_POLICY_URL'),
+    if (bool.hasEnvironment('TERMS_URL'))
+      'TERMS_URL': String.fromEnvironment('TERMS_URL'),
   };
 
   static Future<void> load() async {
@@ -54,6 +58,11 @@ abstract final class Environment {
       _nonEmpty('REALTIME_TRANSPORT', 'websocket');
 
   static String get realtimeUrl => _value('REALTIME_URL');
+
+  /// Public pages linked from Cài đặt; a link is hidden while its URL is empty.
+  static String get privacyPolicyUrl => _value('PRIVACY_POLICY_URL');
+
+  static String get termsUrl => _value('TERMS_URL');
 
   static String _nonEmpty(String key, String fallback) {
     final value = _value(key);

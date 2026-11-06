@@ -93,6 +93,16 @@ void main() {
         (ServiceType.takeaway, status),
     });
     expect(find.text('Chưa có đơn mang đi nào đang xử lý.'), findsOneWidget);
+    // The app bar carries the title; creating lives only in the floating button.
+    expect(find.text('Đơn mang đi'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(FloatingActionButton),
+        matching: find.byIcon(Icons.add),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Tạo đơn mang đi'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -143,7 +153,7 @@ void main() {
     for (final action in TakeawayQuickAction.values) {
       expect(find.text(action.label), findsNothing);
     }
-    expect(find.text('Tạo đơn mang đi'), findsNothing);
+    expect(find.byTooltip('Tạo đơn mang đi'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

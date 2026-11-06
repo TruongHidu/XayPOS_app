@@ -16,6 +16,7 @@ abstract final class AppRoutes {
   static const reports = '/app/reports';
   static const referenceMargin = '/app/reference-margin';
   static const cashbook = '/app/cashbook';
+  static const settings = '/app/settings';
   static const inventory = '/app/inventory';
   static const inventoryBalances = '/app/inventory/balances';
   static const inventoryWarehouses = '/app/inventory/warehouses';

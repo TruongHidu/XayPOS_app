@@ -74,14 +74,6 @@ abstract final class AppSidebarRegistry {
       title: 'QUẢN LÝ',
       items: [
         SidebarMenuItem(
-          id: 'dashboard',
-          label: 'Tổng quan',
-          icon: Icons.dashboard_outlined,
-          routePath: '/app/dashboard',
-          requiredPermissions: ['DASHBOARD_VIEW'],
-          requiredFeatures: ['REPORTING'],
-        ),
-        SidebarMenuItem(
           id: 'staff',
           label: 'Nhân viên',
           icon: Icons.people_outlined,
@@ -104,14 +96,6 @@ abstract final class AppSidebarRegistry {
           routePath: '/app/tables',
           requiredPermissions: ['TABLE_VIEW'],
           requiredFeatures: ['TABLE_MANAGEMENT'],
-        ),
-        SidebarMenuItem(
-          id: 'settings',
-          label: 'Cài đặt nhà hàng',
-          icon: Icons.settings_outlined,
-          routePath: '/app/settings',
-          requiredPermissions: ['RESTAURANT_SETTINGS_VIEW'],
-          requiredFeatures: ['RESTAURANT_SETTINGS'],
         ),
       ],
     ),
@@ -190,6 +174,20 @@ abstract final class AppSidebarRegistry {
           routePath: '/app/inventory/audits',
           requiredPermissions: ['INVENTORY_VIEW'],
           requiredFeatures: ['INVENTORY_MANAGEMENT', 'STOCK_AUDIT'],
+        ),
+      ],
+    ),
+
+    // ── Tài khoản ────────────────────────────────────────────
+    SidebarCategory(
+      title: 'TÀI KHOẢN',
+      items: [
+        // Every signed-in account; each section inside checks its own access.
+        SidebarMenuItem(
+          id: 'settings',
+          label: 'Cài đặt',
+          icon: Icons.settings_outlined,
+          routePath: '/app/settings',
         ),
       ],
     ),

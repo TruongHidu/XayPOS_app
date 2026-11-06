@@ -171,6 +171,7 @@ class _AppShellState extends ConsumerState<AppShell>
       'inventory-documents',
       'inventory-alerts',
       'inventory-audits',
+      'settings',
     }.contains(item.id)) {
       final router = GoRouter.maybeOf(context);
       if (router != null) {
@@ -472,15 +473,5 @@ class _AppShellState extends ConsumerState<AppShell>
     );
   }
 
-  String _roleName(AppSession session) {
-    return switch (session.authenticatedUser.role.name) {
-      'cashier' => 'Thu ngân',
-      'owner' => 'Chủ nhà hàng',
-      'manager' => 'Quản lý',
-      'waiter' => 'Phục vụ',
-      'kitchen' => 'Bếp',
-      'superAdmin' => 'Super Admin',
-      _ => session.authenticatedUser.role.name,
-    };
-  }
+  String _roleName(AppSession session) => session.authenticatedUser.role.label;
 }

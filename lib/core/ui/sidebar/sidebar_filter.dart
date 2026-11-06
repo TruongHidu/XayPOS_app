@@ -56,6 +56,9 @@ List<SidebarMenuItem> filterMenuItems(
     if (item.id == 'cashbook') {
       return AccessPolicy.canCashbook(session, 'CASHBOOK_VIEW');
     }
+    if (item.id == 'settings') {
+      return AccessPolicy.canOpenRoute(session, '/app/settings');
+    }
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),
     );

@@ -53,170 +53,156 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
     final canCreate =
         AccessPolicy.canCreateOrder(session, takeaway: true) &&
         AccessPolicy.canMenu(session, 'MENU_VIEW');
-    final create = FilledButton.icon(
-      onPressed: canCreate
-          ? () => _go('/app/order-create?serviceType=TAKEAWAY')
-          : null,
-      icon: const Icon(Icons.add),
-      label: const Text('Tạo đơn mang đi'),
-    );
+    final fab = canCreate
+        ? FloatingActionButton(
+            key: const ValueKey('takeaway-create-action'),
+            tooltip: 'Tạo đơn mang đi',
+            onPressed: () => _go('/app/order-create?serviceType=TAKEAWAY'),
+            child: const Icon(Icons.add),
+          )
+        : null;
 
-    return LayoutBuilder(
-      builder: (context, box) {
-        final wide = box.maxWidth >= 900;
-        final header = Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Đơn mang đi',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
+    return Scaffold(
+      floatingActionButton: fab,
+      body: LayoutBuilder(
+        builder: (context, box) {
+          final wide = box.maxWidth >= 900;
+          // The page title already sits in the app bar; only the live count
+          // and a manual refresh stay here.
+          final header = Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
                     c.hasLoaded
                         ? '${c.activeCount} đơn đang xử lý'
                         : 'Đang tải đơn…',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                ],
-              ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (canCreate) create,
-                  IconButton(
-                    tooltip: 'Tải lại đơn mang đi',
-                    onPressed: c.loading ? null : c.load,
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ],
+                ),
+                IconButton(
+                  tooltip: 'Tải lại đơn mang đi',
+                  onPressed: c.loading ? null : c.load,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+          );
+          final history = Center(
+            child: TextButton.icon(
+              onPressed: () => _go('/app/orders?serviceType=TAKEAWAY'),
+              icon: const Icon(Icons.history),
+              label: const Text('Xem lịch sử đơn mang đi'),
+            ),
+          );
+          final status = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              LoadingStrip(loading: c.loading),
+              OrderFailurePanel(
+                failure: c.failure,
+                retry: c.loading ? null : c.load,
+                label: 'Tải lại',
               ),
             ],
-          ),
-        );
-        final history = Center(
-          child: TextButton.icon(
-            onPressed: () => _go('/app/orders?serviceType=TAKEAWAY'),
-            icon: const Icon(Icons.history),
-            label: const Text('Xem lịch sử đơn mang đi'),
-          ),
-        );
-        final status = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            LoadingStrip(loading: c.loading),
-            OrderFailurePanel(
-              failure: c.failure,
-              retry: c.loading ? null : c.load,
-              label: 'Tải lại',
-            ),
-          ],
-        );
+          );
 
-        if (c.hasLoaded && c.rows.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: c.load,
-            child: ListView(
+          if (c.hasLoaded && c.rows.isEmpty) {
+            return RefreshIndicator(
+              onRefresh: c.load,
+              child: ListView(
+                // Bottom inset keeps the history link clear of the floating button.
+                padding: const EdgeInsets.only(bottom: 88),
+                children: [
+                  header,
+                  status,
+                  Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.shopping_bag_outlined,
+                          size: 48,
+                          color: AppColors.grey400,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Chưa có đơn mang đi nào đang xử lý.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                  history,
+                ],
+              ),
+            );
+          }
+
+          if (wide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 header,
                 status,
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 48,
-                        color: AppColors.grey400,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Chưa có đơn mang đi nào đang xử lý.',
-                        textAlign: TextAlign.center,
-                      ),
-                      if (canCreate) ...[const SizedBox(height: 12), create],
-                    ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final stage in TakeawayStage.values)
+                          Expanded(
+                            child: _StageColumn(
+                              stage: stage,
+                              rows: c.stage(stage),
+                              open: _openOrder,
+                              onRefresh: c.load,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 history,
               ],
-            ),
-          );
-        }
+            );
+          }
 
-        if (wide) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              header,
-              status,
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          return DefaultTabController(
+            length: TakeawayStage.values.length,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                header,
+                status,
+                TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [
+                    for (final stage in TakeawayStage.values)
+                      Tab(text: '${stage.label} (${c.stage(stage).length})'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
                     children: [
                       for (final stage in TakeawayStage.values)
-                        Expanded(
-                          child: _StageColumn(
-                            stage: stage,
-                            rows: c.stage(stage),
-                            open: _openOrder,
-                            onRefresh: c.load,
-                          ),
+                        _StageList(
+                          rows: c.stage(stage),
+                          open: _openOrder,
+                          onRefresh: c.load,
+                          footer: history,
                         ),
                     ],
                   ),
                 ),
-              ),
-              history,
-            ],
+              ],
+            ),
           );
-        }
-
-        return DefaultTabController(
-          length: TakeawayStage.values.length,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              header,
-              status,
-              TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: [
-                  for (final stage in TakeawayStage.values)
-                    Tab(text: '${stage.label} (${c.stage(stage).length})'),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    for (final stage in TakeawayStage.values)
-                      _StageList(
-                        rows: c.stage(stage),
-                        open: _openOrder,
-                        onRefresh: c.load,
-                        footer: history,
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 
@@ -279,7 +265,8 @@ class _StageList extends StatelessWidget {
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: onRefresh,
     child: ListView(
-      padding: const EdgeInsets.all(8),
+      // Bottom inset keeps the last card clear of the floating button.
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         if (rows.isEmpty)
