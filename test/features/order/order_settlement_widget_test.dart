@@ -303,7 +303,11 @@ void main() {
       matching: find.byWidgetPredicate((widget) => widget is ButtonStyleButton),
     );
     expect(tester.widget<ButtonStyleButton>(complete).onPressed, isNull);
-    expect(find.text('Còn 1 dòng món chưa đánh dấu phục vụ.'), findsOneWidget);
+    expect(find.textContaining('chưa đánh dấu phục vụ'), findsNothing);
+    expect(
+      find.text('Cần quyền xác nhận phục vụ tất cả món trước khi hoàn tất.'),
+      findsOneWidget,
+    );
     expect(orders.completes, isEmpty);
     expect(tester.takeException(), isNull);
   });

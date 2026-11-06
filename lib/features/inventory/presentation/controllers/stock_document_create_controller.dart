@@ -1,6 +1,7 @@
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/inventory_entities.dart';
+import '../../domain/entities/inventory_queries.dart';
 import '../../domain/entities/stock_document.dart';
 import '../../domain/entities/stock_inputs.dart';
 import '../../domain/policies/stock_document_validation.dart';
@@ -29,11 +30,15 @@ class StockDocumentCreateController extends InventoryController {
     required this.create,
     required this.getWarehouse,
     required this.keys,
+    this.listWarehouses,
     this.onReceiptApplied,
   });
   final CreateStockDocument create;
   final GetWarehouse getWarehouse;
   final StockKeyGenerator keys;
+
+  /// Looks up the default warehouse when a new form opens; null disables it.
+  final GetWarehouses? listWarehouses;
   final void Function()? onReceiptApplied;
   StockDocumentType type = StockDocumentType.receipt;
   Warehouse? warehouse;
@@ -44,17 +49,27 @@ class StockDocumentCreateController extends InventoryController {
   StockDocumentDetail? result;
   Failure? failure;
   bool checking = false;
+
+  /// True while [warehouse] is the automatic default, not a user choice, so an
+  /// otherwise empty form is not reported as an unsaved draft.
+  bool _autoWarehouse = false;
+  int _preselect = 0;
   bool get busy => checking || events.pending(InventoryEvents.stockCreateKey);
   bool get uncertain => intent != null && result == null;
   bool get editable => current && !busy && !uncertain && result == null;
-  bool get dirty => warehouse != null || note.isNotEmpty || lines.isNotEmpty;
+  bool get dirty =>
+      warehouse != null && !_autoWarehouse ||
+      note.isNotEmpty ||
+      lines.isNotEmpty;
   List<StockDocumentType> get allowedTypes =>
       StockDocumentType.values.where((t) => can(t.permission)).toList();
   void begin(StockDocumentType desired) {
     if (!current || busy || uncertain) return;
     if (!can(desired.permission)) return;
     type = desired;
+    ++_preselect;
     warehouse = null;
+    _autoWarehouse = false;
     note = '';
     _lines.clear();
     result = null;
@@ -74,10 +89,54 @@ class StockDocumentCreateController extends InventoryController {
 
   void selectWarehouse(Warehouse value) {
     if (!editable || !value.active || !can(type.permission)) return;
+    ++_preselect;
     if (warehouse?.id != value.id) _lines.clear();
     warehouse = value;
+    _autoWarehouse = false;
     failure = null;
     changed();
+  }
+
+  /// Fills an empty form with the default warehouse, or the only active one.
+  /// Never replaces a warehouse the user picked; failures leave the picker.
+  Future<void> preselectDefaultWarehouse() async {
+    final list = listWarehouses;
+    if (list == null ||
+        warehouse != null ||
+        !editable ||
+        !can(type.permission)) {
+      return;
+    }
+    final generation = ++_preselect;
+    final response = await read(
+      'create-default-warehouse',
+      () => list(
+        const WarehouseQuery(
+          active: true,
+          size: 100,
+          sortBy: 'name',
+          direction: 'asc',
+        ),
+      ),
+    );
+    if (generation != _preselect ||
+        warehouse != null ||
+        !editable ||
+        !can(type.permission)) {
+      return;
+    }
+    if (response case Success(value: final page)) {
+      final active = page.content.where((w) => w.active).toList();
+      final choice =
+          active.where((w) => w.isDefault).firstOrNull ??
+          (page.totalElements == 1 && active.length == 1
+              ? active.single
+              : null);
+      if (choice == null) return;
+      warehouse = choice;
+      _autoWarehouse = true;
+      changed();
+    }
   }
 
   void setNote(String value) {

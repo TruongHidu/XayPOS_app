@@ -63,6 +63,75 @@ StockDocumentDetailController _detail(
 );
 Future<void> _tick() => Future<void>.delayed(Duration.zero);
 void main() {
+  group('default warehouse preselection', () {
+    StockDocumentCreateController make(FakeWarehouses wh, AppSession s) {
+      final events = InventoryEvents();
+      final c = StockDocumentCreateController(
+        session: () => s,
+        events: events,
+        create: CreateStockDocument(FakeStockDocuments()),
+        getWarehouse: GetWarehouse(wh),
+        listWarehouses: GetWarehouses(wh),
+        keys: FakeStockKeys(),
+      );
+      addTearDown(() {
+        c.dispose();
+        events.dispose();
+      });
+      return c;
+    }
+
+    test(
+      'picks the active default warehouse without marking the form dirty',
+      () async {
+        final wh = FakeWarehouses()
+          ..rows = [warehouse(id: 'w2', isDefault: false), warehouse(id: 'w1')];
+        final c = make(wh, _session());
+        await c.preselectDefaultWarehouse();
+        expect(c.warehouse?.id, 'w1');
+        expect(c.dirty, false);
+        expect(wh.queries.single.active, true);
+        c.selectWarehouse(warehouse(id: 'w2', isDefault: false));
+        expect(c.dirty, true);
+      },
+    );
+
+    test('falls back to the only warehouse, else leaves the picker', () async {
+      final single = FakeWarehouses()
+        ..rows = [warehouse(id: 'w9', isDefault: false)];
+      final c1 = make(single, _session());
+      await c1.preselectDefaultWarehouse();
+      expect(c1.warehouse?.id, 'w9');
+
+      final many = FakeWarehouses()
+        ..rows = [
+          warehouse(id: 'w2', isDefault: false),
+          warehouse(id: 'w3', isDefault: false),
+        ];
+      final c2 = make(many, _session());
+      await c2.preselectDefaultWarehouse();
+      expect(c2.warehouse, isNull);
+    });
+
+    test(
+      'never replaces a warehouse picked while the lookup was pending',
+      () async {
+        final gate = Completer<void>();
+        final wh = FakeWarehouses();
+        wh.onList = (q) async {
+          await gate.future;
+          return Success(inventoryPage(wh.rows, page: q.page));
+        };
+        final c = make(wh, _session());
+        final pending = c.preselectDefaultWarehouse();
+        c.selectWarehouse(warehouse(id: 'w2', isDefault: false));
+        gate.complete();
+        await pending;
+        expect(c.warehouse?.id, 'w2');
+        expect(c.dirty, true);
+      },
+    );
+  });
   test(
     'ingredient becomes inactive after selection: conflict requires readback before another attempt',
     () async {

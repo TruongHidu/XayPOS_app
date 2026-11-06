@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
 import '../controllers/order_draft_controller.dart' show OrderDraftLine;
-import '../providers/order_providers.dart';
+import '../../../../app/providers.dart';
 import 'order_menu_item_card.dart';
 import 'order_widgets.dart';
 
@@ -70,6 +70,9 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
   @override
   Widget build(BuildContext context) {
     final picker = ref.watch(orderMenuPickerProvider(widget.permission));
+    // Keeps the last known set while it reloads after a stock change.
+    final lowStockIds =
+        ref.watch(lowStockMenuItemIdsProvider).value ?? const <String>{};
     if (!picker.allowed) {
       return const Center(
         child: Padding(
@@ -322,6 +325,9 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                             enabled: widget.enabled,
                             hasMultipleConfigurations: hasMultiple,
                             currencyCode: widget.currencyCode,
+                            lowStock:
+                                item.trackInventory &&
+                                lowStockIds.contains(item.id),
                             onAdd: () {
                               HapticFeedback.selectionClick();
                               widget.onSelect(item);

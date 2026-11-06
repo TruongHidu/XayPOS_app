@@ -17,6 +17,7 @@ class OrderMenuItemCard extends StatelessWidget {
     required this.onDecrement,
     this.onEdit,
     this.currencyCode,
+    this.lowStock = false,
   });
 
   final MenuItem item;
@@ -28,6 +29,9 @@ class OrderMenuItemCard extends StatelessWidget {
   final VoidCallback onDecrement;
   final VoidCallback? onEdit;
   final String? currencyCode;
+
+  /// Stock is at or under its threshold; shown as a warning, never a block.
+  final bool lowStock;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +47,7 @@ class OrderMenuItemCard extends StatelessWidget {
         ? 'Còn món'
         : 'Chưa thể bán';
     final statusColor = canSell ? AppColors.success : AppColors.danger;
+    final showLowStock = canSell && lowStock;
 
     return Card(
       elevation: 0,
@@ -140,6 +145,40 @@ class OrderMenuItemCard extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                               color: statusColor,
                             ),
+                          ),
+                        )
+                      else if (showLowStock)
+                        // Advisory only: the item stays sellable.
+                        Container(
+                          key: const ValueKey('menu-item-low-stock'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warningSoft,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 14,
+                                color: AppColors.warning,
+                              ),
+                              SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Sắp hết',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.warning,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       else

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/stock_document_detail_screen.dart';
 import '../../../../app/providers.dart';
+import '../../../../core/ui/widgets/create_speed_dial_fab.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
@@ -17,63 +18,10 @@ class StockDocumentList extends ConsumerWidget {
   const StockDocumentList({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = ref.watch(stockDocumentListProvider),
-        q = c.query,
-        create = ref.watch(stockDocumentCreateProvider);
+    final c = ref.watch(stockDocumentListProvider), q = c.query;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final type in create.allowedTypes)
-              FilledButton.icon(
-                onPressed: create.busy || create.uncertain
-                    ? null
-                    : () async {
-                        if (create.dirty &&
-                            create.result == null &&
-                            !await confirmStockAction(
-                              context,
-                              ref,
-                              permission: type.permission,
-                              title: 'Bắt đầu phiếu khác?',
-                              message:
-                                  'Bản đang soạn chưa lưu sẽ được bỏ. Có thể quay lại để tiếp tục phiếu hiện tại.',
-                              confirm: 'Tạo phiếu khác',
-                            )) {
-                          return;
-                        }
-                        if (!context.mounted || !create.current) return;
-                        create.begin(type);
-                        context.push('/app/inventory/stock-documents/new');
-                      },
-                icon: const Icon(Icons.add),
-                label: Text('Tạo phiếu ${type.label.toLowerCase()}'),
-              ),
-            if (create.dirty && !create.uncertain && create.result == null)
-              OutlinedButton.icon(
-                onPressed: () =>
-                    context.push('/app/inventory/stock-documents/new'),
-                icon: const Icon(Icons.edit_note),
-                label: const Text('Tiếp tục phiếu đang soạn'),
-              ),
-            if (create.uncertain)
-              OutlinedButton.icon(
-                onPressed: () =>
-                    context.push('/app/inventory/stock-documents/new'),
-                icon: const Icon(Icons.pending_actions),
-                label: const Text('Khôi phục yêu cầu chưa xác minh'),
-              ),
-            IconButton(
-              tooltip: 'Tải lại chứng từ',
-              onPressed: c.loading ? null : c.load,
-              icon: const Icon(Icons.refresh),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
         StockFilterLayout(
           listenable: c,
           title: 'Bộ lọc chứng từ',
@@ -340,6 +288,76 @@ class StockDocumentList extends ConsumerWidget {
             onLoadMore: c.loadMore,
           ),
       ],
+    );
+  }
+}
+
+/// Floating add button of Chứng từ kho: create a receipt, issue or adjustment,
+/// or return to the draft / unverified request kept by the create form.
+class StockDocumentCreateFab extends ConsumerWidget {
+  const StockDocumentCreateFab({super.key});
+
+  static const _newDocument = '/app/inventory/stock-documents/new';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final create = ref.watch(stockDocumentCreateProvider);
+    if (create.busy) return const SizedBox.shrink();
+    final List<SpeedDialOption> options;
+    if (create.uncertain) {
+      // A pending request must be verified before any other document starts.
+      options = [
+        SpeedDialOption(
+          label: 'Khôi phục yêu cầu chưa xác minh',
+          icon: Icons.pending_actions,
+          onSelected: (context) async {
+            await context.push(_newDocument);
+          },
+        ),
+      ];
+    } else {
+      options = [
+        for (final type in create.allowedTypes)
+          SpeedDialOption(
+            label: 'Tạo phiếu ${type.label.toLowerCase()}',
+            icon: switch (type) {
+              StockDocumentType.receipt => Icons.move_to_inbox_outlined,
+              StockDocumentType.issue => Icons.outbox_outlined,
+              _ => Icons.tune,
+            },
+            onSelected: (context) async {
+              if (create.dirty &&
+                  create.result == null &&
+                  !await confirmStockAction(
+                    context,
+                    ref,
+                    permission: type.permission,
+                    title: 'Bắt đầu phiếu khác?',
+                    message:
+                        'Bản đang soạn chưa lưu sẽ được bỏ. Có thể quay lại để tiếp tục phiếu hiện tại.',
+                    confirm: 'Tạo phiếu khác',
+                  )) {
+                return;
+              }
+              if (!context.mounted || !create.current) return;
+              create.begin(type);
+              await context.push(_newDocument);
+            },
+          ),
+        if (create.dirty && create.result == null)
+          SpeedDialOption(
+            label: 'Tiếp tục phiếu đang soạn',
+            icon: Icons.edit_note,
+            onSelected: (context) async {
+              await context.push(_newDocument);
+            },
+          ),
+      ];
+    }
+    return CreateSpeedDialFab(
+      tooltip: 'Tạo chứng từ',
+      directWhenSingle: false,
+      options: options,
     );
   }
 }

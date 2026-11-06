@@ -446,9 +446,13 @@ void main() {
           tx = FakeStockTransactions(),
           balances = FakeBalances();
       await _pump(tester, docs: docs, ledger: tx, balances: balances);
+      await _tap(tester, find.byTooltip('Tạo chứng từ'));
       await _tap(tester, find.text('Tạo phiếu nhập kho'));
-      await _tap(tester, find.text('Chọn kho'));
-      await _tap(tester, find.byKey(const ValueKey('select-warehouse-w1')));
+      // The default warehouse w1 is preselected; the picker is not needed.
+      final create = _container(tester).read(stockDocumentCreateProvider);
+      expect(create.warehouse?.id, 'w1');
+      expect(create.dirty, false);
+      expect(find.text('Chọn kho'), findsNothing);
       await _tap(tester, find.text('Thêm hàng hóa'));
       expect(balances.queries.last.q.ingredientActive, true);
       expect(balances.lowCalls, 0);
@@ -497,6 +501,7 @@ void main() {
           balances = FakeBalances();
       final router = await _pump(tester, auth: auth, balances: balances);
       expect(find.textContaining('Tạo phiếu'), findsNothing);
+      expect(find.byTooltip('Tạo chứng từ'), findsNothing);
       expect(find.text('Tồn thấp hiện tại'), findsNothing);
       router.go('/app/inventory/stock-documents/d1');
       await tester.pumpAndSettle();
@@ -526,8 +531,10 @@ void main() {
         tester.widget<StockSelect>(find.byType(StockSelect).first).value,
         'ISSUE',
       );
-      await _tap(tester, find.text('Chọn kho'));
-      await _tap(tester, find.byKey(const ValueKey('select-warehouse-w1')));
+      expect(
+        _container(tester).read(stockDocumentCreateProvider).warehouse?.id,
+        'w1',
+      );
       await _tap(tester, find.text('Thêm hàng hóa'));
       expect(balances.queries.last.q.ingredientActive, isNull);
       await _tap(tester, find.byKey(const ValueKey('stock-pick-i3')));
@@ -660,6 +667,8 @@ void main() {
       expect(_container(tester).read(stockDocumentCreateProvider), same(c));
       router.go('/app/inventory?tab=documents');
       await tester.pumpAndSettle();
+      await _tap(tester, find.byTooltip('Tạo chứng từ'));
+      expect(find.text('Tạo phiếu nhập kho'), findsNothing);
       await _tap(tester, find.text('Khôi phục yêu cầu chưa xác minh'));
       docs.onCreate = (key, input) async => Success(
         stockDocument(id: 'already', status: 'CONFIRMED', version: 8),

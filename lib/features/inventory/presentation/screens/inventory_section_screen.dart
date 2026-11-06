@@ -151,154 +151,166 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
     final lowAllowed = session?.features.contains('LOW_STOCK_ALERT') == true;
     final canFilterLow =
         warehouseTab && AccessPolicy.canViewInventoryAlerts(session);
-    return RefreshIndicator(
+    final documentsTab = _tab == InventorySection.documents;
+    final body = RefreshIndicator(
       onRefresh: _refresh,
       child: CustomScrollView(
         key: PageStorageKey('inventory-${_tab.name}'),
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 16,
-                    runSpacing: 12,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _tab.title,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(_tab.description),
-                        ],
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          // These lists carry their own reload button.
-                          if (!const {
-                            InventorySection.documents,
-                            InventorySection.transactions,
-                            InventorySection.alerts,
-                            InventorySection.audits,
-                          }.contains(_tab))
-                            IconButton(
-                              tooltip: 'Tải lại kho',
-                              onPressed: _refresh,
-                              icon: const Icon(Icons.refresh),
-                            ),
-                          // Less frequent stock pages open from Tồn kho.
-                          if (warehouseTab) ...[
-                            IconButton(
-                              tooltip: 'Biến động kho',
-                              onPressed: () =>
-                                  context.push(AppRoutes.inventoryTransactions),
-                              icon: const Icon(Icons.history),
-                            ),
-                            IconButton(
-                              tooltip: 'Quản lý kho',
-                              onPressed: () =>
-                                  context.push(AppRoutes.inventoryWarehouses),
-                              icon: const Icon(Icons.store_outlined),
-                            ),
-                          ],
-                          if (_tab == InventorySection.warehouses &&
-                              AccessPolicy.canInventory(
-                                session,
-                                'WAREHOUSE_CREATE',
-                              ))
-                            FilledButton.icon(
-                              onPressed: () async {
-                                final result =
-                                    await showInventoryDialog<Warehouse>(
-                                      context,
-                                      ref,
-                                      permission: 'WAREHOUSE_CREATE',
-                                      child: const WarehouseForm(),
-                                    );
-                                if (context.mounted && result != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Đã tạo kho.'),
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.add),
-                              label: const Text('Thêm kho'),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (warehouseTab) ...[
-                    const SizedBox(height: 16),
+          // Chứng từ kho starts at its search bar; creation moves to the FAB.
+          if (!documentsTab)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
                       crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 16,
+                      runSpacing: 12,
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: () => pickInventoryWarehouse(context, ref),
-                          icon: const Icon(Icons.warehouse_outlined),
-                          label: Text(
-                            warehouse == null
-                                ? 'Chọn kho'
-                                : '${warehouse.name} · ${warehouse.code}',
-                          ),
-                        ),
-                        if (warehouse?.isDefault == true)
-                          const InventoryBadge('Kho mặc định', positive: true),
-                        if (canFilterLow)
-                          FilterChip(
-                            avatar: const Icon(
-                              Icons.warning_amber_outlined,
-                              size: 18,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _tab.title,
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w700),
                             ),
-                            label: const Text('Chỉ tồn thấp'),
-                            selected: _lowOnly,
-                            onSelected: (v) => setState(() => _lowOnly = v),
-                          ),
-                        if (_low)
-                          FilterChip(
-                            label: const Text('Tất cả kho'),
-                            selected: _allWarehouses,
-                            onSelected: (v) =>
-                                setState(() => _allWarehouses = v),
-                          ),
+                            const SizedBox(height: 4),
+                            Text(_tab.description),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            // These lists carry their own reload button.
+                            if (!const {
+                              InventorySection.documents,
+                              InventorySection.transactions,
+                              // InventorySection.alerts,
+                              InventorySection.audits,
+                            }.contains(_tab))
+                              IconButton(
+                                tooltip: 'Tải lại kho',
+                                onPressed: _refresh,
+                                icon: const Icon(Icons.refresh),
+                              ),
+                            // Less frequent stock pages open from Tồn kho.
+                            if (warehouseTab) ...[
+                              IconButton(
+                                tooltip: 'Biến động kho',
+                                onPressed: () => context.push(
+                                  AppRoutes.inventoryTransactions,
+                                ),
+                                icon: const Icon(Icons.history),
+                              ),
+                              IconButton(
+                                tooltip: 'Quản lý kho',
+                                onPressed: () =>
+                                    context.push(AppRoutes.inventoryWarehouses),
+                                icon: const Icon(Icons.store_outlined),
+                              ),
+                            ],
+                            if (_tab == InventorySection.warehouses &&
+                                AccessPolicy.canInventory(
+                                  session,
+                                  'WAREHOUSE_CREATE',
+                                ))
+                              FilledButton.icon(
+                                onPressed: () async {
+                                  final result =
+                                      await showInventoryDialog<Warehouse>(
+                                        context,
+                                        ref,
+                                        permission: 'WAREHOUSE_CREATE',
+                                        child: const WarehouseForm(),
+                                      );
+                                  if (context.mounted && result != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Đã tạo kho.'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text('Thêm kho'),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                    if (selector?.loading == true && warehouse == null)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: LinearProgressIndicator(),
+                    if (warehouseTab) ...[
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () =>
+                                pickInventoryWarehouse(context, ref),
+                            icon: const Icon(Icons.warehouse_outlined),
+                            label: Text(
+                              warehouse == null
+                                  ? 'Chọn kho'
+                                  : '${warehouse.name} · ${warehouse.code}',
+                            ),
+                          ),
+                          if (warehouse?.isDefault == true)
+                            const InventoryBadge(
+                              'Kho mặc định',
+                              positive: true,
+                            ),
+                          if (canFilterLow)
+                            FilterChip(
+                              avatar: const Icon(
+                                Icons.warning_amber_outlined,
+                                size: 18,
+                              ),
+                              label: const Text('Chỉ tồn thấp'),
+                              selected: _lowOnly,
+                              onSelected: (v) => setState(() => _lowOnly = v),
+                            ),
+                          if (_low)
+                            FilterChip(
+                              label: const Text('Tất cả kho'),
+                              selected: _allWarehouses,
+                              onSelected: (v) =>
+                                  setState(() => _allWarehouses = v),
+                            ),
+                        ],
                       ),
-                    InventoryFailurePanel(
-                      failure: selector?.failure ?? selector?.selectionFailure,
-                      retry: selector?.loading == true
-                          ? null
-                          : () => Future.wait([
-                              selector!.load(),
-                              selector.refreshSelection(),
-                            ]),
-                    ),
+                      if (selector?.loading == true && warehouse == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                      InventoryFailurePanel(
+                        failure:
+                            selector?.failure ?? selector?.selectionFailure,
+                        retry: selector?.loading == true
+                            ? null
+                            : () => Future.wait([
+                                selector!.load(),
+                                selector.refreshSelection(),
+                              ]),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
-          ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            // Documents: room above for the missing header, below for the FAB.
+            padding: documentsTab
+                ? const EdgeInsets.fromLTRB(16, 16, 16, 88)
+                : const EdgeInsets.fromLTRB(16, 4, 16, 24),
             sliver: SliverToBoxAdapter(
               child: _tab == InventorySection.alerts
                   ? const InventoryAlertList()
@@ -342,5 +354,11 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
         ],
       ),
     );
+    return documentsTab
+        ? Scaffold(
+            floatingActionButton: const StockDocumentCreateFab(),
+            body: body,
+          )
+        : body;
   }
 }

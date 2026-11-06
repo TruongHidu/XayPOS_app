@@ -64,6 +64,7 @@ final stockDocumentCreateProvider = ChangeNotifierProvider((ref) {
     create: CreateStockDocument(ref.watch(stockDocumentRepositoryProvider)),
     getWarehouse: GetWarehouse(ref.watch(warehouseRepositoryProvider)),
     keys: ref.watch(stockKeyGeneratorProvider),
+    listWarehouses: GetWarehouses(ref.watch(warehouseRepositoryProvider)),
     onReceiptApplied: () {
       if (ref.mounted) _receiptApplied(ref.read(menuCatalogEventsProvider));
     },

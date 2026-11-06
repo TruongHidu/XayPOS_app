@@ -165,14 +165,13 @@ class OrderSettlementActions extends ConsumerWidget {
             label: const Text('Hoàn tất đơn'),
           ),
           if (!allowed) const Text('Bạn không có quyền hoàn tất đơn.'),
-          if (remaining > 0) ...[
-            Text('Còn $remaining dòng món chưa đánh dấu phục vụ.'),
-            Text(
-              AccessPolicy.canOrders(session, 'ORDER_MARK_SERVED')
-                  ? 'Khi hoàn tất, cần xác nhận đã phục vụ thực tế tất cả món.'
-                  : 'Cần quyền xác nhận phục vụ tất cả món trước khi hoàn tất.',
+          // The completion dialog asks to confirm unserved lines; only a
+          // missing right needs explaining here, as it disables the button.
+          if (remaining > 0 &&
+              !AccessPolicy.canOrders(session, 'ORDER_MARK_SERVED'))
+            const Text(
+              'Cần quyền xác nhận phục vụ tất cả món trước khi hoàn tất.',
             ),
-          ],
           if (summary.paidAmount.minorUnits != summary.totalAmount.minorUnits)
             const Text(
               'Số tiền đã trả chưa khớp tổng đơn. Hãy tải lại để đối chiếu.',

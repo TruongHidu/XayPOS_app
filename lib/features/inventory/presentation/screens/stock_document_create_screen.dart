@@ -25,8 +25,26 @@ class StockDocumentCreateScreen extends ConsumerWidget {
   }
 }
 
-class _StockCreateWorkspace extends ConsumerWidget {
+class _StockCreateWorkspace extends ConsumerStatefulWidget {
   const _StockCreateWorkspace({super.key});
+  @override
+  ConsumerState<_StockCreateWorkspace> createState() =>
+      _StockCreateWorkspaceState();
+}
+
+class _StockCreateWorkspaceState extends ConsumerState<_StockCreateWorkspace> {
+  @override
+  void initState() {
+    super.initState();
+    // Opening the form starts on the default warehouse; a warehouse already
+    // on the draft (resumed form) is kept.
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(stockDocumentCreateProvider).preselectDefaultWarehouse();
+      }
+    });
+  }
+
   Future<void> _line(BuildContext context, WidgetRef ref, {int? index}) async {
     final c = ref.read(stockDocumentCreateProvider), warehouse = c.warehouse;
     if (!c.editable || warehouse == null) return;
@@ -60,7 +78,7 @@ class _StockCreateWorkspace extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final c = ref.watch(stockDocumentCreateProvider);
     if (c.result != null) {
       return StockPageFrame(
@@ -186,6 +204,8 @@ class _StockCreateWorkspace extends ConsumerWidget {
                         final value = await chooseInventoryWarehouse(
                           context,
                           ref,
+                          selectedId: c.warehouse?.id,
+                          followSelector: false,
                         );
                         if (!context.mounted || value == null || !c.current) {
                           return;
