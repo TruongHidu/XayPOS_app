@@ -26,6 +26,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
   KitchenDisplayController? _display;
   ModalRoute<void>? _route;
   RouteObserver<ModalRoute<void>>? _observer;
+  bool _servingExpanded = true;
   @override
   void initState() {
     super.initState();
@@ -94,12 +95,32 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
         actions.state(item.orderId)?.failure?.message ??
             (order.summary.status == OrderStatus.ready
                 ? 'Đơn ${order.summary.orderCode} đã sẵn sàng.'
+                : action == KitchenAction.markServed
+                ? 'Đã giao ${item.itemName}.'
                 : 'Đã cập nhật trạng thái món.'),
       Error(failure: final failure) => failure.message,
     };
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Hands over the order's ready dishes. Low risk and undone by nobody, so
+  /// no confirmation step, unlike marking dishes ready.
+  Future<void> _serve(KitchenQueueItem item) async {
+    final actions = ref.read(kitchenActionsProvider);
+    unawaited(HapticFeedback.mediumImpact());
+    final response = await actions.serveOrder(item.orderId);
+    if (!mounted || !actions.current) return;
+    final where = item.seating.isEmpty ? item.orderCode : item.seating;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(switch (response) {
+          Success() => 'Đã giao món cho $where.',
+          Error(failure: final failure) => failure.message,
+        }),
+      ),
+    );
   }
 
   @override
@@ -147,6 +168,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
     );
     final rows = display.visibleItems;
     final groups = display.visibleOrders.values.toList();
+    final serving = display.servingOrders;
     return ColoredBox(
       color: KitchenStyle.background,
       child: LayoutBuilder(
@@ -262,8 +284,18 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                               color: AppColors.grey300,
                             ),
                             ChoiceChip(
+                              key: const ValueKey('kitchen-filter-todo'),
+                              label: Text(
+                                'Cần làm (${display.items.where((r) => KitchenDisplayController.todoStatuses.contains(r.itemStatus)).length})',
+                              ),
+                              selected: display.todoOnly,
+                              onSelected: (_) => display.showTodo(),
+                            ),
+                            const SizedBox(width: 6),
+                            ChoiceChip(
                               label: Text('Tất cả (${display.items.length})'),
-                              selected: display.filter == null,
+                              selected:
+                                  !display.todoOnly && display.filter == null,
                               onSelected: (_) => display.setFilter(null),
                             ),
                             for (final status in kitchenStatuses) ...[
@@ -272,7 +304,9 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                 label: Text(
                                   '${KitchenStyle.label(status)} (${display.items.where((r) => r.itemStatus == status).length})',
                                 ),
-                                selected: display.filter == status,
+                                selected:
+                                    !display.todoOnly &&
+                                    display.filter == status,
                                 onSelected: (_) => display.setFilter(status),
                               ),
                             ],
@@ -389,6 +423,8 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                     icon: Icons.soup_kitchen_outlined,
                     message: display.items.isEmpty && display.complete
                         ? 'Bếp đã xử lý hết món. Chưa có món trong hàng đợi.'
+                        : display.todoOnly && display.search.isEmpty
+                        ? 'Không còn món cần nấu.'
                         : 'Không có món phù hợp trong dữ liệu đã tải.',
                   ),
                 ),
@@ -446,6 +482,16 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                               ? () => _act(
                                                   row,
                                                   KitchenAction.markReady,
+                                                )
+                                              : null,
+                                          onServe:
+                                              actions.canAct(
+                                                row,
+                                                KitchenAction.markServed,
+                                              )
+                                              ? () => _act(
+                                                  row,
+                                                  KitchenAction.markServed,
                                                 )
                                               : null,
                                         );
@@ -509,6 +555,12 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                                 wholeOrder: true,
                                               )
                                             : null,
+                                        onServeOrder:
+                                            actions.canServeOrder(
+                                              group.first.orderId,
+                                            )
+                                            ? () => _serve(group.first)
+                                            : null,
                                       );
                                     },
                                   ),
@@ -519,6 +571,23 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                   ),
                 ),
               ),
+              if (display.todoOnly && serving.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  sliver: SliverToBoxAdapter(
+                    child: KitchenServingList(
+                      orders: serving,
+                      now: now,
+                      expanded: _servingExpanded,
+                      onToggle: () =>
+                          setState(() => _servingExpanded = !_servingExpanded),
+                      busy: (id) => actions.state(id)?.busy == true,
+                      onServe: (id) => actions.canServeOrder(id)
+                          ? () => _serve(display.forOrder(id).first)
+                          : null,
+                    ),
+                  ),
+                ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                 sliver: SliverToBoxAdapter(

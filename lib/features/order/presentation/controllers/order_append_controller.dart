@@ -158,6 +158,20 @@ class OrderAppendController extends OrderController {
     changed();
   }
 
+  /// Undo of [remove]: puts the same line back at [index]. False when the
+  /// cart can no longer take it.
+  bool restore(OrderDraftLine line, int index) {
+    if (!canPick ||
+        _lines.length >= 100 ||
+        _lines.any((existing) => existing.id == line.id)) {
+      return false;
+    }
+    _lines.insert(index.clamp(0, _lines.length), line);
+    failure = null;
+    changed();
+    return true;
+  }
+
   /// Explicit user acknowledgement after a definite refusal, never for unknown outcome.
   bool reviewCurrent() {
     final latest = root();

@@ -114,13 +114,14 @@ Future<ProviderContainer> _pump(
   return container;
 }
 
+const _confirm = ValueKey('payment-confirm');
+const _transfer = ValueKey('payment-method-TRANSFER');
+
 Future<void> _payCash(WidgetTester tester) async {
   await tester.tap(find.text('Thanh toán hóa đơn'));
   await tester.pumpAndSettle();
-  await tester.tap(find.byType(Checkbox));
-  await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('Xác nhận đã nhận tiền'));
-  await tester.tap(find.text('Xác nhận đã nhận tiền'));
+  await tester.ensureVisible(find.byKey(_confirm));
+  await tester.tap(find.byKey(_confirm));
   await tester.pumpAndSettle();
 }
 
@@ -155,48 +156,101 @@ void main() {
     },
   );
 
-  testWidgets(
-    'transfer requires reconciled reference and received-money checkbox',
-    (tester) async {
-      final orders = FakeOrders()..current = _order();
-      orders.onRecordPayment = () async {
-        orders.current = _order(paid: true, version: 6);
-        return Success(_receipt(orders));
-      };
-      await _pump(tester, orders);
-      await tester.tap(find.text('Thanh toán hóa đơn'));
-      await tester.pumpAndSettle();
-      final confirm = find.widgetWithText(
-        FilledButton,
-        'Xác nhận đã nhận tiền',
-      );
-      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
-      await tester.tap(
-        find.byType(DropdownButtonFormField<OrderPaymentMethod>),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Chuyển khoản').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(Checkbox));
-      await tester.pumpAndSettle();
-      await tester.tap(confirm);
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Vui lòng nhập mã tham chiếu đã đối soát.'),
-        findsOneWidget,
-      );
-      expect(orders.paymentCalls, isEmpty);
-      await tester.enterText(find.byType(TextFormField), ' BANK-123 ');
-      await tester.tap(confirm);
-      await tester.pumpAndSettle();
-      expect(
-        orders.paymentCalls.single.$2.paymentMethod,
-        OrderPaymentMethod.transfer,
-      );
-      expect(orders.paymentCalls.single.$2.referenceNo, 'BANK-123');
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('cash shows change and blocks an amount short of the total', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    orders.onRecordPayment = () async {
+      orders.current = _order(paid: true, version: 6);
+      return Success(_receipt(orders));
+    };
+    await _pump(tester, orders);
+    await tester.tap(find.text('Thanh toán hóa đơn'));
+    await tester.pumpAndSettle();
+    expect(find.text('Đã nhận 100.000 VND'), findsOneWidget);
+    expect(find.text('Đủ tiền'), findsOneWidget);
+    expect(find.text('200.000'), findsOneWidget);
+    expect(find.text('500.000'), findsOneWidget);
+    ButtonStyleButton button() => tester.widget<ButtonStyleButton>(
+      find.ancestor(
+        of: find.text('Đã nhận 100.000 VND'),
+        matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+      ),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('payment-cash-given')),
+      '50000',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('50.000'), findsOneWidget);
+    expect(find.text('Còn thiếu: 50.000 VND'), findsOneWidget);
+    expect(button().onPressed, isNull);
+    await tester.tap(find.text('500.000'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tiền thừa trả khách: 400.000 VND'), findsOneWidget);
+    expect(button().onPressed, isNotNull);
+    await tester.ensureVisible(find.byKey(_confirm));
+    await tester.tap(find.byKey(_confirm));
+    await tester.pumpAndSettle();
+    expect(orders.paymentCalls.single.$2.amount.minorUnits, 10000000);
+    expect(
+      orders.paymentCalls.single.$2.paymentMethod,
+      OrderPaymentMethod.cash,
+    );
+    expect(find.byType(OrderPaymentDialog), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('cash suggestions start exact and round up to common notes', () {
+    BigInt vnd(int whole) => BigInt.from(whole) * BigInt.from(100);
+    expect(cashSuggestions(vnd(350000), currency: 'VND'), [
+      vnd(350000),
+      vnd(400000),
+      vnd(500000),
+      vnd(1000000),
+    ]);
+    expect(cashSuggestions(vnd(85000), currency: 'VND'), [
+      vnd(85000),
+      vnd(90000),
+      vnd(100000),
+      vnd(200000),
+    ]);
+    expect(cashSuggestions(BigInt.zero), isEmpty);
+  });
+
+  testWidgets('transfer requires a reconciled reference before recording', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    orders.onRecordPayment = () async {
+      orders.current = _order(paid: true, version: 6);
+      return Success(_receipt(orders));
+    };
+    await _pump(tester, orders);
+    await tester.tap(find.text('Thanh toán hóa đơn'));
+    await tester.pumpAndSettle();
+    final confirm = find.byKey(_confirm);
+    await tester.tap(find.byKey(_transfer));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('payment-cash-given')), findsNothing);
+    await tester.ensureVisible(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Vui lòng nhập mã tham chiếu đã đối soát.'),
+      findsOneWidget,
+    );
+    expect(orders.paymentCalls, isEmpty);
+    await tester.enterText(find.byType(TextFormField), ' BANK-123 ');
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+    expect(
+      orders.paymentCalls.single.$2.paymentMethod,
+      OrderPaymentMethod.transfer,
+    );
+    expect(orders.paymentCalls.single.$2.referenceNo, 'BANK-123');
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'recorded payment with failed order readback never posts payment again',
@@ -210,7 +264,8 @@ void main() {
       await _pump(tester, orders);
       await _payCash(tester);
       expect(find.textContaining('Đã ghi nhận thanh toán.'), findsOneWidget);
-      expect(find.text('Xác nhận đã nhận tiền'), findsNothing);
+      expect(find.byKey(_confirm), findsNothing);
+      expect(find.byKey(const ValueKey('payment-cash-given')), findsNothing);
       expect(find.text('Kiểm tra lại lần thanh toán'), findsNothing);
       expect(orders.paymentCalls.length, 1);
       orders.onDetail = null;
@@ -236,7 +291,14 @@ void main() {
         findsOneWidget,
       );
       final original = orders.paymentCalls.single;
-      expect(tester.widget<Checkbox>(find.byType(Checkbox)).onChanged, isNull);
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const ValueKey('payment-method-CASH')),
+            )
+            .onSelected,
+        isNull,
+      );
       orders.onRecordPayment = () async {
         orders.current = _order(paid: true, version: 6);
         return Success(_receipt(orders));
@@ -328,14 +390,17 @@ void main() {
       expect(find.byType(OrderPaymentDialog), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.ensureVisible(
-        find.byType(DropdownButtonFormField<OrderPaymentMethod>),
+        find.byKey(const ValueKey('payment-cash-given')),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('payment-cash-given')),
+        '120000',
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byType(DropdownButtonFormField<OrderPaymentMethod>),
-      );
+      expect(tester.takeException(), isNull);
+      await tester.ensureVisible(find.byKey(_transfer));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Chuyển khoản').last);
+      await tester.tap(find.byKey(_transfer));
       await tester.pumpAndSettle();
       tester.view.viewInsets = const FakeViewPadding(bottom: 280);
       addTearDown(tester.view.resetViewInsets);

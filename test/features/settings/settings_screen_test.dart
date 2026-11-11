@@ -5,9 +5,13 @@ import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/app/router/app_router.dart';
 import 'package:pos_saas_app/app/router/app_routes.dart';
 import 'package:pos_saas_app/app/theme/app_theme.dart';
+import 'package:pos_saas_app/core/errors/failure.dart';
+import 'package:pos_saas_app/core/network/binary_download.dart';
+import 'package:pos_saas_app/core/platform/file_exporter.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
+import 'package:pos_saas_app/features/settings/domain/entities/public_menu_link.dart';
 import 'package:pos_saas_app/features/settings/domain/entities/restaurant_profile.dart';
 import 'package:pos_saas_app/features/settings/domain/repositories/settings_repository.dart';
 import 'package:pos_saas_app/features/settings/presentation/providers/settings_providers.dart';
@@ -16,6 +20,7 @@ import 'package:pos_saas_app/features/subscription/domain/entities/entitlement.d
 import 'package:pos_saas_app/features/subscription/domain/entities/package_feature.dart';
 
 import '../../helpers/auth_fakes.dart';
+import '../../helpers/qr_fakes.dart';
 import '../../helpers/realtime_fakes.dart';
 
 class _FakeSettings implements SettingsRepository {
@@ -30,6 +35,65 @@ class _FakeSettings implements SettingsRepository {
     status: 'ACTIVE',
   );
   final updates = <RestaurantProfileUpdate>[];
+  PublicMenuLink? link;
+  final calls = <String>[];
+
+  PublicMenuLink _link(String token) => PublicMenuLink(
+    menuToken: token,
+    menuPath: '/menu/$token',
+    menuUrl: 'https://pos.example.com/menu/$token',
+  );
+
+  @override
+  Future<Result<PublicMenuLink?>> getMenuLink() async {
+    calls.add('get');
+    return Success(link);
+  }
+
+  @override
+  Future<Result<PublicMenuLink>> createMenuLink() async {
+    calls.add('create');
+    return Success(link = _link('AAAA'));
+  }
+
+  @override
+  Future<Result<PublicMenuLink>> rotateMenuLink() async {
+    calls.add('rotate');
+    if (link == null) {
+      return const Error(
+        Failure(
+          type: FailureType.notFound,
+          code: 'PUBLIC_MENU_LINK_NOT_INITIALIZED',
+          message: 'Nhà hàng chưa tạo link menu cho khách.',
+        ),
+      );
+    }
+    return Success(link = _link('BBBB'));
+  }
+
+  @override
+  Future<Result<DownloadedFile>> menuLinkQrCard() async {
+    calls.add('card:${link?.menuToken}');
+    return Success(
+      DownloadedFile(
+        bytes: tinyPng,
+        fileName: 'the-qr-menu.png',
+        mimeType: 'image/png',
+      ),
+    );
+  }
+
+  @override
+  Future<Result<DownloadedFile>> menuLinkQrImage() async {
+    calls.add('image:${link?.menuToken}');
+    return Success(
+      DownloadedFile(
+        bytes: tinyPng,
+        fileName: 'qr-menu.png',
+        mimeType: 'image/png',
+      ),
+    );
+  }
 
   @override
   Future<Result<RestaurantProfile>> getRestaurant() async => Success(profile);
@@ -68,6 +132,7 @@ Future<(ProviderContainer, _FakeSettings)> _pump(
     terms: '',
   ),
   List<Uri>? opened,
+  FakeFileExporter? exporter,
 }) async {
   tester.view.physicalSize = const Size(1200, 1600);
   tester.view.devicePixelRatio = 1;
@@ -113,6 +178,7 @@ Future<(ProviderContainer, _FakeSettings)> _pump(
         opened?.add(uri);
         return true;
       }),
+      fileExporterProvider.overrideWithValue(exporter ?? FakeFileExporter()),
       realtimePreferenceStorageProvider.overrideWithValue(
         MemoryRealtimePreferenceStorage(false),
       ),
@@ -136,6 +202,8 @@ Finder _inSettings(String text) =>
 
 Future<void> _tap(WidgetTester tester, Finder target) async {
   await tester.ensureVisible(target);
+  // Lay out the scrolled list before hit-testing the new position.
+  await tester.pump();
   await tester.tap(target);
   await tester.pumpAndSettle();
 }
@@ -213,6 +281,50 @@ void main() {
     expect(_inSettings('Ứng dụng'), findsOneWidget);
     expect(find.text('Phục vụ'), findsWidgets);
     expect(find.text('Xóa tài khoản'), findsNothing);
+  });
+
+  testWidgets('owner creates, saves and rotates the takeaway menu QR', (
+    tester,
+  ) async {
+    final exporter = FakeFileExporter();
+    final (_, settings) = await _pump(tester, exporter: exporter);
+
+    expect(_inSettings('QR menu mang đi'), findsOneWidget);
+    expect(find.byTooltip('Đổi link menu'), findsNothing);
+    await _tap(tester, find.text('Tạo link menu'));
+    expect(settings.calls, ['get', 'create', 'get', 'card:AAAA']);
+    expect(find.text('Đã tạo link menu.'), findsOneWidget);
+    expect(find.text('https://pos.example.com/menu/AAAA'), findsOneWidget);
+
+    await _tap(tester, find.text('Tải thẻ in'));
+    expect(exporter.exported.single.fileName, 'the-qr-menu.png');
+
+    // Rotating asks first, then fetches a card for the new token.
+    await _tap(tester, find.byTooltip('Đổi link menu'));
+    expect(find.text('Đổi link menu?'), findsOneWidget);
+    await _tap(tester, find.text('Huỷ'));
+    expect(settings.calls, isNot(contains('rotate')));
+    await _tap(tester, find.byTooltip('Đổi link menu'));
+    await _tap(tester, find.widgetWithText(FilledButton, 'Đổi link'));
+    expect(settings.calls.skip(4), ['rotate', 'get', 'card:BBBB']);
+    expect(find.text('https://pos.example.com/menu/BBBB'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('menu QR needs RESTAURANT_PROFILE_UPDATE', (tester) async {
+    final (_, settings) = await _pump(
+      tester,
+      role: UserRole.manager,
+      permissions: const {
+        'MENU_VIEW',
+        'RESTAURANT_PROFILE_VIEW',
+        'SUBSCRIPTION_VIEW',
+      },
+    );
+
+    expect(_inSettings('Nhà hàng'), findsOneWidget);
+    expect(_inSettings('QR menu mang đi'), findsNothing);
+    expect(settings.calls, isEmpty);
   });
 
   testWidgets('Cài đặt is in the menu, Tổng quan is not', (tester) async {

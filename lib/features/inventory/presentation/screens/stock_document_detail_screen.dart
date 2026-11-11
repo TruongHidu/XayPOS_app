@@ -186,7 +186,7 @@ class _StockDetailOverlayState extends ConsumerState<_StockDetailOverlay> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: _StockDetailBody(id: widget.id),
+              child: _StockDetailBody(id: widget.id, showStatus: false),
             ),
           ),
         ],
@@ -384,8 +384,11 @@ Future<void> _transition(
 }
 
 class _StockDetailBody extends ConsumerWidget {
-  const _StockDetailBody({required this.id});
+  const _StockDetailBody({required this.id, this.showStatus = true});
   final String id;
+
+  /// The overlay header already shows the status badge.
+  final bool showStatus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -427,39 +430,16 @@ class _StockDetailBody extends ConsumerWidget {
             ),
           ),
         if (d != null) ...[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              InventoryBadge(d.type.label),
-              StockStatusBadge(d.status),
-            ],
+          _DocumentSummary(
+            document: d,
+            showStatus: showStatus,
+            selfId: ref
+                .watch(authControllerProvider)
+                .state
+                .session
+                ?.authenticatedUser
+                .id,
           ),
-          const SizedBox(height: 16),
-          ResponsiveColumns(
-            minColumnWidth: 260,
-            maxColumns: 3,
-            spacing: 12,
-            children: [
-              Text('Kho: ${d.warehouseName}\n${d.warehouseCode}'),
-              Text(
-                'Số dòng: ${d.lineCount}\nTổng giá trị: ${stockDisplay(d.totalCost)}',
-              ),
-              Text(
-                'Tạo: ${formatLocalDate(d.createdAt)}\nCập nhật: ${formatLocalDate(d.updatedAt)}',
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Người tạo: ${d.createdBy}'),
-          if (d.confirmedAt != null)
-            Text(
-              'Xác nhận: ${formatLocalDate(d.confirmedAt!)} · ${d.confirmedBy}',
-            ),
-          if (d.cancelledAt != null)
-            Text('Hủy: ${formatLocalDate(d.cancelledAt!)} · ${d.cancelledBy}'),
-          const SizedBox(height: 12),
-          Text('Ghi chú: ${d.note ?? '—'}'),
           if (d.stockAuditId != null) ...[
             const SizedBox(height: 12),
             const InventoryBadge('Sinh từ kiểm kê — chỉ đọc'),
@@ -522,7 +502,14 @@ class _StockDetailBody extends ConsumerWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          Text(
+            'Hàng hóa (${d.items.length})',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
           if (d.items.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
@@ -610,58 +597,261 @@ class _StockDetailBody extends ConsumerWidget {
                   ),
                 );
               }
-              return ResponsiveColumns(
-                minColumnWidth: 330 * scale.clamp(1, 1.5),
-                maxColumns: 3,
-                spacing: 12,
-                children: [
-                  for (final row in d.items)
-                    Card(
-                      key: ValueKey('stock-line-${row.id}'),
-                      margin: EdgeInsets.zero,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              row.ingredientName,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            if (row.ingredientSku != null)
-                              Text(row.ingredientSku!),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Số lượng: ${inventoryAmount(row.quantity, row.unit)}',
-                            ),
-                            Text('Đơn giá: ${stockDisplay(row.unitCost)}'),
-                            Text('Thành tiền: ${stockDisplay(row.totalCost)}'),
-                            if (row.direction != null)
-                              InventoryBadge(
-                                row.direction!.label,
-                                warning:
-                                    row.direction ==
-                                    AdjustmentDirection.decrease,
-                              ),
-                            if (row.note != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(row.note!),
-                              ),
-                            if (d.stockAuditId == null &&
-                                d.status == StockDocumentStatus.draft &&
-                                c.can(d.type.permission))
-                              actions(row),
-                          ],
-                        ),
+              if (d.items.isEmpty) return const SizedBox.shrink();
+              final writable =
+                  d.stockAuditId == null &&
+                  d.status == StockDocumentStatus.draft &&
+                  c.can(d.type.permission);
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < d.items.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _LineRow(
+                        key: ValueKey('stock-line-${d.items[i].id}'),
+                        row: d.items[i],
+                        onEdit: writable && c.editable
+                            ? () => _editLine(
+                                context,
+                                ref,
+                                id,
+                                itemId: d.items[i].id,
+                              )
+                            : null,
+                        onDelete: writable && c.editable
+                            ? () => _deleteLine(context, ref, id, d.items[i].id)
+                            : null,
+                        showActions: writable,
                       ),
-                    ),
-                ],
+                    ],
+                  ],
+                ),
               );
             },
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Type, total and the few facts worth reading; raw user ids stay hidden
+/// because the document carries no names for them.
+class _DocumentSummary extends StatelessWidget {
+  const _DocumentSummary({
+    required this.document,
+    required this.showStatus,
+    required this.selfId,
+  });
+  final StockDocumentDetail document;
+  final bool showStatus;
+  final String? selfId;
+
+  String _when(DateTime at, String? by) =>
+      '${formatLocalDate(at)}${by != null && by == selfId ? ' · bởi bạn' : ''}';
+
+  @override
+  Widget build(BuildContext context) {
+    final d = document;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final facts = <(String, String)>[
+      ('Kho', '${d.warehouseName} (${d.warehouseCode})'),
+      ('Tạo lúc', _when(d.createdAt, d.createdBy)),
+      if (d.confirmedAt != null)
+        ('Xác nhận lúc', _when(d.confirmedAt!, d.confirmedBy)),
+      if (d.cancelledAt != null)
+        ('Hủy lúc', _when(d.cancelledAt!, d.cancelledBy)),
+      if (d.status == StockDocumentStatus.draft &&
+          d.updatedAt.isAfter(d.createdAt))
+        ('Cập nhật lúc', formatLocalDate(d.updatedAt)),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              InventoryBadge(d.type.label),
+              if (showStatus) StockStatusBadge(d.status),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Tổng giá trị',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            stockDisplay(d.totalCost),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: scheme.primary,
+            ),
+          ),
+          Text(
+            '${d.lineCount} dòng hàng hóa',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          ResponsiveColumns(
+            minColumnWidth: 200,
+            maxColumns: 3,
+            spacing: 10,
+            children: [
+              for (final (label, value) in facts)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          if (d.note case final note? when note.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.sticky_note_2_outlined,
+                    size: 18,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(note)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Name on the left, line total on the right, quantity × unit price below.
+class _LineRow extends StatelessWidget {
+  const _LineRow({
+    super.key,
+    required this.row,
+    required this.showActions,
+    this.onEdit,
+    this.onDelete,
+  });
+  final StockDocumentItem row;
+  final bool showActions;
+  final VoidCallback? onEdit, onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14, 12, showActions ? 4 : 14, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.ingredientName,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (row.ingredientSku != null)
+                  Text('SKU ${row.ingredientSku}', style: muted),
+                const SizedBox(height: 2),
+                Text(
+                  '${inventoryAmount(row.quantity, row.unit)} × ${stockDisplay(row.unitCost)}',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                if (row.direction != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: InventoryBadge(
+                      row.direction!.label,
+                      warning: row.direction == AdjustmentDirection.decrease,
+                    ),
+                  ),
+                if (row.note case final note? when note.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(note, style: muted),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            flex: 2,
+            child: Text(
+              stockDisplay(row.totalCost),
+              textAlign: TextAlign.end,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (showActions)
+            Column(
+              children: [
+                IconButton(
+                  tooltip: 'Sửa dòng',
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                ),
+                IconButton(
+                  tooltip: 'Xóa dòng',
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

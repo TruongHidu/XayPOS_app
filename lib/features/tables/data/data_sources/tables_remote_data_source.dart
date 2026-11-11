@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import '../../../../core/network/binary_download.dart';
+import '../../../../core/result/result.dart';
 import '../../domain/entities/table_entities.dart';
 import '../../domain/entities/table_inputs.dart';
 import '../../domain/entities/table_query.dart';
@@ -149,6 +151,28 @@ class TablesRemoteDataSource {
     );
     return TableDto.tableQrPayload(response.data);
   }
+
+  /// Bare QR code PNG for the table's customer link.
+  Future<Result<DownloadedFile>> restaurantTableQrImage(
+    String id, {
+    String? code,
+    int size = 1024,
+  }) => getBinary(
+    _dio,
+    '/api/v1/tables/${Uri.encodeComponent(id)}/qr/image',
+    query: {'format': 'png', 'size': size},
+    fallbackName: 'qr-ban-${asciiSlug(code ?? 'ban')}.png',
+  );
+
+  /// Printable A6 table card PNG (1240 × 1748).
+  Future<Result<DownloadedFile>> restaurantTableQrCard(
+    String id, {
+    String? code,
+  }) => getBinary(
+    _dio,
+    '/api/v1/tables/${Uri.encodeComponent(id)}/qr/card',
+    fallbackName: 'the-qr-ban-${asciiSlug(code ?? 'ban')}.png',
+  );
 
   Future<TablePage<TableSession>> tableSessionList(TableQuery query) async {
     final response = await _dio.get<dynamic>(

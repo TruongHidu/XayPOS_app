@@ -39,7 +39,7 @@ Future<void> tableAction(
       context,
       ref,
       permission: 'TABLE_UPDATE',
-      child: TableQrDialog(id: row.id),
+      child: TableQrDialog(id: row.id, code: row.code),
     );
     return;
   }

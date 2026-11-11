@@ -148,13 +148,33 @@ abstract final class AccessPolicy {
         takeaway ? 'POS_QUICK_ORDER' : 'TABLE_MANAGEMENT',
       );
 
-  /// The takeaway board only reads orders; each shortcut checks its own grant.
+  /// The takeaway board is a work queue: it shows only to staff who can move a
+  /// takeaway order along (confirm, pay, complete or start one), not to
+  /// read-only order viewers such as the kitchen.
   static bool canTakeawayOrders(AppSession? session) =>
-      canOrders(session, 'ORDER_VIEW');
+      canOrders(session, 'ORDER_VIEW') &&
+      session!.features.contains('POS_QUICK_ORDER') &&
+      (canOrders(session, 'ORDER_CREATE') ||
+          canOrders(session, 'ORDER_UPDATE') ||
+          canOrders(session, 'ORDER_COMPLETE') ||
+          canRecordOrderPayment(session));
+
+  /// The QR inbox only helps someone who can at least reject a request.
+  static bool canHandleQrRequests(AppSession? session) =>
+      canOrders(session, 'ORDER_VIEW') && canOrders(session, 'ORDER_UPDATE');
 
   static Object? tableScope(AppSession? session) => menuScope(session);
+
+  /// Gọi món shows when there is something to do there: work the table board,
+  /// start a takeaway order, or handle QR requests. Reading orders alone is
+  /// what Đơn hàng is for.
   static bool canOrderWorkspace(AppSession? session) =>
-      canOrders(session, 'ORDER_VIEW') || canOrders(session, 'ORDER_CREATE');
+      (canTables(session, 'TABLE_VIEW') &&
+          (canOrders(session, 'ORDER_VIEW') ||
+              canOrders(session, 'ORDER_CREATE'))) ||
+      (canCreateOrder(session, takeaway: true) &&
+          canMenu(session, 'MENU_VIEW')) ||
+      canHandleQrRequests(session);
   static bool canSubmitOrder(AppSession? session, {required bool takeaway}) =>
       canCreateOrder(session, takeaway: takeaway) &&
       canOrders(session, 'ORDER_UPDATE');
@@ -408,6 +428,58 @@ abstract final class AccessPolicy {
       session!.authenticatedUser.id != staffId &&
       canAssignStaffRole(session, roleCode);
 
+  /// The one rule for each top-level section, shared by the sidebar, the
+  /// bottom tabs and the router so they can never disagree. Null for an id
+  /// this policy doesn't know.
+  ///
+  /// Package features and permissions decide visibility; the role only
+  /// orders sections (see the bottom tabs), because staff can be granted or
+  /// denied single permissions beyond their role's defaults.
+  static bool? canSeeSection(AppSession session, String id) => switch (id) {
+    'orders' => canOrders(session, 'ORDER_VIEW'),
+    'order-create' => canOrderWorkspace(session),
+    'takeaway-orders' => canTakeawayOrders(session),
+    'kitchen-display' => canKitchen(session, 'KITCHEN_VIEW'),
+    'tables' => canTables(session, 'TABLE_VIEW'),
+    'menu' => canMenuWorkspace(session),
+    'staff' => canStaff(session, 'STAFF_VIEW'),
+    'inventory' ||
+    'inventory-documents' => canInventory(session, 'INVENTORY_VIEW'),
+    'inventory-alerts' => canViewInventoryAlerts(session),
+    'inventory-audits' => canViewStockAudits(session),
+    'daily-revenue' => canDailyReport(session),
+    'reports' => canDetailReport(session),
+    'reference-margin-reports' => canViewReferenceMarginReports(session),
+    'cashbook' => canCashbook(session, 'CASHBOOK_VIEW'),
+    // Cài đặt holds the account's own pages, so whoever reaches the shell may open it.
+    'settings' => canOpenRoute(session, '/app/home'),
+    _ => null,
+  };
+
+  /// Section ids behind the plain top-level routes.
+  static const _sectionRoutes = {
+    '/app/kitchen': 'kitchen-display',
+    // Old link; the router sends it to the kitchen screen.
+    '/app/dish-status': 'kitchen-display',
+    '/app/orders': 'orders',
+    '/app/takeaway': 'takeaway-orders',
+    '/app/order-create': 'order-create',
+    '/app/daily-revenue': 'daily-revenue',
+    '/app/inventory/balances': 'inventory',
+    '/app/inventory/warehouses': 'inventory',
+    '/app/inventory/stock-documents': 'inventory-documents',
+    '/app/inventory/alerts': 'inventory-alerts',
+    '/app/inventory/low-stock': 'inventory-alerts',
+    '/app/inventory/audits': 'inventory-audits',
+    '/app/reports': 'reports',
+    '/app/cashbook': 'cashbook',
+    '/app/reference-margin': 'reference-margin-reports',
+    '/app/tables': 'tables',
+    '/app/menu': 'menu',
+    '/app/staff': 'staff',
+    '/app/settings': 'settings',
+  };
+
   static bool hasPermission(AppSession session, String permission) {
     return session.permissions.contains(permission);
   }
@@ -492,15 +564,10 @@ abstract final class AccessPolicy {
     if (RegExp(r'^/app/menu/items/[^/]+/recipes$').hasMatch(path)) {
       return canRecipe(session, 'RECIPE_VIEW');
     }
-    if (path == '/app/kitchen' || path == '/app/dish-status') {
-      return canKitchen(session, 'KITCHEN_VIEW');
-    }
-    if (path == '/app/orders' || path.startsWith('/app/orders/')) {
+    if (path.startsWith('/app/orders/')) {
       return canOrders(session, 'ORDER_VIEW');
     }
-    if (path == '/app/takeaway' || path.startsWith('/app/takeaway/')) {
-      return canTakeawayOrders(session);
-    }
+    if (path.startsWith('/app/takeaway/')) return canTakeawayOrders(session);
     final billMatch = RegExp(
       r'^/app/order-create/bill/([^/]+)$',
     ).firstMatch(path);
@@ -525,9 +592,7 @@ abstract final class AccessPolicy {
       if (uri?.queryParameters['tableSessionId'] != null) {
         return canCreateOrder(session, takeaway: false);
       }
-      return canOrderWorkspace(session);
     }
-    if (path == '/app/daily-revenue') return canDailyReport(session);
     if (path == '/app/inventory') {
       return switch (uri?.queryParameters['tab']) {
         'alerts' ||
@@ -537,19 +602,9 @@ abstract final class AccessPolicy {
         _ => canInventory(session, 'INVENTORY_VIEW'),
       };
     }
-    if (const {
-      '/app/inventory/balances',
-      '/app/inventory/warehouses',
-      '/app/inventory/stock-documents',
-    }.contains(path)) {
-      return canInventory(session, 'INVENTORY_VIEW');
-    }
-    if (path == '/app/inventory/alerts' || path == '/app/inventory/low-stock') {
-      return canViewInventoryAlerts(session);
-    }
-    if (path == '/app/inventory/audits') {
-      return canViewStockAudits(session);
-    }
+    // Plain section routes follow the same rule as the sidebar.
+    final section = _sectionRoutes[path];
+    if (section != null) return canSeeSection(session, section)!;
     if (path == '/app/inventory/audits/new') {
       return canManageStockAudits(session);
     }
@@ -571,16 +626,6 @@ abstract final class AccessPolicy {
         RegExp(r'^/app/inventory/stock-documents/[^/]+$').hasMatch(path)) {
       return canInventory(session, 'INVENTORY_VIEW');
     }
-    if (path == '/app/reports') return canDetailReport(session);
-    if (path == '/app/cashbook') return canCashbook(session, 'CASHBOOK_VIEW');
-    if (path == '/app/reference-margin') {
-      return canViewReferenceMarginReports(session);
-    }
-    if (location == '/app/tables') return canTables(session, 'TABLE_VIEW');
-    if (path == '/app/menu') return canMenuWorkspace(session);
-    if (location == '/app/staff') return canStaff(session, 'STAFF_VIEW');
-    // Cài đặt holds the account's own pages, so whoever reaches the shell may open it.
-    if (path == '/app/settings') return canOpenRoute(session, '/app/home');
     // Unified app shell — allowed if subscribed and has features.
     if (location == '/app/home') {
       final user = session.authenticatedUser;

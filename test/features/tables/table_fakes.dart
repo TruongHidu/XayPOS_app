@@ -4,6 +4,8 @@ import 'package:pos_saas_app/features/tables/data/repositories/table_area_reposi
 import 'package:pos_saas_app/features/tables/data/repositories/restaurant_table_repository_impl.dart';
 import 'package:pos_saas_app/features/tables/data/repositories/table_session_repository_impl.dart';
 
+import '../../helpers/qr_fakes.dart';
+
 const tablePermissions = {
   'TABLE_VIEW',
   'TABLE_CREATE',
@@ -92,12 +94,19 @@ Map<String, dynamic> transferJson({String? reason = 'Quiet area'}) => {
   'sessionVersionAfter': 4,
   'transferredAt': '2026-10-11T03:20:00Z',
 };
-Map<String, dynamic> qrJson({int version = 9}) => {
-  'tableId': 't1',
-  'qrToken': 'secret',
-  'qrPath': '/menu/qr/secret',
-  'version': version,
-};
+
+/// Rotating changes the token, as the server does.
+Map<String, dynamic> qrJson({int version = 9, bool withUrl = true}) {
+  final token = version == 9 ? 'secret' : 'secret$version';
+  return {
+    'tableId': 't1',
+    'qrToken': token,
+    'qrPath': '/menu/qr/$token',
+    if (withUrl) 'menuUrl': 'https://pos.example.com/menu/qr/$token',
+    'version': version,
+  };
+}
+
 Map<String, dynamic> pageJson(
   List<Object> content, {
   int page = 0,
@@ -141,6 +150,18 @@ class TableServer {
     final path = r.path;
     Object? data;
     var status = 200;
+    if (path.endsWith('/qr/image') || path.endsWith('/qr/card')) {
+      return Response(
+        requestOptions: r,
+        statusCode: 200,
+        data: tinyPng,
+        headers: Headers.fromMap({
+          Headers.contentTypeHeader: ['image/png'],
+          if (path.endsWith('/qr/card'))
+            'content-disposition': ['inline; filename="the-qr-ban-b01.png"'],
+        }),
+      );
+    }
     if (r.method == 'DELETE' || path.endsWith('/current-session')) {
       status = 204;
     } else if (path.endsWith('/qr') || path.endsWith('/qr/rotate')) {

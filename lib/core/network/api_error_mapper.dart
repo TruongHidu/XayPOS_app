@@ -24,6 +24,17 @@ abstract final class ApiErrorMapper {
         ? ApiErrorDto.fromJson(data)
         : const ApiErrorDto(code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi.');
 
+    if (apiError.stockShortage != null) {
+      return Failure(
+        type: FailureType.conflict,
+        code: apiError.code,
+        message:
+            'Kho không đủ nguyên liệu cho một số món. Chưa có thay đổi nào được lưu.',
+        fieldErrors: apiError.fieldErrors,
+        stockShortage: apiError.stockShortage,
+      );
+    }
+
     const configurationMessages = {
       'COST_PRICE_REQUIRED': 'Nhập giá vốn tham chiếu để xác nhận cấu hình.',
       'INVALID_COST_CONFIGURATION':
@@ -318,6 +329,14 @@ abstract final class ApiErrorMapper {
       'QR_TOKEN_CONFLICT' => (
         FailureType.conflict,
         'Chưa thể tạo mã QR mới. Vui lòng thử lại.',
+      ),
+      'PUBLIC_MENU_LINK_NOT_INITIALIZED' => (
+        FailureType.notFound,
+        'Nhà hàng chưa tạo link menu cho khách.',
+      ),
+      'RESTAURANT_NOT_FOUND' => (
+        FailureType.notFound,
+        'Không tìm thấy thông tin nhà hàng.',
       ),
       'EMPTY_UPDATE_REQUEST' => (
         FailureType.validation,

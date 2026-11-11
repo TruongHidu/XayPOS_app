@@ -5,60 +5,18 @@ import 'sidebar_menu_item.dart';
 
 /// Filters a list of [SidebarMenuItem] based on the current [AppSession].
 ///
-/// An item is visible when:
-///  - All [SidebarMenuItem.requiredPermissions] are present in the session.
-///  - All [SidebarMenuItem.requiredFeatures] are present in the session.
+/// An item is visible when [AccessPolicy.canSeeSection] allows it, or, for
+/// an id the policy doesn't know, when its required permissions and features
+/// are all present in the session.
 List<SidebarMenuItem> filterMenuItems(
   AppSession session,
   List<SidebarMenuItem> allItems,
 ) {
   return allItems.where((item) {
-    if (item.id == 'kitchen-display') {
-      return AccessPolicy.canKitchen(session, 'KITCHEN_VIEW');
-    }
-    if (item.id == 'dish-status') {
-      return AccessPolicy.canKitchen(session, 'KITCHEN_VIEW') &&
-          (AccessPolicy.canKitchen(session, 'KITCHEN_START_COOKING') ||
-              AccessPolicy.canKitchen(session, 'KITCHEN_MARK_READY'));
-    }
-    if (item.id == 'orders') {
-      return AccessPolicy.canOrders(session, 'ORDER_VIEW');
-    }
-    if (item.id == 'order-create') {
-      return AccessPolicy.canOrderWorkspace(session);
-    }
-    if (item.id == 'takeaway-orders') {
-      return AccessPolicy.canTakeawayOrders(session);
-    }
-    if (item.id == 'tables') {
-      return AccessPolicy.canTables(session, 'TABLE_VIEW');
-    }
-    if (item.id == 'menu') return AccessPolicy.canMenuWorkspace(session);
-    if (item.id == 'staff') return AccessPolicy.canStaff(session, 'STAFF_VIEW');
-    if (item.id == 'inventory' || item.id == 'inventory-documents') {
-      return AccessPolicy.canInventory(session, 'INVENTORY_VIEW');
-    }
-    if (item.id == 'inventory-alerts') {
-      return AccessPolicy.canViewInventoryAlerts(session);
-    }
-    if (item.id == 'inventory-audits') {
-      return AccessPolicy.canViewStockAudits(session);
-    }
-    if (item.id == 'daily-revenue') {
-      return AccessPolicy.canDailyReport(session);
-    }
-    if (item.id == 'reports') {
-      return AccessPolicy.canDetailReport(session);
-    }
-    if (item.id == 'reference-margin-reports') {
-      return AccessPolicy.canViewReferenceMarginReports(session);
-    }
-    if (item.id == 'cashbook') {
-      return AccessPolicy.canCashbook(session, 'CASHBOOK_VIEW');
-    }
-    if (item.id == 'settings') {
-      return AccessPolicy.canOpenRoute(session, '/app/settings');
-    }
+    // Known sections share the router's rule; the fields below only cover
+    // items the policy hasn't learned yet.
+    final known = AccessPolicy.canSeeSection(session, item.id);
+    if (known != null) return known;
     final hasAllPermissions = item.requiredPermissions.every(
       (p) => session.permissions.contains(p),
     );

@@ -29,14 +29,18 @@ Sửa `.env` ở thư mục gốc, rồi chạy:
 flutter run
 ```
 
-Trong VS Code có các cách chạy:
+Đổi backend chỉ cần sửa `API_BASE_URL` trong `.env`, mọi cách chạy dưới đây
+đều theo. Trong VS Code có các cách chạy:
 
-- **Xây POS (.env)** và **Xây POS qua USB (.env)**: cùng dùng khi phát triển với một thiết bị Android cắm
-  USB. Bật USB debugging, chấp nhận kết nối trên thiết bị, chọn thiết bị đó rồi
-  nhấn F5. Task chạy trước tự thiết lập `adb -d reverse tcp:8080 tcp:8080`;
-  app dùng `http://127.0.0.1:8080` qua cáp, không phụ thuộc IP Wi-Fi của máy tính.
-  Backend phải chạy ở cổng 8080 và cần giữ cáp USB. Nếu rút/cắm lại cáp hoặc khởi
-  động lại thiết bị, dừng phiên debug rồi F5 để thiết lập lại đường kết nối.
+- **Xây POS qua USB**: thiết bị Android cắm USB (bật USB debugging, chấp nhận
+  kết nối, chọn thiết bị rồi nhấn F5). Task chạy trước đọc `.env`:
+  - Backend chạy trên máy này (`localhost`, `127.0.0.1`, `10.0.2.2` hoặc IP của
+    máy này): tự chạy `adb reverse tcp:<port> tcp:<port>` theo đúng cổng trong
+    `.env`; app dùng `http://127.0.0.1:<port>` qua cáp, không phụ thuộc Wi-Fi.
+    Nếu rút/cắm lại cáp hoặc khởi động lại thiết bị, dừng phiên debug rồi F5.
+  - Backend khác (domain/server thật, máy khác trong LAN): dùng nguyên URL đó.
+
+  Kết quả được ghi ra `.dart_tool/pos_launch.env` (file sinh ra, không sửa tay).
 - **Xây POS qua Wi-Fi (tự cập nhật IP)**: trước mỗi F5 tự lấy IPv4 của Wi-Fi/
   Ethernet đang hoạt động và cập nhật địa chỉ backend local trong `.env`.
   Giữ port/path và các key khác; đồng bộ URL WebSocket local nếu được đặt rõ.
@@ -44,10 +48,10 @@ Trong VS Code có các cách chạy:
 - **Xây POS theo URL (.env)**: dùng chính xác URL đã cấu hình cho emulator,
   web/desktop hoặc backend riêng; không tự đổi IP và không thiết lập USB.
 
-Các cấu hình truyền `--dart-define-from-file=.env`; riêng USB ghi đè
-`API_BASE_URL=http://127.0.0.1:8080` và `REALTIME_URL=` để socket cũng suy ra
-đúng `/ws` qua cổng USB. Các tùy chọn khác vẫn lấy từ `.env`, bao gồm công tắc
-realtime. Không cần đổi IP trong `.env` khi dùng cấu hình USB.
+Wi-Fi và "Theo URL" truyền `--dart-define-from-file=.env`; USB truyền file
+`.dart_tool/pos_launch.env` là bản sao `.env`, chỉ khác khi backend ở máy này:
+`API_BASE_URL` đổi sang `127.0.0.1` và `REALTIME_URL` cùng máy được để trống để
+socket suy ra đúng `/ws` qua cáp. Các tùy chọn khác giữ nguyên từ `.env`.
 
 App nạp cấu hình trước khi tạo ProviderScope và các client API/realtime.
 Backend URL và các tùy chọn được đọc tập trung tại

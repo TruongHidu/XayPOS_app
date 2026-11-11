@@ -5,8 +5,8 @@ Mở **Gọi món → chọn bàn → chi tiết đơn** hoặc **Đơn hàng �
 ## Quy trình sử dụng
 
 1. Chọn Thanh toán hóa đơn, kiểm tra mã đơn và tổng tiền từ backend.
-2. Chọn Tiền mặt hoặc Chuyển khoản; chuyển khoản phải có mã tham chiếu giao dịch đã đối soát thủ công.
-3. Xác nhận đã nhận đủ tiền rồi gửi. Hiện backend chỉ nhận thanh toán đủ một lần, amount > 0.
+2. Chọn Tiền mặt hoặc Chuyển khoản (một chạm); chuyển khoản phải có mã tham chiếu giao dịch đã đối soát thủ công. Với tiền mặt, có thể nhập "Khách đưa" hoặc chạm nút gợi ý (Đủ tiền, mệnh giá tròn kế tiếp) để xem tiền thừa. Số này chỉ dùng để tính tiền thừa trên máy, không gửi lên backend; nếu nhỏ hơn số cần thu thì nút xác nhận bị khóa và hiện "Còn thiếu".
+3. Bấm nút "Đã nhận <số tiền>": chính nút ghi rõ số tiền là bước xác nhận đã nhận đủ. Hiện backend chỉ nhận thanh toán đủ một lần, amount > 0. Khi thanh toán đang chờ kết quả hoặc cần đối chiếu, phần tính tiền thừa được ẩn để chỉ còn các bước khôi phục.
 4. App nhận PaymentResponse và đọc lại OrderResponse. Khi đọc lại thất bại sau khi tiền đã được ghi nhận, chọn tải lại để xác minh; không tạo payment mới.
 5. Chọn Hoàn tất đơn và xác nhận. Nếu còn dòng chưa SERVED và có quyền ORDER_MARK_SERVED, xác nhận đã phục vụ thực tế tất cả món trước khi gửi. App gọi mark-served hàng loạt rồi complete bằng version mới trả về. Khi tất cả món đã SERVED, chỉ gọi complete. Đơn tại bàn đóng đúng phiên bàn trong cùng transaction backend; app không gọi thêm /close.
 

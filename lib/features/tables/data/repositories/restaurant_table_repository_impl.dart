@@ -1,3 +1,4 @@
+import '../../../../core/network/binary_download.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/table_entities.dart';
 import '../../domain/entities/table_inputs.dart';
@@ -44,4 +45,10 @@ class RestaurantTableRepositoryImpl implements RestaurantTableRepository {
   @override
   Future<Result<TableQrPayload>> rotateQr(String id, int version) =>
       tableResult(() => remote.restaurantTableRotateQr(id, version));
+  @override
+  Future<Result<DownloadedFile>> qrImage(String id, {String? code}) =>
+      remote.restaurantTableQrImage(id, code: code);
+  @override
+  Future<Result<DownloadedFile>> qrCard(String id, {String? code}) =>
+      remote.restaurantTableQrCard(id, code: code);
 }

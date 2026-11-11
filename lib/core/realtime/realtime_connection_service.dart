@@ -71,6 +71,16 @@ class RealtimeConnectionService extends ChangeNotifier {
       _eligible.isNotEmpty;
   bool _current(int epoch) => !_disposed && epoch == _epoch;
 
+  /// Meant to hold a connection now: enabled, in the foreground, signed in and
+  /// with a channel to listen to. Not connected while this holds means live
+  /// updates are missing.
+  bool get wantsConnection => _wanted;
+
+  /// Stopped for a reason a retry cannot fix (rejected access, protocol
+  /// error); resumes only once the session or access policy changes.
+  bool get halted =>
+      !_disposed && _enabled && _session != null && _connectionBlocked;
+
   void configure({
     required bool enabled,
     required bool foreground,

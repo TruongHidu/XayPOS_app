@@ -139,11 +139,19 @@ void main() {
       final auth = makeController(
         authRepository: FakeAuthRepository()
           ..loginResult = Success(
-            makeAuthSession(permissions: {'ORDER_VIEW', 'MENU_VIEW'}),
+            makeAuthSession(
+              permissions: {'ORDER_VIEW', 'ORDER_CREATE', 'MENU_VIEW'},
+            ),
           ),
         entitlementRepository: FakeEntitlementRepository()
           ..result = Success(
-            makeEntitlement(features: {'ORDER_MANAGEMENT', 'MENU_MANAGEMENT'}),
+            makeEntitlement(
+              features: {
+                'ORDER_MANAGEMENT',
+                'MENU_MANAGEMENT',
+                'POS_QUICK_ORDER',
+              },
+            ),
           ),
       );
       await auth.login(

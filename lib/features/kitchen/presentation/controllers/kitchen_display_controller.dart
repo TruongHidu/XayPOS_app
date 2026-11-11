@@ -76,18 +76,42 @@ class KitchenDisplayController extends KitchenController {
     });
   }
 
-  List<KitchenQueueItem> get visibleItems {
+  /// Default view: only what the kitchen still has to cook. Dishes already
+  /// done wait in [servingOrders] until someone takes them out.
+  bool todoOnly = true;
+  static const todoStatuses = {
+    OrderItemStatus.pending,
+    OrderItemStatus.cooking,
+  };
+
+  bool _matches(KitchenQueueItem item) {
     final q = search.toLowerCase();
-    return items
-        .where(
-          (item) =>
-              (filter == null || item.itemStatus == filter) &&
-              (q.isEmpty ||
-                  '${item.itemName} ${item.orderCode} ${item.tableName ?? ''} ${item.tableCode ?? ''}'
-                      .toLowerCase()
-                      .contains(q)),
-        )
-        .toList();
+    return q.isEmpty ||
+        '${item.itemName} ${item.orderCode} ${item.tableName ?? ''} ${item.tableCode ?? ''}'
+            .toLowerCase()
+            .contains(q);
+  }
+
+  List<KitchenQueueItem> get visibleItems => items
+      .where(
+        (item) =>
+            (todoOnly
+                ? todoStatuses.contains(item.itemStatus)
+                : filter == null || item.itemStatus == filter) &&
+            _matches(item),
+      )
+      .toList();
+
+  /// Ready dishes grouped by order, oldest first, for the "Chờ phục vụ" list
+  /// under the to-do view.
+  List<List<KitchenQueueItem>> get servingOrders {
+    final result = <String, List<KitchenQueueItem>>{};
+    for (final item in items) {
+      if (item.itemStatus == OrderItemStatus.ready && _matches(item)) {
+        (result[item.orderId] ??= []).add(item);
+      }
+    }
+    return result.values.toList();
   }
 
   Map<String, List<KitchenQueueItem>> get visibleOrders {
@@ -108,8 +132,16 @@ class KitchenDisplayController extends KitchenController {
     changed();
   }
 
+  /// A status, or null for every status; leaves the to-do view.
   void setFilter(OrderItemStatus? value) {
+    todoOnly = false;
     filter = value;
+    changed();
+  }
+
+  void showTodo() {
+    todoOnly = true;
+    filter = null;
     changed();
   }
 

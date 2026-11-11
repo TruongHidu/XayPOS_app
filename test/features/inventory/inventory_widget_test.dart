@@ -188,6 +188,10 @@ void main() {
             scale: scale,
           );
           expect(find.text('Tồn kho'), findsOneWidget);
+          expect(
+            find.text('Theo dõi số lượng hàng hóa tại từng kho.'),
+            findsOneWidget,
+          );
           await tester.scrollUntilVisible(
             find.text('Chưa cấu hình'),
             300,
@@ -229,6 +233,10 @@ void main() {
           );
           // The old low-stock link opens Tồn kho with the filter on.
           expect(find.text('Tồn kho'), findsOneWidget);
+          expect(
+            find.text('Theo dõi số lượng hàng hóa tại từng kho.'),
+            findsOneWidget,
+          );
           final lowChip = find.widgetWithText(FilterChip, 'Chỉ tồn thấp');
           expect(tester.widget<FilterChip>(lowChip).selected, isTrue);
           expect(balances.lowCalls, 1);

@@ -337,24 +337,28 @@ class ReportOrdersTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      row.orderCode,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                // Long codes push the channel label to its own line.
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        row.orderCode,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '(${_formatServiceType(row.serviceType)} - ${_formatSourceChannel(row.sourceChannel)})',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
+                      Text(
+                        '(${_formatServiceType(row.serviceType)} - ${_formatSourceChannel(row.sourceChannel)})',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.outline,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 if (canViewOrderDetail)
                   IconButton(
@@ -377,36 +381,42 @@ class ReportOrdersTable extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Tổng đơn: ${row.totalAmount.formatted}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tổng đơn: ${row.totalAmount.formatted}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Thu trong kỳ: ${row.collectedAmountInRange.formatted}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color:
-                            row.collectedAmountInRange.minorUnits > BigInt.zero
-                            ? AppColors.success
-                            : theme.colorScheme.outline,
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        'Thu trong kỳ: ${row.collectedAmountInRange.formatted}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color:
+                              row.collectedAmountInRange.minorUnits >
+                                  BigInt.zero
+                              ? AppColors.success
+                              : theme.colorScheme.outline,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Text(
-                  '$eventLabel:\n${_formatDateTime(row.reportEventAt)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    ],
                   ),
-                  textAlign: TextAlign.end,
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    '$eventLabel:\n${_formatDateTime(row.reportEventAt)}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                    ),
+                    textAlign: TextAlign.end,
+                  ),
                 ),
               ],
             ),

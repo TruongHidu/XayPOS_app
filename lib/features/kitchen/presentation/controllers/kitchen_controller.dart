@@ -12,8 +12,13 @@ class KitchenController extends ChangeNotifier {
   bool _disposed = false;
   bool get current =>
       !_disposed && scope == AccessPolicy.kitchenScope(session());
+
+  /// Kitchen grants, plus handing dishes over, which is an order grant.
   bool can(String permission) =>
-      current && AccessPolicy.canKitchen(session(), permission);
+      current &&
+      (permission == 'ORDER_MARK_SERVED'
+          ? AccessPolicy.canOrders(session(), permission)
+          : AccessPolicy.canKitchen(session(), permission));
   void changed() {
     if (current) notifyListeners();
   }

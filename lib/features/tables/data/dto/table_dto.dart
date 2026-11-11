@@ -85,6 +85,7 @@ abstract final class TableDto {
       qrToken: _string(j, 'qrToken'),
       qrPath: _string(j, 'qrPath'),
       version: _integer(j, 'version'),
+      menuUrl: _nullableString(j, 'menuUrl'),
     );
   }
 

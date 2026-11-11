@@ -217,32 +217,27 @@ void main() {
       expect(find.text('Không xác định đơn đang phục vụ'), findsOneWidget);
     },
   );
-  testWidgets(
-    'FAB is screen-floating and usable with large text',
-    (tester) async {
-      tester.view.physicalSize = const Size(320, 850);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final orders = FakeOrders()..current = serving();
-      final container = await pumpOrder(
-        tester,
-        orders: orders,
-        useRouter: true,
-      );
-      container.read(appRouterProvider).go('/app/orders/o1');
-      await tester.pumpAndSettle();
-      expect(find.byType(Scaffold), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsOneWidget);
-      final fab = find.byTooltip('Gọi thêm món');
-      final before = tester.getCenter(fab);
-      await tester.drag(find.byType(ListView).first, const Offset(0, -250));
-      await tester.pumpAndSettle();
-      expect(tester.getCenter(fab), before);
-      expect(orders.submissions, isEmpty);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('FAB is screen-floating and usable with large text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 850);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final orders = FakeOrders()..current = serving();
+    final container = await pumpOrder(tester, orders: orders, useRouter: true);
+    container.read(appRouterProvider).go('/app/orders/o1');
+    await tester.pumpAndSettle();
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    final fab = find.byTooltip('Gọi thêm món');
+    final before = tester.getCenter(fab);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -250));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(fab), before);
+    expect(orders.submissions, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   for (final state in [
     'PREPARING',
     'READY',

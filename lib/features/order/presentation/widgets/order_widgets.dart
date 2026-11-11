@@ -10,6 +10,7 @@ import '../../../../core/formatters/money_format.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../domain/entities/order_quantity.dart';
+import 'stock_shortage_dialog.dart';
 
 abstract final class OrderPalette {
   static const clear = Colors.transparent;
@@ -47,6 +48,8 @@ class OrderFailurePanel extends StatelessWidget {
                 Text(failure!.message),
                 if (failure!.fieldErrors.isNotEmpty)
                   Text(failure!.fieldErrors.values.join('\n')),
+                if (failure!.stockShortage case final shortage?)
+                  _StockShortageButton(failure: failure!, shortage: shortage),
                 if (retry != null)
                   TextButton(onPressed: retry, child: Text(label)),
                 if (failure!.code == 'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED')
@@ -55,6 +58,51 @@ class OrderFailurePanel extends StatelessWidget {
             ),
           ),
         );
+}
+
+/// Opens the shortage list as soon as the refusal shows up, then stays as a
+/// button so it can be reopened while the cart is being fixed.
+class _StockShortageButton extends StatefulWidget {
+  const _StockShortageButton({required this.failure, required this.shortage});
+  final Failure failure;
+  final StockShortage shortage;
+  @override
+  State<_StockShortageButton> createState() => _StockShortageButtonState();
+}
+
+class _StockShortageButtonState extends State<_StockShortageButton> {
+  /// Per refusal, not per panel: the same failure may sit in more than one
+  /// panel (screen and dialog) and must pop up only once.
+  static final _opened = Expando<bool>();
+
+  @override
+  void initState() {
+    super.initState();
+    _openOnce();
+  }
+
+  @override
+  void didUpdateWidget(_StockShortageButton old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.failure, widget.failure)) _openOnce();
+  }
+
+  void _openOnce() {
+    if (_opened[widget.failure] == true) return;
+    _opened[widget.failure] = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent != false) {
+        showStockShortageDialog(context, widget.shortage);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: () => showStockShortageDialog(context, widget.shortage),
+    icon: const Icon(Icons.list_alt),
+    label: Text('Xem ${widget.shortage.lines.length} món thiếu nguyên liệu'),
+  );
 }
 
 /// Pushed over the order screen so the cart survives; dialogs keep their draft

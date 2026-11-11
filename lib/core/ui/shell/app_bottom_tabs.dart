@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import '../../../features/auth/domain/entities/user_role.dart';
 import '../sidebar/sidebar_menu_item.dart';
 
-/// The sections each role opens all day, most used first.
+/// The sections each role opens all day, most used first. The first one the
+/// user can open is also where the app starts. Visibility itself comes from
+/// permissions and features, never from this list.
 List<String> _preferredTabs(UserRole role) => switch (role) {
   UserRole.kitchen => const ['kitchen-display', 'orders'],
   UserRole.owner ||

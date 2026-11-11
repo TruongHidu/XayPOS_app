@@ -101,6 +101,14 @@ enum KitchenAction {
     'KITCHEN_MARK_READY',
     OrderItemStatus.cooking,
     OrderItemStatus.ready,
+  ),
+
+  /// Handing a ready dish over; an order permission, not a kitchen one.
+  markServed(
+    'mark-served',
+    'ORDER_MARK_SERVED',
+    OrderItemStatus.ready,
+    OrderItemStatus.served,
   );
 
   const KitchenAction(this.path, this.permission, this.source, this.target);

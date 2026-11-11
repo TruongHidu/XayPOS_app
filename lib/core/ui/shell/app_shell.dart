@@ -15,6 +15,7 @@ import '../sidebar/app_sidebar.dart';
 import '../sidebar/app_sidebar_registry.dart';
 import '../sidebar/sidebar_filter.dart';
 import '../sidebar/sidebar_menu_item.dart';
+import '../widgets/realtime_connection_banner.dart';
 import 'app_bottom_tabs.dart';
 import 'exit_confirm_dialog.dart';
 
@@ -162,7 +163,6 @@ class _AppShellState extends ConsumerState<AppShell>
       'menu',
       'staff',
       'kitchen-display',
-      'dish-status',
       'daily-revenue',
       'reports',
       'reference-margin-reports',
@@ -217,9 +217,12 @@ class _AppShellState extends ConsumerState<AppShell>
     // Flatten all visible items to pick a default selection.
     final allVisibleItems = visibleCategories.expand((c) => c.items).toList();
 
-    // Pick the first item as selected if nothing is selected yet.
+    final tabs = bottomTabsFor(session.authenticatedUser.role, allVisibleItems);
+
+    // Start on the role's main section, e.g. the kitchen screen for kitchen
+    // staff; fall back to the first item the user may open.
     if (_selectedId == null && allVisibleItems.isNotEmpty) {
-      _selectedId = allVisibleItems.first.id;
+      _selectedId = (tabs.firstOrNull ?? allVisibleItems.first).id;
     }
 
     final badges = {
@@ -231,7 +234,6 @@ class _AppShellState extends ConsumerState<AppShell>
     };
     final width = MediaQuery.sizeOf(context).width;
     final largeScreen = width >= 1024;
-    final tabs = bottomTabsFor(session.authenticatedUser.role, allVisibleItems);
     final hasMoreSections = allVisibleItems.length > tabs.length;
     // Composing and billing hide the app bar to keep the cart in full view.
     final showTabs =
@@ -312,8 +314,16 @@ class _AppShellState extends ConsumerState<AppShell>
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Main content area
-            Positioned.fill(child: _buildContent(session, allVisibleItems)),
+            // Main content area. Composing and billing hide the app bar and
+            // draw their own safe-area header, so the strip stays off them.
+            Positioned.fill(
+              child: Column(
+                children: [
+                  if (widget.showAppBar) const RealtimeConnectionBanner(),
+                  Expanded(child: _buildContent(session, allVisibleItems)),
+                ],
+              ),
+            ),
 
             // Sidebar overlay
             if (!widget.isInner)
@@ -384,7 +394,7 @@ class _AppShellState extends ConsumerState<AppShell>
     if (selected.id == 'orders') return const OrderListScreen();
     if (selected.id == 'order-create') return const OrderServiceContextScreen();
     if (selected.id == 'takeaway-orders') return const TakeawayOrdersScreen();
-    if (selected.id == 'kitchen-display' || selected.id == 'dish-status') {
+    if (selected.id == 'kitchen-display') {
       return KitchenDisplayScreen(
         key: ValueKey(AccessPolicy.kitchenScope(session)),
       );

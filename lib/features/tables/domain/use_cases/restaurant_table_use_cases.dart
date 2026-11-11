@@ -1,3 +1,4 @@
+import '../../../../core/network/binary_download.dart';
 import '../../../../core/result/result.dart';
 import '../entities/table_entities.dart';
 import '../entities/table_inputs.dart';
@@ -64,6 +65,20 @@ class QrRestaurantTable {
   const QrRestaurantTable(this.repository);
   final RestaurantTableRepository repository;
   Future<Result<TableQrPayload>> call(String id) => repository.qr(id);
+}
+
+class QrImageRestaurantTable {
+  const QrImageRestaurantTable(this.repository);
+  final RestaurantTableRepository repository;
+  Future<Result<DownloadedFile>> call(String id, {String? code}) =>
+      repository.qrImage(id, code: code);
+}
+
+class QrCardRestaurantTable {
+  const QrCardRestaurantTable(this.repository);
+  final RestaurantTableRepository repository;
+  Future<Result<DownloadedFile>> call(String id, {String? code}) =>
+      repository.qrCard(id, code: code);
 }
 
 class RotateQrRestaurantTable {

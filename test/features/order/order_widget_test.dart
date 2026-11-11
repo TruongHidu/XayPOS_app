@@ -584,6 +584,9 @@ void main() {
         useRouter: true,
       );
       final router = container.read(appRouterProvider);
+      // The owner starts on Gọi món, whose table board reads tables; only the
+      // takeaway composer must stay off the table API.
+      tables.requests.clear();
       router.go('/app/order-create?serviceType=TAKEAWAY');
       await tester.pumpAndSettle();
       expect(find.text('Chọn món'), findsOneWidget);

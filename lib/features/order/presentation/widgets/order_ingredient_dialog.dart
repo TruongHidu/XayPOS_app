@@ -89,24 +89,44 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
           FailureType.forbidden,
           FailureType.featureNotEntitled,
         }.contains(failure?.type);
+    final theme = Theme.of(context);
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
+        constraints: const BoxConstraints(maxWidth: 640),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 12, 8, 16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Text(
-                      recipeAllowed ? 'Nguyên liệu của món' : 'Kho của món',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.line.itemName,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '${widget.line.quantity} ${widget.line.unit} · ${widget.line.status.label}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    tooltip: 'Làm mới',
+                    onPressed: selected == null || selected.loading
+                        ? null
+                        : selected.load,
+                    icon: const Icon(Icons.refresh),
                   ),
                   IconButton(
                     tooltip: 'Đóng',
@@ -115,56 +135,41 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                   ),
                 ],
               ),
-              const Divider(),
-              Expanded(
+              const SizedBox(height: 12),
+              Flexible(
                 child: SingleChildScrollView(
                   key: PageStorageKey((
                     'order-ingredient-detail',
                     target,
                     showAllocation,
                   )),
+                  padding: const EdgeInsets.only(right: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        widget.line.itemName,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text('Đơn: ${widget.order.summary.orderCode}'),
-                      Text(
-                        '${widget.line.quantity} ${widget.line.unit} · ${widget.line.status.label}',
-                      ),
-                      const SizedBox(height: 16),
-                      if (recipeAllowed)
+                      if (recipeAllowed && allocationAllowed) ...[
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             ChoiceChip(
-                              label: const Text('Công thức đã chốt'),
+                              label: const Text('Công thức'),
                               selected: !_allocation,
                               onSelected: (_) =>
                                   setState(() => _allocation = false),
                             ),
-                            if (allocationAllowed)
-                              ChoiceChip(
-                                label: const Text('Giữ & tiêu thụ kho'),
-                                selected: _allocation,
-                                onSelected: (_) => setState(() {
-                                  _allocationRequested = true;
-                                  _allocation = true;
-                                }),
-                              ),
+                            ChoiceChip(
+                              label: const Text('Kho'),
+                              selected: _allocation,
+                              onSelected: (_) => setState(() {
+                                _allocationRequested = true;
+                                _allocation = true;
+                              }),
+                            ),
                           ],
                         ),
-                      if (!allocationAllowed)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: Text(
-                            'Cần quyền xem kho và tính năng kho để xem giữ/tiêu thụ hàng hóa.',
-                          ),
-                        ),
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 12),
+                      ],
                       if (selected?.loading == true)
                         const LinearProgressIndicator(),
                       if (selected?.stale == true)
@@ -192,20 +197,6 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
                   ),
                 ),
               ),
-              const Divider(),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                  ),
-                  onPressed: selected == null || selected.loading
-                      ? null
-                      : selected.load,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Làm mới'),
-                ),
-              ),
             ],
           ),
         ),
@@ -229,65 +220,55 @@ class _SnapshotDetails extends StatelessWidget {
   final OrderRecipeSnapshot value;
   final bool allocationAllowed;
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      _Info(value.status.label),
-      if (allocationAllowed &&
-          value.status == RecipeSnapshotStatus.recipeDisabled)
-        const Text(
-          'Nếu món trừ tồn trực tiếp, xem số lượng tại “Giữ & tiêu thụ kho”.',
-        ),
-      if (value.costSourceSnapshot != null)
-        Text('Nguồn được chốt khi gửi món: ${value.costSourceSnapshot!.label}')
-      else if (value.status == RecipeSnapshotStatus.notSubmitted)
-        const Text('Món chưa gửi, chưa chốt nguồn áp dụng.')
-      else
-        const Text('Dữ liệu lịch sử chưa ghi nhận nguồn'),
-      if (value.recipeEnabledSnapshot != null)
-        Text(
-          value.recipeEnabledSnapshot!
-              ? 'Sử dụng công thức tại thời điểm chấp nhận món.'
-              : 'Không sử dụng công thức tại thời điểm chấp nhận món.',
-        ),
-      if (value.costSourceSnapshot != null)
-        const Text('Quyết định nguồn không phải số tiền giá vốn lịch sử.'),
-      Text(
-        'Dòng món đã gọi: ${ingredientNumber(value.orderQuantity)} ${value.orderUnit}',
-      ),
-      if (value.capturedAt != null)
-        Text('Thời điểm chốt: ${formatLocalDate(value.capturedAt!)}'),
-      if (value.status == RecipeSnapshotStatus.captured) ...[
-        Text(
-          'Công thức đã chốt – Phiên bản ${value.recipeVersion}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        Text(
-          'Công thức cho ${ingredientNumber(value.yieldQuantity!)} ${value.yieldUnit}',
-        ),
-        const _Info(
-          'Đây là công thức đã chốt khi gửi/chấp nhận món. Thay đổi công thức hiện tại không làm thay đổi dữ liệu này.',
-        ),
-        _IngredientRows(
-          headers: const [
-            'Lượng cả mẻ',
-            'Hao hụt',
-            'Cần cho dòng món',
-            'Theo dõi kho',
-          ],
-          rows: [
-            for (final row in value.ingredients)
-              _IngredientRow(row.name, row.sku, [
-                '${ingredientNumber(row.recipeQuantity)} ${row.unit}',
-                '${_percent(row.wastePercent)}%',
-                '${ingredientNumber(row.requiredQuantity)} ${row.unit}',
-                row.trackInventory ? 'Có' : 'Không theo dõi tồn',
-              ]),
+  Widget build(BuildContext context) {
+    final captured = value.status == RecipeSnapshotStatus.captured;
+    final yieldText = captured
+        ? '${ingredientNumber(value.yieldQuantity!)} ${value.yieldUnit}'
+        : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StatusCard(
+          done: captured,
+          title: value.status.label,
+          badge: captured ? 'Phiên bản ${value.recipeVersion}' : null,
+          lines: [
+            if (value.capturedAt != null)
+              'Lúc ${formatLocalDate(value.capturedAt!)}',
+            if (captured) 'Sửa công thức sau đó không làm đổi dữ liệu này.',
+            if (allocationAllowed &&
+                value.status == RecipeSnapshotStatus.recipeDisabled)
+              'Nếu món trừ kho trực tiếp, xem ở mục Kho.',
+            if (value.costSourceSnapshot != null)
+              'Nguồn giá vốn: ${value.costSourceSnapshot!.label}',
           ],
         ),
+        if (captured) ...[
+          const SizedBox(height: 16),
+          _IngredientList(
+            title:
+                'Cần cho ${ingredientNumber(value.orderQuantity)} ${value.orderUnit}',
+            rows: [
+              for (final row in value.ingredients)
+                _IngredientRow(
+                  name: row.name,
+                  sku: row.sku,
+                  amount:
+                      '${ingredientNumber(row.requiredQuantity)} ${row.unit}',
+                  detail: [
+                    'Định mức ${ingredientNumber(row.recipeQuantity)} ${row.unit}'
+                        ' / $yieldText',
+                    if (row.wastePercent > 0)
+                      'hao hụt ${_percent(row.wastePercent)}%',
+                  ].join(' · '),
+                  untracked: !row.trackInventory,
+                ),
+            ],
+          ),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }
 
 class _AllocationDetails extends StatelessWidget {
@@ -297,45 +278,45 @@ class _AllocationDetails extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      _Info(value.status.label),
-      if (value.directStock)
-        const Text('Món trừ tồn trực tiếp, không dùng công thức.'),
-      Text(switch (value.status) {
-        AllocationStatus.reserved => 'Đã giữ chỗ, chưa giảm tồn vật lý.',
-        AllocationStatus.consumed =>
-          'Đã giảm tồn vật lý và ghi giao dịch tiêu thụ.',
-        AllocationStatus.released =>
-          'Đã trả phần giữ chỗ; không phải nhập tăng tồn vật lý.',
-        AllocationStatus.skipped => value.skipReason!.label,
-        AllocationStatus.notSubmitted =>
-          'Món chưa gửi, chưa có dữ liệu giữ hàng hóa.',
-      }),
-      if (value.warehouseId != null)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: SelectableText('Kho đã chốt: ${value.warehouseId}'),
-        ),
-      if (value.reservedAt != null)
-        Text('Giữ lúc: ${formatLocalDate(value.reservedAt!)}'),
-      if (value.consumedAt != null)
-        Text('Tiêu thụ lúc: ${formatLocalDate(value.consumedAt!)}'),
-      if (value.releasedAt != null)
-        Text('Giải phóng lúc: ${formatLocalDate(value.releasedAt!)}'),
+      _StatusCard(
+        done:
+            value.status == AllocationStatus.reserved ||
+            value.status == AllocationStatus.consumed,
+        title: value.status.label,
+        lines: [
+          if (value.directStock) 'Món trừ tồn trực tiếp, không dùng công thức.',
+          switch (value.status) {
+            AllocationStatus.reserved => 'Đã giữ chỗ, chưa trừ tồn kho.',
+            AllocationStatus.consumed => 'Đã trừ tồn kho.',
+            AllocationStatus.released => 'Đã trả lại phần giữ chỗ.',
+            AllocationStatus.skipped => value.skipReason!.label,
+            AllocationStatus.notSubmitted => 'Món chưa gửi bếp.',
+          },
+          if (value.reservedAt != null)
+            'Giữ lúc ${formatLocalDate(value.reservedAt!)}',
+          if (value.consumedAt != null)
+            'Trừ kho lúc ${formatLocalDate(value.consumedAt!)}',
+          if (value.releasedAt != null)
+            'Trả lại lúc ${formatLocalDate(value.releasedAt!)}',
+          if (value.warehouseId != null) 'Kho: ${value.warehouseId}',
+        ],
+      ),
       if (value.ingredients.isNotEmpty) ...[
         const SizedBox(height: 16),
-        _IngredientRows(
-          itemLabel: 'Hàng hóa / SKU',
-          headers: const ['Lượng đã chốt'],
+        _IngredientList(
+          title: 'Số lượng đã chốt',
           rows: [
             for (final row in value.ingredients)
-              _IngredientRow(row.name, row.sku, [
-                '${ingredientNumber(row.quantity)} ${row.unit}',
-              ]),
+              _IngredientRow(
+                name: row.name,
+                sku: row.sku,
+                amount: '${ingredientNumber(row.quantity)} ${row.unit}',
+              ),
           ],
         ),
       ],
-      const SizedBox(height: 16),
-      OutlinedButton.icon(
+      const SizedBox(height: 12),
+      TextButton.icon(
         onPressed: () {
           final router = GoRouter.maybeOf(context);
           final location = stockHistoryLocation(
@@ -352,11 +333,92 @@ class _AllocationDetails extends StatelessWidget {
         icon: const Icon(Icons.history),
         label: const Text('Xem giao dịch tiêu thụ'),
       ),
-      const Text(
-        'Món đang giữ chỗ hoặc đã giải phóng có thể chưa có giao dịch tiêu thụ.',
-      ),
     ],
   );
+}
+
+/// One summary block: what state the data is in, plus a few short facts.
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.done,
+    required this.title,
+    this.badge,
+    this.lines = const [],
+  });
+  final bool done;
+  final String title;
+  final String? badge;
+  final List<String> lines;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.textTheme.bodyMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: done
+            ? scheme.primary.withValues(alpha: 0.08)
+            : scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            done ? Icons.check_circle : Icons.info_outline,
+            size: 22,
+            color: done ? scheme.primary : scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (badge != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          badge!,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                for (final line in lines) ...[
+                  const SizedBox(height: 4),
+                  Text(line, style: muted),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Info extends StatelessWidget {
@@ -382,101 +444,102 @@ class _Info extends StatelessWidget {
 }
 
 class _IngredientRow {
-  const _IngredientRow(this.name, this.sku, this.values);
-  final String name;
-  final String? sku;
-  final List<String> values;
+  const _IngredientRow({
+    required this.name,
+    required this.sku,
+    required this.amount,
+    this.detail,
+    this.untracked = false,
+  });
+  final String name, amount;
+  final String? sku, detail;
+  final bool untracked;
 }
 
-class _IngredientRows extends StatelessWidget {
-  const _IngredientRows({
-    required this.headers,
-    required this.rows,
-    this.itemLabel = 'Nguyên liệu / SKU',
-  });
-  final String itemLabel;
-  final List<String> headers;
+/// Name on the left, the amount that matters on the right.
+class _IngredientList extends StatelessWidget {
+  const _IngredientList({required this.title, required this.rows});
+  final String title;
   final List<_IngredientRow> rows;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-      if (box.maxWidth >= 850 && scale <= 1.3) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            dataRowMinHeight: 72,
-            dataRowMaxHeight: 112,
-            columns: [
-              DataColumn(label: Text(itemLabel)),
-              for (final h in headers) DataColumn(label: Text(h)),
-            ],
-            rows: [
-              for (final row in rows)
-                DataRow(
-                  cells: [
-                    DataCell(
-                      SizedBox(
-                        width: 220,
-                        child: Tooltip(
-                          message: row.name,
-                          child: Text(
-                            '${row.name}${row.sku == null ? '' : '\n${row.sku}'}',
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              rows[i].name,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (rows[i].sku != null)
+                              Text('SKU ${rows[i].sku}', style: muted),
+                            if (rows[i].detail != null)
+                              Text(rows[i].detail!, style: muted),
+                            if (rows[i].untracked)
+                              Text(
+                                'Không theo dõi tồn',
+                                style: muted?.copyWith(
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        flex: 2,
+                        child: Text(
+                          rows[i].amount,
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
                           ),
                         ),
                       ),
-                    ),
-                    for (var i = 0; i < headers.length; i++)
-                      DataCell(
-                        Text(
-                          row.values[i],
-                          style:
-                              headers[i].contains('Cần') ||
-                                  headers[i].contains('Lượng đã')
-                              ? const TextStyle(fontWeight: FontWeight.w700)
-                              : null,
-                        ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
+              ],
             ],
           ),
-        );
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final row in rows)
-            Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      row.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    if (row.sku != null) Text('SKU: ${row.sku}'),
-                    const SizedBox(height: 8),
-                    for (var i = 0; i < headers.length; i++)
-                      Text(
-                        '${headers[i]}: ${row.values[i]}',
-                        style:
-                            headers[i].contains('Cần') ||
-                                headers[i].contains('Lượng đã')
-                            ? const TextStyle(fontWeight: FontWeight.w700)
-                            : null,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      );
-    },
-  );
+        ),
+      ],
+    );
+  }
 }

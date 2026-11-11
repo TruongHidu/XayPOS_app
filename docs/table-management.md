@@ -114,6 +114,8 @@ restaurantId hoặc X-Restaurant-Id. Response entity/page trực tiếp, không 
 | DELETE | /tables/{id}?expectedVersion=n | 204 / TABLE_UPDATE |
 | GET | /tables/{id}/qr | QR payload / TABLE_UPDATE |
 | POST | /tables/{id}/qr/rotate | QR payload/version mới / TABLE_UPDATE |
+| GET | /tables/{id}/qr/image?format=png&size=1024 | Ảnh PNG mã QR trần / TABLE_UPDATE |
+| GET | /tables/{id}/qr/card | Ảnh PNG thẻ in A6 1240×1748 / TABLE_UPDATE |
 | POST | /tables/{id}/sessions | Phiên OPEN / TABLE_OPEN |
 | GET | /tables/{id}/current-session | Phiên hoặc 204 → Success(null) / TABLE_VIEW |
 | GET | /table-sessions | Page lịch sử / TABLE_VIEW |
@@ -207,15 +209,32 @@ Thông báo đi qua messenger toàn app để còn hiển thị sau redirect.
 
 ## QR
 
-QR dialog chỉ tải payload khi mở, giới hạn TABLE_UPDATE. Hiển thị qrToken,
-qrPath tương đối và version, rotate có xác nhận thay token cũ, dùng version
-snapshot và nhận token/version mới từ backend. Không lưu token vào log, analytics,
-storage hoặc cache dùng chung tenant; state theo tableId + session scope.
+QR dialog (menu bàn → "Quản lý QR") chỉ tải payload khi mở, giới hạn
+TABLE_UPDATE. Rotate có xác nhận, dùng version snapshot và nhận token/version
+mới từ backend. Không lưu token vào log, analytics, storage hoặc cache dùng chung
+tenant; state theo tableId + session scope.
 
-Hiện chọn hiển thị payload/path quản trị, chưa render ảnh QR hoặc tạo URL tuyệt đối.
-Không thêm package QR, không dùng API_BASE_URL/CASHIER_WEB_URL làm public origin.
-UI ghi rõ website menu công khai chưa cấu hình. Khi triển khai public menu cần
-resolver backend và cấu hình origin riêng, sau đó mới dựng URL/ảnh QR tương ứng.
+Ảnh QR do backend tạo mỗi lần gọi (không lưu, `Cache-Control: no-store`). App
+không tự render QR và không tự ghép URL: `menuUrl` tuyệt đối lấy từ payload
+(backend ghép theo `PUBLIC_MENU_BASE_URL`); payload cũ thiếu `menuUrl` vẫn đọc
+được, khi đó chỉ ẩn dòng link.
+
+- Dialog hiện xem trước "Thẻ in" (mặc định) hoặc "Mã QR" bằng `Image.memory`,
+  link khách quét (sao chép / mở) và nút lưu. qrToken, qrPath nằm trong mục
+  "Chi tiết kỹ thuật".
+- Ảnh tải qua `getBinary` (`lib/core/network/binary_download.dart`): Dio
+  `ResponseType.bytes`, lỗi JSON dạng bytes được decode trước khi map mã lỗi.
+- `tableQrFileProvider` key theo tableId + qrToken nên rotate xong ảnh tự tải
+  lại; autoDispose khi đóng dialog, reset khi đổi session scope.
+- Lưu file qua `fileExporterProvider` (`lib/core/platform/file_exporter.dart`):
+  Android/iOS mở share sheet (`share_plus`) để lưu Ảnh/Drive, gửi Zalo, in qua
+  app khác; web tải xuống, Windows/macOS mở hộp thoại lưu (`file_saver`).
+- Tên file lấy từ `Content-Disposition`; trên web khác domain header này chưa
+  được CORS expose nên dùng tên dựng ở client `the-qr-ban-{mã bàn}.png` /
+  `qr-ban-{mã bàn}.png` (mã bàn bỏ dấu, `asciiSlug`).
+
+QR menu mang đi (link chung của nhà hàng) nằm ở Cài đặt, xem
+[menu-link-qr.md](menu-link-qr.md).
 
 ## Kiểm tra và chạy
 

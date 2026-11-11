@@ -119,9 +119,12 @@ Future<void> _open(WidgetTester tester) =>
 
 void main() {
   for (final state in [
-    ('RECIPE_DISABLED', 'Nguồn được chốt khi gửi món: Thủ công'),
-    ('FEATURE_DISABLED', 'Nguồn được chốt khi gửi món: Công thức'),
-    ('LEGACY_UNAVAILABLE', 'Dữ liệu lịch sử chưa ghi nhận nguồn'),
+    ('RECIPE_DISABLED', 'Nguồn giá vốn: Thủ công'),
+    ('FEATURE_DISABLED', 'Nguồn giá vốn: Công thức'),
+    (
+      'LEGACY_UNAVAILABLE',
+      'Không có dữ liệu công thức lịch sử cho dòng món cũ',
+    ),
   ]) {
     testWidgets(
       'protected decision ${state.$1} is read from snapshot and never from current menu',
@@ -154,7 +157,7 @@ void main() {
         expect(reader.value, same(decision));
         expect(reader.stale, false);
         expect(snapshots.calls, hasLength(1));
-        await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+        await _tap(tester, find.text('Kho'));
         expect(
           find.textContaining(
             state.$1 == 'RECIPE_DISABLED'
@@ -180,7 +183,7 @@ void main() {
       allocations: allocations,
     );
     await _open(tester);
-    await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+    await _tap(tester, find.text('Kho'));
     final snapshot = container.read(
       orderRecipeSnapshotProvider((orderId: 'o1', orderItemId: 'line1')),
     );
@@ -221,19 +224,19 @@ void main() {
       await _open(tester);
       expect(snapshots.calls, [('o1', 'line1')]);
       expect(allocations.calls, isEmpty);
-      expect(find.text('Công thức đã chốt – Phiên bản 2'), findsOneWidget);
+      expect(find.text('Phiên bản 2'), findsOneWidget);
       expect(find.text('315 g'), findsOneWidget);
       expect(find.textContaining('Không theo dõi tồn'), findsOneWidget);
-      await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+      await _tap(tester, find.text('Kho'));
       expect(allocations.calls, [('o1', 'line1')]);
       expect(find.text('Đang giữ hàng hóa'), findsOneWidget);
       expect(find.textContaining('warehouse-historical'), findsOneWidget);
-      await _tap(tester, find.text('Công thức đã chốt'));
+      await _tap(tester, find.text('Công thức'));
       expect(snapshots.calls, hasLength(1));
       await _tap(tester, find.byTooltip('Đóng'));
       await _open(tester);
       expect(snapshots.calls, hasLength(2));
-      await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+      await _tap(tester, find.text('Kho'));
       await _tap(tester, find.text('Xem giao dịch tiêu thụ'));
       expect(ledger.queries.last.orderId, 'o1');
       expect(ledger.queries.last.orderItemId, 'line1');
@@ -256,9 +259,10 @@ void main() {
         permissions: {'ORDER_VIEW', 'RECIPE_VIEW'},
       );
       await _open(tester);
-      expect(find.text('Giữ & tiêu thụ kho'), findsNothing);
+      expect(find.text('Kho'), findsNothing);
       expect(allocations.calls, isEmpty);
-      expect(find.textContaining('Cần quyền xem kho'), findsOneWidget);
+      expect(find.text('Công thức'), findsNothing); // no tab switcher
+      expect(find.text('Phiên bản 2'), findsOneWidget);
     },
   );
   group('stock reader without recipe rights', () {
@@ -294,8 +298,7 @@ void main() {
       );
       expect(find.text('Xem kho của món'), findsWidgets);
       await _open(tester);
-      expect(find.text('Kho của món'), findsOneWidget);
-      expect(find.text('Công thức đã chốt'), findsNothing);
+      expect(find.text('Công thức'), findsNothing);
       expect(
         find.text('Món trừ tồn trực tiếp, không dùng công thức.'),
         findsOneWidget,
@@ -367,7 +370,7 @@ void main() {
         );
         await _open(tester);
         expect(snapshots.calls, hasLength(1));
-        await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+        await _tap(tester, find.text('Kho'));
         expect(find.text('Đã giải phóng giữ chỗ'), findsOneWidget);
         expect(find.text('315 g'), findsOneWidget);
         expect(orders.itemTransitions, isEmpty);
@@ -392,7 +395,6 @@ void main() {
         );
       await _pump(tester, snapshots: snapshots, allocations: allocations);
       await _open(tester);
-      expect(find.text('Dòng món đã gọi: 3 phần'), findsOneWidget);
       expect(
         find.text(
           RecipeSnapshotStatus.values
@@ -401,7 +403,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+      await _tap(tester, find.text('Kho'));
       expect(
         find.text(
           states.$2 == 'SKIPPED' ? 'Không áp dụng quản lý kho' : 'Món chưa gửi',
@@ -430,14 +432,14 @@ void main() {
         allocations: allocations,
       );
       await _open(tester);
-      await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+      await _tap(tester, find.text('Kho'));
       expect(find.text('Dữ liệu giữ chỗ đã đổi.'), findsOneWidget);
-      await _tap(tester, find.text('Công thức đã chốt'));
-      expect(find.text('Công thức đã chốt – Phiên bản 2'), findsOneWidget);
+      await _tap(tester, find.text('Công thức'));
+      expect(find.text('Phiên bản 2'), findsOneWidget);
       container.read(orderEventsProvider).emit('o1', null);
       await tester.pumpAndSettle();
       expect(find.textContaining('Dữ liệu lần tải trước.'), findsOneWidget);
-      await _tap(tester, find.text('Làm mới'));
+      await _tap(tester, find.byTooltip('Làm mới'));
       expect(snapshots.calls, hasLength(2));
     },
   );
@@ -490,7 +492,7 @@ void main() {
       expect(find.textContaining('Phiên bản 999'), findsNothing);
       events.invalidate();
       await tester.pumpAndSettle();
-      expect(find.text('Nguyên liệu của món'), findsNothing);
+      expect(find.byTooltip('Làm mới'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -515,9 +517,9 @@ void main() {
           );
           await _open(tester);
           expect(tester.takeException(), isNull);
-          await _tap(tester, find.text('Giữ & tiêu thụ kho'));
+          await _tap(tester, find.text('Kho'));
           expect(tester.takeException(), isNull);
-          await _tap(tester, find.text('Công thức đã chốt'));
+          await _tap(tester, find.text('Công thức'));
           expect(tester.takeException(), isNull);
           await _tap(tester, find.byTooltip('Đóng'));
           expect(tester.takeException(), isNull);

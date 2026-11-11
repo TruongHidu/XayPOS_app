@@ -3,7 +3,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pos_saas_app/core/network/binary_download.dart';
 import 'package:pos_saas_app/core/result/result.dart';
+import 'package:pos_saas_app/features/settings/domain/entities/public_menu_link.dart';
 import 'package:pos_saas_app/features/settings/data/settings_remote_data_source.dart';
 import 'package:pos_saas_app/features/settings/data/settings_repository_impl.dart';
 import 'package:pos_saas_app/features/settings/domain/entities/restaurant_profile.dart';
@@ -85,6 +87,67 @@ void main() {
       'phone': '0909',
       'address': '1 Lê Lợi',
     });
+  });
+
+  test(
+    'menu link: not created yet reads as null, then create/rotate',
+    () async {
+      var created = false;
+      final (repository, adapter) = _repository((options) {
+        if (options.method == 'GET' && !created) {
+          return _json({
+            'success': false,
+            'code': 'PUBLIC_MENU_LINK_NOT_INITIALIZED',
+            'message': 'not initialized',
+            'details': null,
+          }, 404);
+        }
+        created = true;
+        final token = options.path.endsWith('/rotate') ? 'BBBB' : 'AAAA';
+        return _json({
+          'menuToken': token,
+          'menuPath': '/menu/$token',
+          'menuUrl': 'https://pos.example.com/menu/$token',
+        });
+      });
+
+      expect((await repository.getMenuLink() as Success).value, isNull);
+      final link =
+          (await repository.createMenuLink() as Success<PublicMenuLink>).value;
+      expect(link.menuUrl, 'https://pos.example.com/menu/AAAA');
+      final rotated =
+          (await repository.rotateMenuLink() as Success<PublicMenuLink>).value;
+      expect(rotated.menuToken, 'BBBB');
+      expect(adapter.requests.map((r) => '${r.method} ${r.path}'), [
+        'GET /api/v1/restaurants/me/menu-link',
+        'POST /api/v1/restaurants/me/menu-link',
+        'POST /api/v1/restaurants/me/menu-link/rotate',
+      ]);
+    },
+  );
+
+  test('menu link QR endpoints return PNG bytes', () async {
+    final (repository, adapter) = _repository(
+      (_) => ResponseBody.fromBytes(
+        [137, 80, 78, 71],
+        200,
+        headers: {
+          Headers.contentTypeHeader: ['image/png'],
+        },
+      ),
+    );
+
+    final card =
+        (await repository.menuLinkQrCard() as Success<DownloadedFile>).value;
+    final image =
+        (await repository.menuLinkQrImage() as Success<DownloadedFile>).value;
+    expect(card.fileName, 'the-qr-menu.png');
+    expect(image.fileName, 'qr-menu.png');
+    expect(image.bytes, [137, 80, 78, 71]);
+    expect(adapter.requests.map((r) => r.uri.toString()), [
+      'https://pos.test/api/v1/restaurants/me/menu-link/qr/card',
+      'https://pos.test/api/v1/restaurants/me/menu-link/qr/image?format=png&size=1024',
+    ]);
   });
 
   test('entitlement reads the optional package name and days left', () {

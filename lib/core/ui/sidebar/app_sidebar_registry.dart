@@ -46,24 +46,14 @@ abstract final class AppSidebarRegistry {
     SidebarCategory(
       title: 'BẾP',
       items: [
+        // Dish status updates happen on this screen; the old
+        // /app/dish-status link redirects here.
         SidebarMenuItem(
           id: 'kitchen-display',
           label: 'Màn hình bếp',
           icon: Icons.monitor_outlined,
           routePath: '/app/kitchen',
           requiredPermissions: ['KITCHEN_VIEW'],
-          requiredFeatures: ['KITCHEN_DISPLAY'],
-        ),
-        SidebarMenuItem(
-          id: 'dish-status',
-          label: 'Cập nhật trạng thái món',
-          icon: Icons.check_circle_outlined,
-          routePath: '/app/dish-status',
-          requiredPermissions: ['KITCHEN_VIEW'],
-          requiredAnyPermissions: [
-            'KITCHEN_START_COOKING',
-            'KITCHEN_MARK_READY',
-          ],
           requiredFeatures: ['KITCHEN_DISPLAY'],
         ),
       ],

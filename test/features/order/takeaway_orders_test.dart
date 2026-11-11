@@ -373,17 +373,28 @@ void main() {
     );
   });
 
-  test('route and sidebar follow order view access', () {
-    final viewer = orderSession(permissions: {'ORDER_VIEW'});
+  test('route and sidebar need a takeaway action, not just order view', () {
+    final worker = orderSession(permissions: {'ORDER_VIEW', 'ORDER_UPDATE'});
+    // Kitchen defaults: reads orders but can't move a takeaway order along.
+    final reader = orderSession(
+      permissions: {'ORDER_VIEW', 'ORDER_MARK_SERVED'},
+    );
+    final noQuickOrder = orderSession(
+      permissions: {'ORDER_VIEW', 'ORDER_UPDATE'},
+      features: {'ORDER_MANAGEMENT', 'TABLE_MANAGEMENT'},
+    );
     final nobody = orderSession(permissions: {'MENU_VIEW'});
-    expect(AccessPolicy.canOpenRoute(viewer, '/app/takeaway'), isTrue);
-    expect(AccessPolicy.canOpenRoute(viewer, '/app/takeaway/o1'), isTrue);
+    expect(AccessPolicy.canOpenRoute(worker, '/app/takeaway'), isTrue);
+    expect(AccessPolicy.canOpenRoute(worker, '/app/takeaway/o1'), isTrue);
+    expect(AccessPolicy.canOpenRoute(reader, '/app/takeaway'), isFalse);
+    expect(AccessPolicy.canOpenRoute(noQuickOrder, '/app/takeaway'), isFalse);
     expect(AccessPolicy.canOpenRoute(nobody, '/app/takeaway'), isFalse);
     bool visible(AppSession session) => filterCategories(
       session,
       AppSidebarRegistry.categories,
     ).expand((c) => c.items).any((i) => i.id == 'takeaway-orders');
-    expect(visible(viewer), isTrue);
+    expect(visible(worker), isTrue);
+    expect(visible(reader), isFalse);
     expect(visible(nobody), isFalse);
   });
 }

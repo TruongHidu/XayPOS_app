@@ -35,6 +35,20 @@ abstract final class KitchenStyle {
   static const warningAfter = Duration(minutes: 20);
 }
 
+/// How long a dish has waited, in the largest units that read naturally.
+String kitchenWaited(Duration elapsed) {
+  final minutes = elapsed.inMinutes;
+  if (minutes < 1) return 'Vừa vào';
+  if (minutes < 60) return '$minutes phút';
+  final hours = minutes ~/ 60;
+  if (hours < 24) {
+    final rest = minutes % 60;
+    return '$hours giờ${rest == 0 ? '' : ' $rest phút'}';
+  }
+  final rest = hours % 24;
+  return '${hours ~/ 24} ngày${rest == 0 ? '' : ' $rest giờ'}';
+}
+
 class KitchenStatusBadge extends StatelessWidget {
   const KitchenStatusBadge({super.key, required this.status});
   final OrderItemStatus status;
@@ -71,7 +85,6 @@ class KitchenQueueContext extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final elapsed = now.difference(item.queuedAt);
-    final minutes = elapsed.inMinutes.clamp(0, 99999);
     final local = item.queuedAt.toLocal();
     final time =
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
@@ -120,7 +133,7 @@ class KitchenQueueContext extends StatelessWidget {
               ),
             ),
             Text(
-              '$minutes phút · $time',
+              '${kitchenWaited(elapsed)} · $time',
               style: TextStyle(
                 color: timerColor,
                 fontWeight: FontWeight.w700,
@@ -142,11 +155,12 @@ class KitchenItemCard extends StatelessWidget {
     required this.busy,
     this.onStart,
     this.onReady,
+    this.onServe,
   });
   final KitchenQueueItem item;
   final DateTime now;
   final bool busy;
-  final VoidCallback? onStart, onReady;
+  final VoidCallback? onStart, onReady, onServe;
 
   @override
   Widget build(BuildContext context) {
@@ -241,7 +255,14 @@ class KitchenItemCard extends StatelessWidget {
                 ),
                 KitchenQueueContext(item: item, now: now),
                 const SizedBox(height: 10),
-                if (item.itemStatus == OrderItemStatus.ready)
+                if (item.itemStatus == OrderItemStatus.ready &&
+                    (onServe != null || busy))
+                  KitchenServeButton(
+                    key: ValueKey('kitchen-serve-${item.key}'),
+                    busy: busy,
+                    onPressed: onServe,
+                  )
+                else if (item.itemStatus == OrderItemStatus.ready)
                   const Wrap(
                     spacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -325,6 +346,7 @@ class KitchenOrderCard extends StatelessWidget {
     required this.busy,
     required this.actionFor,
     this.onReadyOrder,
+    this.onServeOrder,
     this.orderStatus,
   });
   final List<KitchenQueueItem> items;
@@ -332,6 +354,9 @@ class KitchenOrderCard extends StatelessWidget {
   final bool complete, busy;
   final OrderStatus? orderStatus;
   final VoidCallback? onReadyOrder;
+
+  /// Hands over the dishes that are ready; null when the user can't.
+  final VoidCallback? onServeOrder;
   final VoidCallback? Function(KitchenQueueItem) actionFor;
 
   @override
@@ -381,7 +406,7 @@ class KitchenOrderCard extends StatelessWidget {
                 KitchenQueueContext(item: items.first, now: now),
                 const SizedBox(height: 8),
                 Text(
-                  '$ready/${items.length} dòng trong queue đã sẵn sàng${complete ? '' : ' · Chưa đủ dữ liệu'}',
+                  '$ready/${items.length} món đã xong${complete ? '' : ' · Chưa đủ dữ liệu'}',
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -455,16 +480,7 @@ class KitchenOrderCard extends StatelessWidget {
                   color: Color(0xFFF1F5F9),
                 ),
                 const SizedBox(height: 4),
-                if (orderStatus == OrderStatus.ready)
-                  const Text(
-                    '✓ Đơn đã sẵn sàng',
-                    style: TextStyle(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
-                    ),
-                  )
-                else if (orderStatus == OrderStatus.served)
+                if (orderStatus == OrderStatus.served)
                   const Text(
                     'Đơn đã được phục vụ',
                     style: TextStyle(
@@ -472,7 +488,25 @@ class KitchenOrderCard extends StatelessWidget {
                       color: Color(0xFF475569),
                     ),
                   )
-                else
+                else if ((allReady || orderStatus == OrderStatus.ready) &&
+                    (onServeOrder != null || busy))
+                  KitchenServeButton(
+                    key: ValueKey('serve-order-${items.first.orderId}'),
+                    busy: busy,
+                    onPressed: onServeOrder,
+                  )
+                else if (allReady || orderStatus == OrderStatus.ready)
+                  const Text(
+                    '✓ Chờ phục vụ',
+                    style: TextStyle(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                    ),
+                  )
+                // A button that can't be pressed is noise; it appears once
+                // the whole order can be marked ready.
+                else if (onReadyOrder != null || busy)
                   FilledButton.icon(
                     key: ValueKey('ready-order-${items.first.orderId}'),
                     style: FilledButton.styleFrom(
@@ -499,6 +533,195 @@ class KitchenOrderCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Green "Đã giao" button shared by order cards and the serving list.
+class KitchenServeButton extends StatelessWidget {
+  const KitchenServeButton({
+    super.key,
+    required this.busy,
+    this.onPressed,
+    this.compact = false,
+  });
+  final bool busy, compact;
+  final VoidCallback? onPressed;
+  @override
+  Widget build(BuildContext context) => FilledButton.icon(
+    style: FilledButton.styleFrom(
+      backgroundColor: AppColors.success,
+      minimumSize: Size(compact ? 64 : double.infinity, 48),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      elevation: 0,
+    ),
+    onPressed: busy ? null : onPressed,
+    icon: busy
+        ? const SizedBox.square(
+            dimension: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Icon(Icons.room_service_outlined, size: 18),
+    label: Text(
+      busy ? 'Đang xử lý…' : 'Đã giao',
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+    ),
+  );
+}
+
+/// Ready dishes waiting to be taken out, one compact row per order, so the
+/// to-do view stays about cooking.
+class KitchenServingList extends StatelessWidget {
+  const KitchenServingList({
+    super.key,
+    required this.orders,
+    required this.now,
+    required this.expanded,
+    required this.onToggle,
+    required this.busy,
+    required this.onServe,
+  });
+  final List<List<KitchenQueueItem>> orders;
+  final DateTime now;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final bool Function(String orderId) busy;
+
+  /// Null for an order the user can't hand over.
+  final VoidCallback? Function(String orderId) onServe;
+
+  @override
+  Widget build(BuildContext context) {
+    final dishes = orders.fold(0, (sum, order) => sum + order.length);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            key: const ValueKey('kitchen-serving-toggle'),
+            onTap: onToggle,
+            child: Container(
+              color: const Color(0xFFF0FDF4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.success,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Chờ phục vụ · $dishes món, ${orders.length} đơn',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                  Icon(expanded ? Icons.expand_less : Icons.expand_more),
+                ],
+              ),
+            ),
+          ),
+          if (expanded)
+            for (var i = 0; i < orders.length; i++) ...[
+              if (i > 0) const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              _ServingRow(
+                key: ValueKey('kitchen-serving-${orders[i].first.orderId}'),
+                items: orders[i],
+                now: now,
+                busy: busy(orders[i].first.orderId),
+                onServe: onServe(orders[i].first.orderId),
+              ),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ServingRow extends StatelessWidget {
+  const _ServingRow({
+    super.key,
+    required this.items,
+    required this.now,
+    required this.busy,
+    this.onServe,
+  });
+  final List<KitchenQueueItem> items;
+  final DateTime now;
+  final bool busy;
+  final VoidCallback? onServe;
+  @override
+  Widget build(BuildContext context) {
+    final first = items.first;
+    // The oldest dish decides how long the order has waited.
+    final since = items
+        .map((r) => r.queuedAt)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+    final elapsed = now.difference(since);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  first.seating.isEmpty ? first.orderCode : first.seating,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    for (final r in items)
+                      '${r.quantity} ${r.unit} ${r.itemName}',
+                  ].join(', '),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Chờ ${kitchenWaited(elapsed)}',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: elapsed >= KitchenStyle.warningAfter
+                        ? const Color(0xFFB91C1C)
+                        : Colors.blueGrey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onServe != null || busy) ...[
+            const SizedBox(width: 8),
+            KitchenServeButton(
+              key: ValueKey('serve-row-${first.orderId}'),
+              busy: busy,
+              compact: true,
+              onPressed: onServe,
+            ),
+          ],
         ],
       ),
     );

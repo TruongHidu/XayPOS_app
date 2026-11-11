@@ -47,6 +47,7 @@ class QrRequestRepositoryImpl implements QrRequestRepository {
                 code: failure.code,
                 message: message,
                 fieldErrors: failure.fieldErrors,
+                stockShortage: failure.stockShortage,
               ),
       );
     }

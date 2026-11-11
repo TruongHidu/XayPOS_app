@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/qr_preview.dart';
 import '../../domain/entities/table_entities.dart';
 import '../controllers/table_controller.dart';
 import 'table_dialogs.dart';
@@ -413,11 +414,16 @@ class _TableSessionHistoryState extends ConsumerState<TableSessionHistory> {
 }
 
 class TableQrDialog extends ConsumerWidget {
-  const TableQrDialog({super.key, required this.id});
+  const TableQrDialog({super.key, required this.id, this.code});
   final String id;
+
+  /// Table code, used to name saved files when the server's name is hidden.
+  final String? code;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(tableQrControllerProvider(id)), q = c.value;
+    TableQrFileKey key(QrPicture picture, String token) =>
+        (id: id, token: token, code: code, picture: picture);
     return TableFormLayout(
       title: 'Quản lý QR bàn',
       busy: false,
@@ -426,17 +432,33 @@ class TableQrDialog extends ConsumerWidget {
       children: [
         if (c.loading) const LinearProgressIndicator(),
         TableFailurePanel(failure: c.failure, onReload: c.load),
-        const Text(
-          'Chưa cấu hình website thực đơn cho khách. Đường dẫn bên dưới chỉ dùng để quản lý, khách chưa mở được thực đơn từ đây.',
-        ),
         if (q != null) ...[
+          const Text(
+            'In thẻ và đặt lên bàn. Khách quét mã để xem menu và gọi món tại bàn này.',
+          ),
           const SizedBox(height: 16),
-          const Text('Mã QR của bàn'),
-          SelectableText(q.qrToken),
-          const SizedBox(height: 12),
-          const Text('Đường dẫn QR'),
-          SelectableText(q.qrPath),
+          QrPreview(
+            source: (picture) => tableQrFileProvider(key(picture, q.qrToken)),
+            onRetry: (picture) =>
+                ref.invalidate(tableQrFileProvider(key(picture, q.qrToken))),
+            menuUrl: q.menuUrl,
+          ),
+          const SizedBox(height: 8),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: const Text('Chi tiết kỹ thuật'),
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Mã QR của bàn'),
+              SelectableText(q.qrToken),
+              const SizedBox(height: 12),
+              const Text('Đường dẫn QR'),
+              SelectableText(q.qrPath),
+              const SizedBox(height: 8),
+            ],
+          ),
           Text('Phiên bản mã QR: ${q.version}'),
+          const SizedBox(height: 8),
           FilledButton.tonal(
             onPressed: c.loading || c.pending('table:$id')
                 ? null
@@ -449,7 +471,7 @@ class TableQrDialog extends ConsumerWidget {
                       permission: 'TABLE_UPDATE',
                       initial: q,
                       describe: (_) =>
-                          'Mã QR cũ sẽ bị thay. Các bản QR đã phát hành cần được cập nhật.',
+                          'Mã QR cũ sẽ ngừng hoạt động. Các thẻ đã in theo mã cũ sẽ không quét được nữa và cần in lại.',
                       reload: () async {
                         await c.load();
                         return c.value != null

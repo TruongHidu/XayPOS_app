@@ -242,6 +242,66 @@ class KitchenOrderActionController extends KitchenController {
     }
   }
 
+  bool canServeOrder(String id) => display
+      .forOrder(id)
+      .any(
+        (r) =>
+            r.itemStatus == OrderItemStatus.ready &&
+            canAct(r, KitchenAction.markServed),
+      );
+
+  /// Hands over every dish of the order that is ready now; dishes still
+  /// cooking stay in the queue.
+  Future<Result<OrderDetail>> serveOrder(String id) async {
+    if (!canServeOrder(id)) return const Error(KitchenController.busy);
+    final rows = display
+        .forOrder(id)
+        .where((r) => r.itemStatus == OrderItemStatus.ready)
+        .toList();
+    final s = _states.putIfAbsent(id, KitchenOrderActionState.new);
+    if (!events.lock(id)) return const Error(KitchenController.busy);
+    s.sessionId = rows.first.sessionId;
+    s.busy = true;
+    s.failure = null;
+    display.invalidateReads();
+    onSessionBlocked?.call(s.owner, s.sessionId, true);
+    changed();
+    var version = rows
+        .map((r) => r.orderVersion)
+        .reduce((a, b) => a > b ? a : b);
+    OrderDetail? latest;
+    try {
+      for (final row in rows) {
+        if (!current || !can(KitchenAction.markServed.permission)) {
+          return const Error(KitchenController.denied);
+        }
+        if (latest != null) {
+          final line = latest.items
+              .where((line) => line.id == row.orderItemId)
+              .firstOrNull;
+          if (line?.status != OrderItemStatus.ready) continue;
+        }
+        final intent = KitchenItemTransition(
+          orderId: id,
+          orderItemId: row.orderItemId,
+          expectedOrderVersion: version,
+          action: KitchenAction.markServed,
+        );
+        s.intent = intent;
+        final response = await _post(s, intent);
+        if (response case Error<OrderDetail>()) return response;
+        latest = (response as Success<OrderDetail>).value;
+        version = latest.version;
+      }
+      return latest == null
+          ? const Error(KitchenController.busy)
+          : Success(latest);
+    } finally {
+      _release(s, id);
+      if (current) unawaited(display.refresh());
+    }
+  }
+
   void review(String id) {
     final s = state(id);
     if (!current || s == null || s.busy || s.uncertain || !display.complete) {

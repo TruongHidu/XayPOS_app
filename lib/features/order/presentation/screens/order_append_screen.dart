@@ -9,6 +9,7 @@ import '../../domain/entities/order_quantity.dart';
 import '../controllers/order_append_controller.dart';
 import '../controllers/order_draft_controller.dart' show OrderDraftLine;
 import '../providers/order_providers.dart';
+import '../widgets/order_cart_layout.dart';
 import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
 
@@ -23,15 +24,18 @@ class OrderAppendScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController = TabController(
-    length: 2,
-    vsync: this,
-  );
+    with SingleTickerProviderStateMixin, OrderCartUndo {
+  // Created up front: side by side it may never be read during build, and
+  // creating it lazily in dispose() would look up a deactivated ancestor.
+  late final TabController _tabController;
+
+  /// Menu and cart side by side; set on each layout.
+  bool _wide = false;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     Future.microtask(() {
       if (!mounted) return;
       final detail = ref.read(orderDetailProvider(widget.orderId));
@@ -47,6 +51,27 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
     super.dispose();
   }
 
+  /// Side by side the cart is always in view; only the tabs need a switch.
+  void _showCart() {
+    if (!_wide) _tabController.animateTo(1);
+  }
+
+  void _showMenu() {
+    if (!_wide) _tabController.animateTo(0);
+  }
+
+  void _removeLine(OrderAppendController cart, OrderDraftLine line) {
+    final index = cart.lines.indexWhere((l) => l.id == line.id);
+    if (index < 0) return;
+    cart.remove(line.id);
+    if (!cart.lines.any((l) => l.id == line.id)) rememberRemoved(line, index);
+  }
+
+  void _undoRemove(OrderAppendController cart) {
+    final removed = takeRemoved();
+    if (removed != null) cart.restore(removed.line, removed.index);
+  }
+
   void _increment(OrderAppendController cart, MenuItem item) {
     final matching = cart.lines.where((l) => l.item.id == item.id).toList();
     if (matching.isEmpty) {
@@ -55,7 +80,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
       final line = matching.first;
       cart.edit(line.id, line.quantity + OrderQuantity.one, line.note);
     } else {
-      _tabController.animateTo(1);
+      _showCart();
     }
   }
 
@@ -70,7 +95,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
         cart.edit(line.id, line.quantity - OrderQuantity.one, line.note);
       }
     } else {
-      _tabController.animateTo(1);
+      _showCart();
     }
   }
 
@@ -147,6 +172,155 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
             final textGrowth = (MediaQuery.textScalerOf(context).scale(14) - 14)
                 .clamp(0.0, 28.0);
             final compact = constraints.maxHeight < 420 + textGrowth * 2;
+            _wide = constraints.maxWidth >= orderSplitMinWidth;
+
+            final Widget menuPane = OrderMenuPicker(
+              permission: 'ORDER_UPDATE',
+              cartLines: cart.lines,
+              currencyCode: currency,
+              enabled: cart.canPick,
+              onSelect: cart.add,
+              onIncrement: (item) => _increment(cart, item),
+              onDecrement: (item) => _decrement(cart, item),
+              onEditLine: (item) => _showCart(),
+            );
+
+            final Widget cartPane = ListView(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+              children: [
+                if (cart.lines.isEmpty && removedLine == null)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: Text('Chưa chọn món gọi thêm nào.')),
+                  ),
+                ...withUndoTile(
+                  enabled: cart.canPick,
+                  onUndo: () => _undoRemove(cart),
+                  [
+                    for (final line in cart.lines)
+                      Card(
+                        color: Colors.white,
+                        elevation: 0,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(color: AppColors.grey200),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      line.item.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    orderMoney(
+                                      line.previewMinor,
+                                      currency: currency,
+                                    ),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: OrderPalette.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${line.quantity} ${line.item.baseUnit}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.grey600,
+                                ),
+                              ),
+                              if (line.note != null &&
+                                  line.note!.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Ghi chú: ${line.note}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.brown.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: Wrap(
+                                  alignment: WrapAlignment.end,
+                                  spacing: 4,
+                                  children: [
+                                    TextButton.icon(
+                                      onPressed: cart.canPick
+                                          ? () => _edit(cart, line)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.edit_note,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Sửa'),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: cart.canPick
+                                          ? () => _removeLine(cart, line)
+                                          : null,
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Bỏ món'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                if (cart.lines.isNotEmpty) ...[
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Tổng phần mới dự kiến: ${orderMoney(cart.previewMinor, currency: currency)}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Giá và tổng chính thức lấy từ backend. Các món đã lưu không đổi.',
+                    style: TextStyle(fontSize: 12, color: AppColors.grey600),
+                  ),
+                ],
+              ],
+            );
 
             return Column(
               children: [
@@ -240,7 +414,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                           child: IconButton(
                             icon: const Icon(Icons.search, size: 18),
                             tooltip: 'Tìm kiếm',
-                            onPressed: () => _tabController.animateTo(0),
+                            onPressed: _showMenu,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
                               minWidth: 38,
@@ -254,19 +428,20 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                 ),
 
                 // ── Navigation Tabs ─────────────────────────────────────
-                Container(
-                  color: Colors.white,
-                  child: TabBar(
-                    controller: _tabController,
-                    indicatorColor: OrderPalette.primary,
-                    labelColor: OrderPalette.primary,
-                    unselectedLabelColor: AppColors.grey700,
-                    tabs: [
-                      const Tab(text: 'Chọn món'),
-                      Tab(text: 'Giỏ gọi thêm (${cart.lines.length})'),
-                    ],
+                if (!_wide)
+                  Container(
+                    color: Colors.white,
+                    child: TabBar(
+                      controller: _tabController,
+                      indicatorColor: OrderPalette.primary,
+                      labelColor: OrderPalette.primary,
+                      unselectedLabelColor: AppColors.grey700,
+                      tabs: [
+                        const Tab(text: 'Chọn món'),
+                        Tab(text: 'Giỏ gọi thêm (${cart.lines.length})'),
+                      ],
+                    ),
                   ),
-                ),
 
                 if (cart.busy) const LinearProgressIndicator(),
 
@@ -325,158 +500,39 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
 
                 // ── Main Tab Views ──────────────────────────────────────
                 Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Tab 1: Menu item picker
-                      OrderMenuPicker(
-                        permission: 'ORDER_UPDATE',
-                        cartLines: cart.lines,
-                        currencyCode: currency,
-                        enabled: cart.canPick,
-                        onSelect: cart.add,
-                        onIncrement: (item) => _increment(cart, item),
-                        onDecrement: (item) => _decrement(cart, item),
-                        onEditLine: (item) => _tabController.animateTo(1),
-                      ),
-
-                      // Tab 2: Cart Review
-                      ListView(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-                        children: [
-                          if (cart.lines.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Center(
-                                child: Text('Chưa chọn món gọi thêm nào.'),
-                              ),
+                  child: _wide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: menuPane),
+                            const VerticalDivider(
+                              width: 1,
+                              thickness: 1,
+                              color: AppColors.grey200,
                             ),
-                          for (final line in cart.lines)
-                            Card(
-                              color: Colors.white,
-                              elevation: 0,
-                              margin: const EdgeInsets.only(bottom: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: BorderSide(color: AppColors.grey200),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            line.item.name,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                        Text(
-                                          orderMoney(
-                                            line.previewMinor,
-                                            currency: currency,
-                                          ),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: OrderPalette.primary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${line.quantity} ${line.item.baseUnit}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.grey600,
-                                      ),
-                                    ),
-                                    if (line.note != null &&
-                                        line.note!.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.shade50,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Ghi chú: ${line.note}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.brown.shade700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        TextButton.icon(
-                                          onPressed: cart.canPick
-                                              ? () => _edit(cart, line)
-                                              : null,
-                                          icon: const Icon(
-                                            Icons.edit_note,
-                                            size: 16,
-                                          ),
-                                          label: const Text('Sửa'),
-                                        ),
-                                        TextButton.icon(
-                                          onPressed: cart.canPick
-                                              ? () => cart.remove(line.id)
-                                              : null,
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            size: 16,
-                                          ),
-                                          label: const Text('Bỏ món'),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor:
-                                                Colors.red.shade700,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          if (cart.lines.isNotEmpty) ...[
-                            const Divider(),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                'Tổng phần mới dự kiến: ${orderMoney(cart.previewMinor, currency: currency)}',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Giá và tổng chính thức lấy từ backend. Các món đã lưu không đổi.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.grey600,
+                            SizedBox(
+                              key: const ValueKey('order-cart-pane'),
+                              width: orderCartPaneWidth(constraints.maxWidth),
+                              child: Column(
+                                children: [
+                                  OrderCartPaneHeader(
+                                    title:
+                                        'Giỏ gọi thêm (${cart.lines.length})',
+                                  ),
+                                  const Divider(
+                                    height: 1,
+                                    color: AppColors.grey200,
+                                  ),
+                                  Expanded(child: cartPane),
+                                ],
                               ),
                             ),
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
+                        )
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [menuPane, cartPane],
+                        ),
                 ),
 
                 // ── Sticky Bottom Cart Bar ──────────────────────────────
@@ -529,9 +585,9 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                           runSpacing: 6,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            if (!compact)
+                            if (!compact && !_wide)
                               OutlinedButton(
-                                onPressed: () => _tabController.animateTo(1),
+                                onPressed: _showCart,
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: OrderPalette.primary,
                                   side: const BorderSide(

@@ -508,6 +508,11 @@ void main() {
       expect(find.text('Sửa ghi chú'), findsNothing);
       expect(find.text('Thêm hàng hóa'), findsNothing);
       expect(find.text('Xác nhận chứng từ'), findsNothing);
+      // Summary shows the total and warehouse, never the raw creator id.
+      expect(find.text('Tổng giá trị'), findsOneWidget);
+      expect(find.textContaining('KHO-W1'), findsWidgets);
+      expect(find.textContaining('user-1'), findsNothing);
+      expect(find.byTooltip('Sửa dòng'), findsNothing);
       router.go('/app/inventory/transactions?warehouseId=w1');
       await tester.pumpAndSettle();
       await _tap(tester, find.byTooltip('Bộ lọc'));

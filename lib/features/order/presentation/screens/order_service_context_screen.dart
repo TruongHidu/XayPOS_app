@@ -46,9 +46,11 @@ class OrderServiceContextScreen extends ConsumerWidget {
     final qr = ref.watch(qrInboxProvider);
     final session = ref.watch(authControllerProvider).state.session;
     final menuAllowed = AccessPolicy.canMenu(session, 'MENU_VIEW');
-    return QrInboxVisibility(
-      child: Column(
-        children: [
+    // Each part shows only to someone who can use it, instead of a notice.
+    final qrAllowed = AccessPolicy.canHandleQrRequests(session);
+    final body = Column(
+      children: [
+        if (c.tableAccess) ...[
           Row(
             children: [
               for (final filter in [
@@ -76,214 +78,205 @@ class OrderServiceContextScreen extends ConsumerWidget {
             ],
           ),
           const Divider(height: 1),
-          if (qr.can('ORDER_VIEW'))
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () => showQrRequestInbox(
-                        context,
-                        ref,
-                        tableNames: {
-                          for (final table in c.tables) table.id: table.name,
-                        },
-                      ),
-                      icon: Icon(
-                        qr.failure == null
-                            ? Icons.qr_code_2
-                            : Icons.sync_problem,
-                      ),
-                      label: Text('Yêu cầu QR (${qr.pending.length})'),
-                    ),
-                    if (qr.failure != null)
-                      const Text(
-                        'QR chưa đồng bộ',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    if (qr.arrivals > 0 && qr.failure == null)
-                      Text(
-                        'Có ${qr.arrivals} yêu cầu QR mới',
-                        style: const TextStyle(
-                          color: Color(0xFF1565C0),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          if (c.tableAccess)
-            SizedBox(
-              height:
-                  58 + (MediaQuery.textScalerOf(context).scale(14) - 14) * 2,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+        ],
+        if (qrAllowed)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: const Text('Tất cả khu vực'),
-                      selected: c.query.areaId == null,
-                      selectedColor: OrderPalette.clear,
-                      onSelected: c.selecting
-                          ? null
-                          : (_) => c.filter(occupied: c.query.occupied),
+                  OutlinedButton.icon(
+                    onPressed: () => showQrRequestInbox(
+                      context,
+                      ref,
+                      tableNames: {
+                        for (final table in c.tables) table.id: table.name,
+                      },
                     ),
+                    icon: Icon(
+                      qr.failure == null ? Icons.qr_code_2 : Icons.sync_problem,
+                    ),
+                    label: Text('Yêu cầu QR (${qr.pending.length})'),
                   ),
-                  for (final area in c.areas)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(area.name),
-                        selected: c.query.areaId == area.id,
-                        selectedColor: OrderPalette.clear,
-                        backgroundColor: OrderPalette.grey,
-                        onSelected: c.selecting
-                            ? null
-                            : (_) => c.filter(
-                                occupied: c.query.occupied,
-                                areaId: area.id,
-                              ),
+                  if (qr.failure != null)
+                    const Text(
+                      'QR chưa đồng bộ',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  if (qr.arrivals > 0 && qr.failure == null)
+                    Text(
+                      'Có ${qr.arrivals} yêu cầu QR mới',
+                      style: const TextStyle(
+                        color: Color(0xFF1565C0),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                 ],
               ),
             ),
-          if (!menuAllowed)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Bạn chưa có quyền xem thực đơn nên chưa chọn được món. Liên hệ người quản lý để được cấp quyền.',
-              ),
-            ),
-          if (!c.tableAccess)
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Chưa có quyền xem bàn. Bạn vẫn có thể tạo đơn mang đi nếu được cấp quyền.',
-              ),
-            ),
-          if (c.loading || c.billsLoading || c.selecting)
-            const LinearProgressIndicator(),
-          OrderFailurePanel(failure: c.areasFailure, retry: c.loadAreas),
-          OrderFailurePanel(failure: c.failure, retry: c.refresh),
-          OrderFailurePanel(
-            failure: c.billsFailure,
-            retry: c.load,
-            label: 'Tải lại tiền đơn',
           ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: c.refresh,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final tables = c.tables;
-                  final takeaway = c.takeawayAllowed;
-                  return GridView.builder(
-                    key: const ValueKey('order-table-grid'),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(10),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount:
-                          qr.pending.isNotEmpty &&
-                              MediaQuery.textScalerOf(context).scale(14) > 22
-                          ? (constraints.maxWidth / 320).floor().clamp(1, 6)
-                          : constraints.maxWidth < 300
-                          ? 1
-                          : constraints.maxWidth < 600
-                          ? 2
-                          : (constraints.maxWidth / 200).floor().clamp(3, 6),
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      mainAxisExtent:
-                          160 +
-                          (MediaQuery.textScalerOf(context).scale(14) - 14) *
-                              7 +
-                          (qr.pending.isEmpty
-                              ? 0
-                              : 52 +
-                                    (MediaQuery.textScalerOf(
-                                              context,
-                                            ).scale(14) -
-                                            14) *
-                                        2),
+        if (c.tableAccess)
+          SizedBox(
+            height: 58 + (MediaQuery.textScalerOf(context).scale(14) - 14) * 2,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: const Text('Tất cả khu vực'),
+                    selected: c.query.areaId == null,
+                    selectedColor: OrderPalette.clear,
+                    onSelected: c.selecting
+                        ? null
+                        : (_) => c.filter(occupied: c.query.occupied),
+                  ),
+                ),
+                for (final area in c.areas)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(area.name),
+                      selected: c.query.areaId == area.id,
+                      selectedColor: OrderPalette.clear,
+                      backgroundColor: OrderPalette.grey,
+                      onSelected: c.selecting
+                          ? null
+                          : (_) => c.filter(
+                              occupied: c.query.occupied,
+                              areaId: area.id,
+                            ),
                     ),
-                    itemCount: tables.length + (takeaway ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (takeaway && index == 0) {
-                        return _TakeawayCard(menuAllowed: menuAllowed);
-                      }
-                      final table = tables[index - (takeaway ? 1 : 0)];
-                      final tile = c.tile(table);
-                      final qrRequests = qr
-                          .forTable(table.id, table.currentSession?.id)
-                          .length;
-                      final hasUnconfirmedOrder =
-                          tile.order?.status == OrderStatus.open;
-                      final subtitle = switch (tile.billState) {
-                        TableBillState.noSession => 'Còn trống',
-                        TableBillState.noOrder => 'Đang sử dụng · Chưa có đơn',
-                        TableBillState.inconsistent => 'Cần đồng bộ phiên/đơn',
-                        TableBillState.ready when hasUnconfirmedOrder =>
-                          'Chưa xác nhận',
-                        _ => 'Đang sử dụng',
-                      };
-                      final amount = switch (tile.billState) {
-                        TableBillState.ready =>
-                          'Tổng: ${orderMoney(BigInt.from(tile.order!.totalAmount.minorUnits), currency: tile.order!.currencyCode)}',
-                        TableBillState.loading => 'Đang tải tiền đơn…',
-                        TableBillState.unknown => 'Chưa tải được tiền đơn',
-                        TableBillState.forbidden => 'Không có quyền xem đơn',
-                        TableBillState.inconsistent => '—',
-                        _ => null,
-                      };
-                      return OrderContextCard(
-                        key: ValueKey('order-table-${table.id}'),
-                        name: table.name,
-                        icon: Icons.table_restaurant,
-                        hasOrder: tile.order != null,
-                        hasUnconfirmedOrder: hasUnconfirmedOrder,
-                        qrRequests: qrRequests,
-                        onQrTap: qrRequests == 0
-                            ? null
-                            : () => showQrRequestInbox(
-                                context,
-                                ref,
-                                tableId: table.id,
-                                tableNames: {table.id: table.name},
-                              ),
-                        subtitle: table.area?.active == false
-                            ? '$subtitle\nKhu vực ngừng hoạt động'
-                            : subtitle,
-                        amount: amount,
-                        onTap: c.canSelect(table)
-                            ? () => _select(context, ref, table)
-                            : null,
-                      );
-                    },
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
           ),
-          if (c.tableAccess &&
-              !c.loading &&
-              c.failure == null &&
-              c.tables.isEmpty)
-            const EmptyState(
-              icon: Icons.table_restaurant_outlined,
-              message: 'Không có bàn phù hợp.',
+        // Cards stay visible but locked without the menu; say why once.
+        if (!menuAllowed && (c.takeawayAllowed || c.dineInAllowed))
+          const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text(
+              'Bạn chưa có quyền xem thực đơn nên chưa chọn được món. Liên hệ người quản lý để được cấp quyền.',
             ),
-        ],
-      ),
+          ),
+        if (c.loading || c.billsLoading || c.selecting)
+          const LinearProgressIndicator(),
+        OrderFailurePanel(failure: c.areasFailure, retry: c.loadAreas),
+        OrderFailurePanel(failure: c.failure, retry: c.refresh),
+        OrderFailurePanel(
+          failure: c.billsFailure,
+          retry: c.load,
+          label: 'Tải lại tiền đơn',
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: c.refresh,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final tables = c.tables;
+                final takeaway = c.takeawayAllowed;
+                return GridView.builder(
+                  key: const ValueKey('order-table-grid'),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount:
+                        qrAllowed &&
+                            qr.pending.isNotEmpty &&
+                            MediaQuery.textScalerOf(context).scale(14) > 22
+                        ? (constraints.maxWidth / 320).floor().clamp(1, 6)
+                        : constraints.maxWidth < 300
+                        ? 1
+                        : constraints.maxWidth < 600
+                        ? 2
+                        : (constraints.maxWidth / 200).floor().clamp(3, 6),
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    mainAxisExtent:
+                        160 +
+                        (MediaQuery.textScalerOf(context).scale(14) - 14) * 7 +
+                        (!qrAllowed || qr.pending.isEmpty
+                            ? 0
+                            : 52 +
+                                  (MediaQuery.textScalerOf(context).scale(14) -
+                                          14) *
+                                      2),
+                  ),
+                  itemCount: tables.length + (takeaway ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (takeaway && index == 0) {
+                      return _TakeawayCard(menuAllowed: menuAllowed);
+                    }
+                    final table = tables[index - (takeaway ? 1 : 0)];
+                    final tile = c.tile(table);
+                    final qrRequests = qrAllowed
+                        ? qr.forTable(table.id, table.currentSession?.id).length
+                        : 0;
+                    final hasUnconfirmedOrder =
+                        tile.order?.status == OrderStatus.open;
+                    final subtitle = switch (tile.billState) {
+                      TableBillState.noSession => 'Còn trống',
+                      TableBillState.noOrder => 'Đang sử dụng · Chưa có đơn',
+                      TableBillState.inconsistent => 'Cần đồng bộ phiên/đơn',
+                      TableBillState.ready when hasUnconfirmedOrder =>
+                        'Chưa xác nhận',
+                      _ => 'Đang sử dụng',
+                    };
+                    final amount = switch (tile.billState) {
+                      TableBillState.ready =>
+                        'Tổng: ${orderMoney(BigInt.from(tile.order!.totalAmount.minorUnits), currency: tile.order!.currencyCode)}',
+                      TableBillState.loading => 'Đang tải tiền đơn…',
+                      TableBillState.unknown => 'Chưa tải được tiền đơn',
+                      TableBillState.forbidden => 'Không có quyền xem đơn',
+                      TableBillState.inconsistent => '—',
+                      _ => null,
+                    };
+                    return OrderContextCard(
+                      key: ValueKey('order-table-${table.id}'),
+                      name: table.name,
+                      icon: Icons.table_restaurant,
+                      hasOrder: tile.order != null,
+                      hasUnconfirmedOrder: hasUnconfirmedOrder,
+                      qrRequests: qrRequests,
+                      onQrTap: qrRequests == 0
+                          ? null
+                          : () => showQrRequestInbox(
+                              context,
+                              ref,
+                              tableId: table.id,
+                              tableNames: {table.id: table.name},
+                            ),
+                      subtitle: table.area?.active == false
+                          ? '$subtitle\nKhu vực ngừng hoạt động'
+                          : subtitle,
+                      amount: amount,
+                      onTap: c.canSelect(table)
+                          ? () => _select(context, ref, table)
+                          : null,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+        if (c.tableAccess &&
+            !c.loading &&
+            c.failure == null &&
+            c.tables.isEmpty)
+          const EmptyState(
+            icon: Icons.table_restaurant_outlined,
+            message: 'Không có bàn phù hợp.',
+          ),
+      ],
     );
+    // Polling the QR queue is only worth it for someone who can act on it.
+    return qrAllowed ? QrInboxVisibility(child: body) : body;
   }
 }
 

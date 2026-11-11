@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/network/binary_download.dart';
+import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/qr_preview.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../data/data_sources/tables_remote_data_source.dart';
 import '../../data/table_transfer_key_generator.dart';
@@ -218,6 +221,27 @@ final tableDetailControllerProvider = ChangeNotifierProvider.autoDispose
       Future.microtask(controller.load);
       return controller;
     });
+
+/// Server-rendered QR picture of one table. Keyed by the QR token, so a
+/// rotated token fetches a new picture; never cached beyond the dialog.
+typedef TableQrFileKey = ({
+  String id,
+  String token,
+  String? code,
+  QrPicture picture,
+});
+final tableQrFileProvider = FutureProvider.autoDispose
+    .family<DownloadedFile, TableQrFileKey>((ref, key) async {
+      ref.watch(tableScopeProvider);
+      final repository = ref.watch(restaurantTableRepositoryProvider);
+      final result = key.picture == QrPicture.card
+          ? await QrCardRestaurantTable(repository)(key.id, code: key.code)
+          : await QrImageRestaurantTable(repository)(key.id, code: key.code);
+      return switch (result) {
+        Success(:final value) => value,
+        Error(:final failure) => throw failure,
+      };
+    }, retry: (_, _) => null);
 final tableQrControllerProvider = ChangeNotifierProvider.autoDispose
     .family<TableQrController, String>((ref, id) {
       ref.watch(tableScopeProvider);

@@ -166,6 +166,15 @@ void main() {
         TableDto.tableQrPayload(qrJson()).toString(),
         isNot(contains('secret')),
       );
+      expect(
+        TableDto.tableQrPayload(qrJson()).menuUrl,
+        'https://pos.example.com/menu/qr/secret',
+      );
+      expect(TableDto.tableQrPayload(qrJson(withUrl: false)).menuUrl, isNull);
+      expect(
+        () => TableDto.tableQrPayload(qrJson()..['menuUrl'] = 7),
+        throwsFormatException,
+      );
     },
   );
   test(

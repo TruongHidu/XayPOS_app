@@ -54,6 +54,7 @@ OrderDetail kitchenOrder(
   int? version,
   String? rootStatus,
   bool paid = false,
+  Map<String, String> lineStatus = const {},
 }) {
   final first = rows.first;
   final live = rows
@@ -89,7 +90,7 @@ OrderDetail kitchenOrder(
               'unitPrice': 50000,
               'discountAmount': 0,
               'lineTotal': 100000,
-              'status': row.itemStatus.code,
+              'status': lineStatus[row.orderItemId] ?? row.itemStatus.code,
               'note': row.note,
               'cancelReason': null,
               'sentToKitchenAt': row.sentToKitchenAt?.toIso8601String(),
@@ -146,6 +147,28 @@ class FakeKitchen implements KitchenRepository {
           message: 'Đơn đã thay đổi.',
         ),
       );
+    }
+    // A served dish leaves the kitchen queue, so it has no queue row.
+    if (!kitchenStatuses.contains(input.action.target)) {
+      final rest = group.where((r) => r.key != line.key);
+      final order = kitchenOrder(
+        group,
+        version: input.expectedOrderVersion + 1,
+        paid: paid,
+        lineStatus: {line.orderItemId: input.action.target.code},
+        rootStatus: rest.isEmpty ? 'SERVED' : null,
+      );
+      rows = [
+        for (final row in rows)
+          if (row.key != line.key)
+            row.orderId == order.id
+                ? row.fromOrder(
+                    order,
+                    order.items.firstWhere((l) => l.id == row.orderItemId),
+                  )
+                : row,
+      ];
+      return Success(order);
     }
     final j = kitchenJson(
       orderId: line.orderId,

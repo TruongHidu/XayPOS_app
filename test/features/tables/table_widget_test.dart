@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/auth/session_events.dart';
+import 'package:pos_saas_app/core/platform/file_exporter.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/tables/data/dto/table_dto.dart';
 import 'package:pos_saas_app/features/tables/presentation/screens/tables_management_screen.dart';
@@ -14,6 +17,7 @@ import 'package:pos_saas_app/features/tables/presentation/widgets/table_dialogs.
 import 'package:pos_saas_app/features/tables/presentation/widgets/table_session_form.dart';
 import 'package:pos_saas_app/features/tables/presentation/widgets/table_transfer_dialog.dart';
 import '../../helpers/auth_fakes.dart';
+import '../../helpers/qr_fakes.dart';
 import 'table_fakes.dart';
 
 Future<ProviderContainer> pumpTables(
@@ -22,6 +26,7 @@ Future<ProviderContainer> pumpTables(
   Widget child = const TablesManagementScreen(),
   Set<String> permissions = tablePermissions,
   SessionEvents? events,
+  FileExporter? exporter,
 }) async {
   final auth = makeController(
     sessionEvents: events,
@@ -39,6 +44,7 @@ Future<ProviderContainer> pumpTables(
       restaurantTableRepositoryProvider.overrideWithValue(s.tables),
       tableAreaRepositoryProvider.overrideWithValue(s.areas),
       tableSessionRepositoryProvider.overrideWithValue(s.sessions),
+      fileExporterProvider.overrideWithValue(exporter ?? FakeFileExporter()),
     ],
   );
   addTearDown(container.dispose);
@@ -261,6 +267,9 @@ void main() {
     final s = TableServer();
     await pumpTables(tester, s, child: const TableQrDialog(id: 't1'));
     expect(find.text('Phiên bản mã QR: 9'), findsOneWidget);
+    int cards() => s.requests.where((r) => r.path.endsWith('/qr/card')).length;
+    expect(cards(), 1);
+    await tester.ensureVisible(find.text('Đổi mã QR'));
     await tester.tap(find.text('Đổi mã QR'));
     await tester.pumpAndSettle();
     expect(find.text('Đổi mã QR?'), findsOneWidget);
@@ -271,6 +280,77 @@ void main() {
       'expectedVersion': 9,
     });
     expect(find.text('Phiên bản mã QR: 10'), findsOneWidget);
+    expect(cards(), 2, reason: 'new token must fetch a new card');
+    expect(
+      find.text('https://pos.example.com/menu/qr/secret10'),
+      findsOneWidget,
+    );
+  });
+  testWidgets('QR dialog previews the card and the bare code, then saves', (
+    tester,
+  ) async {
+    final s = TableServer();
+    final exporter = FakeFileExporter();
+    await pumpTables(
+      tester,
+      s,
+      exporter: exporter,
+      child: const TableQrDialog(id: 't1', code: 'BÀN 7'),
+    );
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('https://pos.example.com/menu/qr/secret'), findsOneWidget);
+    expect(find.textContaining('Chưa cấu hình website'), findsNothing);
+    Future<void> tap(String text) async {
+      await tester.ensureVisible(find.text(text));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(text));
+      await tester.pumpAndSettle();
+    }
+
+    await tap('Tải thẻ in');
+    expect(exporter.exported.single.fileName, 'the-qr-ban-b01.png');
+
+    await tap('Mã QR');
+    final image = s.requests.singleWhere((r) => r.path.endsWith('/qr/image'));
+    expect(image.path, '/api/v1/tables/t1/qr/image');
+    expect(image.queryParameters, {'format': 'png', 'size': 1024});
+    expect(image.responseType, ResponseType.bytes);
+    await tap('Tải mã QR');
+    // No Content-Disposition on the bare image: client-side ASCII name.
+    expect(exporter.exported.last.fileName, 'qr-ban-ban-7.png');
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('QR image failure shows the API message with retry', (
+    tester,
+  ) async {
+    final s = TableServer();
+    var fail = true;
+    s.respond = (r) async {
+      if (fail && r.path.endsWith('/qr/card')) {
+        throw DioException(
+          requestOptions: r,
+          response: Response(
+            requestOptions: r,
+            statusCode: 403,
+            data: utf8.encode(
+              jsonEncode({'code': 'FEATURE_NOT_ENTITLED', 'message': 'x'}),
+            ),
+          ),
+          type: DioExceptionType.badResponse,
+        );
+      }
+      return s.response(r);
+    };
+    await pumpTables(tester, s, child: const TableQrDialog(id: 't1'));
+    expect(
+      find.text('Gói hiện tại không hỗ trợ chức năng này'),
+      findsOneWidget,
+    );
+    fail = false;
+    await tester.ensureVisible(find.text('Thử lại'));
+    await tester.tap(find.text('Thử lại'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
   });
   testWidgets(
     'timed-out create keeps draft and requires checking server before retry',

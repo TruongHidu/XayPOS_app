@@ -1,3 +1,4 @@
+import '../../../../core/network/binary_download.dart';
 import '../../../../core/result/result.dart';
 import '../entities/table_entities.dart';
 import '../entities/table_inputs.dart';
@@ -24,4 +25,6 @@ abstract interface class RestaurantTableRepository {
   Future<Result<void>> delete(String id, int version);
   Future<Result<TableQrPayload>> qr(String id);
   Future<Result<TableQrPayload>> rotateQr(String id, int version);
+  Future<Result<DownloadedFile>> qrImage(String id, {String? code});
+  Future<Result<DownloadedFile>> qrCard(String id, {String? code});
 }

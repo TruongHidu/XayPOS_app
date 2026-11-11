@@ -180,11 +180,15 @@ class TableQrPayload {
     required this.qrToken,
     required this.qrPath,
     required this.version,
+    this.menuUrl,
   });
   final String tableId;
   final String qrToken;
   final String qrPath;
   final int version;
+
+  /// Absolute customer link encoded in the QR; null on older servers.
+  final String? menuUrl;
 }
 
 class TablePage<T> {

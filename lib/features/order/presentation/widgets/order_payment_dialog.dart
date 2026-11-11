@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/auth/access_policy.dart';
+import '../../../../core/formatters/money_format.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/entities/order_payment.dart';
@@ -214,8 +216,11 @@ class OrderPaymentDialog extends ConsumerStatefulWidget {
 class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
   final _form = GlobalKey<FormState>();
   final _reference = TextEditingController();
+
+  /// Cash handed over, in whole units. Only used to work out the change; the
+  /// payment itself is always the order total.
+  final _cashGiven = TextEditingController();
   OrderPaymentMethod _method = OrderPaymentMethod.cash;
-  bool _received = false;
 
   @override
   void initState() {
@@ -224,19 +229,36 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
     if (pending != null) {
       _method = pending.paymentMethod;
       _reference.text = pending.referenceNo ?? '';
-      _received = true;
     }
   }
 
   @override
   void dispose() {
     _reference.dispose();
+    _cashGiven.dispose();
     super.dispose();
   }
 
-  Future<void> _send(OrderSettlementController controller) async {
+  BigInt? get _givenMinor {
+    final digits = _cashGiven.text.replaceAll(RegExp(r'\D'), '');
+    return digits.isEmpty ? null : BigInt.parse(digits) * BigInt.from(100);
+  }
+
+  /// Cash typed but less than [due]: confirming would record money not taken.
+  bool _short(BigInt due) {
+    final given = _givenMinor;
+    return _method == OrderPaymentMethod.cash && given != null && given < due;
+  }
+
+  void _setGiven(BigInt minor) {
+    final whole = (minor + BigInt.from(99)) ~/ BigInt.from(100);
+    HapticFeedback.selectionClick();
+    setState(() => _cashGiven.text = formatDecimal(whole.toString()));
+  }
+
+  Future<void> _send(OrderSettlementController controller, BigInt due) async {
     unawaited(HapticFeedback.mediumImpact());
-    if (!_form.currentState!.validate() || !_received) return;
+    if (!_form.currentState!.validate() || _short(due)) return;
     final result = await controller.pay(
       widget.order,
       _method,
@@ -286,6 +308,18 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
         controller.needsReview;
     final amount =
         controller.pending?.amount ?? widget.order.summary.totalAmount;
+    final currency = widget.order.summary.currencyCode;
+    final due = BigInt.from(amount.minorUnits);
+    final dueText = orderMoney(due, currency: currency);
+    final editable = !frozen && !changed;
+    // Once a payment is out or under review, the change calculator is noise
+    // next to the recovery steps.
+    final collecting =
+        _method == OrderPaymentMethod.cash &&
+        !controller.ownsMutationBlock &&
+        !controller.needsReview;
+    final given = collecting ? _givenMinor : null;
+    final textTheme = Theme.of(context).textTheme;
     return PopScope(
       canPop: !controller.busy,
       child: _SettlementDialogFrame(
@@ -296,40 +330,85 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Cần thu: ${orderMoney(BigInt.from(amount.minorUnits), currency: widget.order.summary.currencyCode)}',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Cần thu: $dueText', style: textTheme.titleLarge),
               const SizedBox(height: 8),
               const Text('Chỉ xác nhận sau khi đã nhận đủ tiền của khách.'),
               const SizedBox(height: 16),
-              DropdownButtonFormField<OrderPaymentMethod>(
-                value: _method,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  labelText: 'Phương thức thanh toán',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
+              Text('Phương thức thanh toán', style: textTheme.labelLarge),
+              const SizedBox(height: 8),
+              // One tap per method; chips wrap instead of overflowing at
+              // large text sizes.
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
                   for (final method in OrderPaymentMethod.values)
-                    DropdownMenuItem(value: method, child: Text(method.label)),
+                    ChoiceChip(
+                      key: ValueKey('payment-method-${method.code}'),
+                      avatar: Icon(
+                        method == OrderPaymentMethod.cash
+                            ? Icons.payments_outlined
+                            : Icons.account_balance_outlined,
+                        size: 20,
+                      ),
+                      label: Text(method.label),
+                      labelPadding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      showCheckmark: false,
+                      selected: _method == method,
+                      onSelected: editable
+                          ? (_) => setState(() => _method = method)
+                          : null,
+                    ),
                 ],
-                onChanged: frozen || changed
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          setState(() {
-                            _method = value;
-                            _received = false;
-                          });
-                        }
-                      },
               ),
+              if (collecting) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const ValueKey('payment-cash-given'),
+                  controller: _cashGiven,
+                  enabled: editable,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [_WholeAmountInputFormatter()],
+                  decoration: InputDecoration(
+                    labelText: 'Khách đưa',
+                    helperText: 'Bỏ trống nếu khách đưa đúng số tiền.',
+                    helperMaxLines: 2,
+                    suffixText: currency.isEmpty
+                        ? defaultCurrencySymbol
+                        : currency,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final (index, value) in cashSuggestions(
+                      due,
+                      currency: currency,
+                    ).indexed)
+                      ActionChip(
+                        key: ValueKey('payment-cash-quick-$index'),
+                        label: Text(index == 0 ? 'Đủ tiền' : orderMoney(value)),
+                        onPressed: editable ? () => _setGiven(value) : null,
+                      ),
+                  ],
+                ),
+                if (given != null) ...[
+                  const SizedBox(height: 12),
+                  _CashChangeLine(due: due, given: given, currency: currency),
+                ],
+              ],
               if (_method == OrderPaymentMethod.transfer) ...[
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _reference,
-                  enabled: !frozen && !changed,
+                  enabled: editable,
                   maxLength: 100,
                   decoration: const InputDecoration(
                     labelText: 'Mã tham chiếu chuyển khoản',
@@ -344,19 +423,7 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
                       : null,
                 ),
               ],
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text(
-                  _method == OrderPaymentMethod.transfer
-                      ? 'Tôi đã đối soát và nhận đủ tiền chuyển khoản'
-                      : 'Tôi xác nhận đã nhận đủ tiền mặt',
-                ),
-                value: _received,
-                onChanged: frozen || changed
-                    ? null
-                    : (value) => setState(() => _received = value ?? false),
-              ),
+              const SizedBox(height: 12),
               if (controller.busy) const LinearProgressIndicator(),
               if (controller.paymentOutcomeUnknown)
                 const Text(
@@ -418,16 +485,20 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
                             },
                       child: const Text('Đã đối chiếu · mở lại thanh toán'),
                     ),
+                  // The amount on the button is the confirmation itself: the
+                  // cashier reads exactly what they are attesting to.
                   if (!controller.ownsMutationBlock && !controller.needsReview)
-                    FilledButton(
+                    FilledButton.icon(
+                      key: const ValueKey('payment-confirm'),
                       onPressed:
                           !controller.busy &&
                               !changed &&
-                              _received &&
+                              !_short(due) &&
                               controller.canPay
-                          ? () => _send(controller)
+                          ? () => _send(controller, due)
                           : null,
-                      child: const Text('Xác nhận đã nhận tiền'),
+                      icon: const Icon(Icons.check),
+                      label: Text('Đã nhận $dueText'),
                     ),
                 ],
               ),
@@ -551,6 +622,81 @@ class OrderCompletionDialog extends ConsumerWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Amounts a customer is likely to hand over for [dueMinor]: the exact amount
+/// first, then the next round notes above it, at most four in all.
+List<BigInt> cashSuggestions(BigInt dueMinor, {String? currency}) {
+  if (dueMinor <= BigInt.zero) return const [];
+  final hundred = BigInt.from(100);
+  final due = (dueMinor + hundred - BigInt.one) ~/ hundred;
+  final dong = currency == null || currency.isEmpty || currency == 'VND';
+  final steps = dong
+      ? const [10000, 50000, 100000, 200000, 500000, 1000000]
+      : const [1, 5, 10, 20, 50, 100];
+  final amounts = <BigInt>{dueMinor};
+  for (final step in steps) {
+    if (amounts.length >= 4) break;
+    final unit = BigInt.from(step);
+    final rounded = (due + unit - BigInt.one) ~/ unit * unit * hundred;
+    if (rounded > dueMinor) amounts.add(rounded);
+  }
+  return amounts.toList()..sort();
+}
+
+/// Whole amounts only, grouped as 1.250.000 while typing.
+class _WholeAmountInputFormatter extends TextInputFormatter {
+  const _WholeAmountInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text
+        .replaceAll(RegExp(r'\D'), '')
+        .replaceFirst(RegExp(r'^0+(?=\d)'), '');
+    if (digits.length > 12) return oldValue;
+    final text = digits.isEmpty ? '' : formatDecimal(digits);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+}
+
+class _CashChangeLine extends StatelessWidget {
+  const _CashChangeLine({
+    required this.due,
+    required this.given,
+    required this.currency,
+  });
+  final BigInt due, given;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final change = given - due;
+    final short = change.isNegative;
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('payment-cash-change'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: short ? colors.errorContainer : AppColors.successSoft,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        short
+            ? 'Còn thiếu: ${orderMoney(-change, currency: currency)}'
+            : 'Tiền thừa trả khách: ${orderMoney(change, currency: currency)}',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          color: short ? colors.onErrorContainer : AppColors.success,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

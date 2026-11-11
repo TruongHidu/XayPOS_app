@@ -139,6 +139,22 @@ class OrderDraftController extends OrderController {
     changed();
   }
 
+  /// Undo of [remove]: puts the same line (id, quantity, note) back at
+  /// [index]. False when the cart can no longer take it.
+  bool restore(OrderDraftLine line, int index) {
+    if (!current ||
+        frozen ||
+        !canPick ||
+        _lines.length >= 100 ||
+        _lines.any((l) => l.id == line.id)) {
+      return false;
+    }
+    _lines.insert(index.clamp(0, _lines.length), line);
+    failure = null;
+    changed();
+    return true;
+  }
+
   void setFields({
     String? customerName,
     String? customerPhone,

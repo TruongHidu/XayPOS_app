@@ -5,6 +5,8 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/qr_preview.dart';
 import '../../../subscription/domain/entities/entitlement.dart';
 import '../../domain/entities/restaurant_profile.dart';
 import '../providers/settings_providers.dart';
@@ -24,6 +26,10 @@ class SettingsScreen extends ConsumerWidget {
       session,
       'RESTAURANT_PROFILE_VIEW',
     );
+    final canManageMenuLink = AccessPolicy.hasPermission(
+      session,
+      'RESTAURANT_PROFILE_UPDATE',
+    );
     final canViewPackage = AccessPolicy.hasPermission(
       session,
       'SUBSCRIPTION_VIEW',
@@ -36,12 +42,11 @@ class SettingsScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             if (canViewRestaurant) ...[
-              _RestaurantSection(
-                canEdit: AccessPolicy.hasPermission(
-                  session,
-                  'RESTAURANT_PROFILE_UPDATE',
-                ),
-              ),
+              _RestaurantSection(canEdit: canManageMenuLink),
+              const SizedBox(height: 16),
+            ],
+            if (canManageMenuLink) ...[
+              const _MenuLinkSection(),
               const SizedBox(height: 16),
             ],
             if (canViewPackage) ...[
@@ -236,6 +241,127 @@ class _RestaurantSection extends ConsumerWidget {
             final other => other,
           }),
         ],
+      ],
+    );
+  }
+}
+
+/// QR for the restaurant-wide menu (takeaway): create, print, rotate.
+class _MenuLinkSection extends ConsumerStatefulWidget {
+  const _MenuLinkSection();
+
+  @override
+  ConsumerState<_MenuLinkSection> createState() => _MenuLinkSectionState();
+}
+
+class _MenuLinkSectionState extends ConsumerState<_MenuLinkSection> {
+  bool _busy = false;
+
+  Future<void> _create() => _run(
+    () => ref.read(settingsRepositoryProvider).createMenuLink(),
+    'Đã tạo link menu.',
+  );
+
+  Future<void> _rotate() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Đổi link menu?'),
+        content: const Text(
+          'Link và mã QR cũ sẽ ngừng hoạt động. Các thẻ đã in theo mã cũ sẽ không quét được nữa và cần in lại.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Đổi link'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _run(
+      () => ref.read(settingsRepositoryProvider).rotateMenuLink(),
+      'Đã đổi link menu. Hãy in lại thẻ QR.',
+    );
+  }
+
+  Future<void> _run(
+    Future<Result<Object?>> Function() action,
+    String done,
+  ) async {
+    setState(() => _busy = true);
+    final result = await action();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ref.invalidate(menuLinkProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(switch (result) {
+          Success() => done,
+          Error(:final failure) => failure.message,
+        }),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final link = ref.watch(menuLinkProvider);
+    final value = link.value;
+    MenuLinkFileKey key(QrPicture picture) =>
+        (token: value!.menuToken, picture: picture);
+    return _Section(
+      title: 'QR menu mang đi',
+      icon: Icons.qr_code_2,
+      action: value != null
+          ? IconButton(
+              tooltip: 'Đổi link menu',
+              onPressed: _busy ? null : _rotate,
+              icon: const Icon(Icons.autorenew),
+            )
+          : null,
+      children: [
+        if (_busy) const LinearProgressIndicator(),
+        if (link.isLoading && !link.hasValue)
+          _loading
+        else if (link.hasError && !link.hasValue)
+          _Failed(
+            error: link.error!,
+            onRetry: () => ref.invalidate(menuLinkProvider),
+          )
+        else if (value == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chưa tạo link menu cho khách mang đi. Tạo link để in thẻ QR đặt ở quầy, khách quét mã để xem menu và đặt món mang đi.',
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _busy ? null : _create,
+                  icon: const Icon(Icons.add_link),
+                  label: const Text('Tạo link menu'),
+                ),
+              ],
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: QrPreview(
+              source: (picture) => menuLinkFileProvider(key(picture)),
+              onRetry: (picture) =>
+                  ref.invalidate(menuLinkFileProvider(key(picture))),
+              menuUrl: value.menuUrl,
+              maxCardHeight: 320,
+            ),
+          ),
       ],
     );
   }
