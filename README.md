@@ -65,6 +65,10 @@ dừng hẳn phiên debug rồi nhấn F5; hot reload không đổi giá trị c
 | `REALTIME_ENABLED` | `true`/`false`: lựa chọn ban đầu khi thiết bị chưa lưu công tắc Cập nhật tự động. Lựa chọn trong app được ưu tiên. |
 | `REALTIME_TRANSPORT` | Mặc định `websocket` để nhận sự kiện; `polling` chỉ dùng khi chủ động chọn kiểm tra định kỳ. |
 | `REALTIME_URL` | Để trống để suy ra `/ws` từ `API_BASE_URL`; đặt rõ khi reverse proxy có đường WebSocket riêng. Bản release yêu cầu WSS. |
+| `SUPPORT_WEB_URL` | Trang web hiện dưới màn đăng nhập, nhấn vào mở trình duyệt. Phải là địa chỉ `https://`/`http://`; để trống thì ẩn link. |
+| `REGISTER_URL` | Trang đăng ký nhà hàng trên web, mở khi nhấn "Đăng ký" ở màn đăng nhập. Để trống dùng `https://xaypos.hiducourse.click/register`. |
+| `SUBSCRIBE_URL` | Trang mua/gia hạn gói trên web, mở từ màn "chưa có gói hoạt động" (chỉ chủ quán, không hiện trên iOS). Để trống dùng `https://xaypos.hiducourse.click/onboarding`. |
+| `SUPPORT_PHONE` | Hotline hiện dưới màn đăng nhập, nhấn vào mở trình gọi điện. Để trống dùng `1900 6522`. |
 
 `.env` và `.env.*` được bỏ qua bởi Git; chỉ commit `.env.example`. Dùng định dạng
 `KEY=value`, boolean viết `true`/`false`, comment đặt trên dòng riêng. `.env` được

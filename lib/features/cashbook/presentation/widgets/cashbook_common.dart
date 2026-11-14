@@ -3,6 +3,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../reports/domain/entities/report_page.dart';
 import '../../domain/entities/cashbook_enums.dart';
 import '../controllers/cashbook_base_controller.dart';
+import '../../../../app/theme/app_colors.dart';
 
 /// Width classes measured on the cashbook's own content area, so the shell
 /// sidebar never makes a phone layout appear on a narrow desktop window.
@@ -31,8 +32,8 @@ enum CashbookLayout {
 abstract final class CashbookColors {
   static Color income(ColorScheme colors) =>
       colors.brightness == Brightness.dark
-      ? const Color(0xFF6FD58B)
-      : const Color(0xFF1B7F3B);
+      ? AppColors.incomeOnDark
+      : AppColors.income;
   static Color expense(ColorScheme colors) => colors.error;
   static Color of(ColorScheme colors, CashbookEntryType type) =>
       type == CashbookEntryType.income ? income(colors) : expense(colors);

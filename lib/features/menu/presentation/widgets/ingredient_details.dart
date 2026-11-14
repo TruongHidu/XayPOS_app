@@ -125,12 +125,12 @@ class _IngredientDetailsDialogState
                         ? Icons.check_circle
                         : Icons.pause_circle_outline,
                     size: 16,
-                    color: _item.active ? Colors.green : AppColors.grey500,
+                    color: _item.active ? AppColors.success : AppColors.grey500,
                   ),
                   label: Text(_item.active ? 'Đang sử dụng' : 'Ngừng sử dụng'),
                   backgroundColor: _item.active
-                      ? Colors.green.withAlpha(25)
-                      : Colors.grey.withAlpha(25),
+                      ? AppColors.success.withAlpha(25)
+                      : AppColors.grey500.withAlpha(25),
                 ),
                 Chip(
                   avatar: Icon(

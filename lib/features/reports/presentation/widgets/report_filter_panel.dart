@@ -7,6 +7,7 @@ import '../../../order/domain/entities/order_entities.dart' show ServiceType;
 import '../../domain/entities/report_date.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_filters.dart';
+import '../../../../app/theme/app_colors.dart';
 
 /// Applies the summary draft filter and pushes it to the tabs that have
 /// already been opened, so unopened tabs keep loading lazily.
@@ -239,7 +240,7 @@ class ReportFilterPanel extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Khoảng ngày không được vượt quá 366 ngày.'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.danger,
           ),
         );
       }

@@ -4,7 +4,9 @@ import '../entities/order_item_action.dart';
 import '../entities/order_inputs.dart';
 import '../entities/order_payment.dart';
 import '../entities/order_submission.dart';
+import '../entities/order_transfer_qr.dart';
 import '../repositories/order_repository.dart';
+import '../repositories/order_transfer_qr_repository.dart';
 
 class GetOrders {
   const GetOrders(this.repository);
@@ -102,6 +104,30 @@ class RecordOrderPayment {
     RecordOrderPaymentInput input,
     String idempotencyKey,
   ) => repository.recordPayment(id, input, idempotencyKey);
+}
+
+/// Reads the VietQR for paying [orderId] by transfer, picture included.
+/// Null when the restaurant has no receiving account; the picture is only
+/// requested once the details say there is one.
+class GetOrderTransferQr {
+  const GetOrderTransferQr(this.repository);
+  final OrderTransferQrRepository repository;
+  Future<Result<OrderTransferQrCode?>> call(String orderId) async {
+    final details = await repository.details(orderId);
+    switch (details) {
+      case Error(:final failure):
+        return Error(failure);
+      case Success(value: null):
+        return const Success(null);
+      case Success(value: final OrderTransferQr qr):
+        return switch (await repository.image(orderId)) {
+          Success(:final value) => Success(
+            OrderTransferQrCode(details: qr, png: value.bytes),
+          ),
+          Error(:final failure) => Error(failure),
+        };
+    }
+  }
 }
 
 class CompleteOrder {

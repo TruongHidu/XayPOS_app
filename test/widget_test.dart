@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/app.dart';
 import 'package:pos_saas_app/app/providers.dart';
+import 'package:pos_saas_app/core/platform/external_link_opener.dart';
 import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
+import 'package:pos_saas_app/features/auth/presentation/widgets/support_footer.dart';
 import 'package:pos_saas_app/features/menu/presentation/screens/menu_management_screen.dart';
 
 import 'helpers/auth_fakes.dart';
@@ -37,11 +39,75 @@ void main() {
     await _pumpApp(tester, controller);
 
     expect(find.text('Gọi 1900 6522'), findsOneWidget);
-    expect(find.text('Chat với Xây POS'), findsOneWidget);
-    expect(
-      tester.getCenter(find.text('Gọi 1900 6522')).dy,
-      lessThan(tester.getCenter(find.text('Chat với Xây POS')).dy),
+    // No SUPPORT_WEB_URL in the test configuration: the link stays hidden.
+    expect(find.byKey(const ValueKey('support-web')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sign-up opens the restaurant registration page on the web', (
+    tester,
+  ) async {
+    final opened = <Uri>[];
+    final controller = await _unauthenticatedController();
+    await _pumpApp(
+      tester,
+      controller,
+      openLink: (uri) async {
+        opened.add(uri);
+        return true;
+      },
     );
+    expect(find.text('Chưa có tài khoản?'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('register-button')));
+    await tester.tap(find.byKey(const Key('register-button')));
+    await tester.pumpAndSettle();
+    expect(opened, [Uri.parse('https://xaypos.hiducourse.click/register')]);
+  });
+
+  testWidgets('a register page that cannot open says so', (tester) async {
+    final controller = await _unauthenticatedController();
+    await _pumpApp(tester, controller, openLink: (_) async => false);
+    await tester.ensureVisible(find.byKey(const Key('register-button')));
+    await tester.tap(find.byKey(const Key('register-button')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Không mở được trang đăng ký xaypos.hiducourse.click.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('support footer offers the hotline and the website', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var calls = 0, visits = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SupportFooter(
+            phone: '0909 123 456',
+            onCall: () => calls++,
+            webLabel: 'xaypos.vn',
+            onWeb: () => visits++,
+            stackActions: true,
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Gọi 0909 123 456'), findsOneWidget);
+    expect(find.text('xaypos.vn'), findsOneWidget);
+    expect(
+      tester.getCenter(find.byKey(const ValueKey('support-call'))).dy,
+      lessThanOrEqualTo(
+        tester.getCenter(find.byKey(const ValueKey('support-web'))).dy,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('support-call')));
+    await tester.tap(find.byKey(const ValueKey('support-web')));
+    expect((calls, visits), (1, 1));
     expect(tester.takeException(), isNull);
   });
 
@@ -107,11 +173,17 @@ Future<AuthController> _unauthenticatedController() async {
   return controller;
 }
 
-Future<void> _pumpApp(WidgetTester tester, AuthController controller) async {
+Future<void> _pumpApp(
+  WidgetTester tester,
+  AuthController controller, {
+  Future<bool> Function(Uri)? openLink,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         authControllerProvider.overrideWith((ref) => controller),
+        if (openLink != null)
+          externalLinkOpenerProvider.overrideWithValue(openLink),
         menuItemRepositoryProvider.overrideWithValue(FakeMenuItems()),
         menuGroupRepositoryProvider.overrideWithValue(FakeMenuGroups()),
       ],

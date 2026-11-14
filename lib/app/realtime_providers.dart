@@ -145,9 +145,12 @@ final orderRealtimeCoordinatorProvider = Provider<OrderRealtimeCoordinator?>((
       events.invalidateRemote(hint);
       // The wire has session IDs, not a trustworthy current table snapshot.
       // Only mounted table readers react; no background detail controllers.
-      tables.emit(
-        const TableChange(TableChangeKind.refresh, '', remoteOrder: true),
-      );
+      // Kitchen progress alone never changes a table, so it stays quiet.
+      if (hint.affectsTables) {
+        tables.emit(
+          const TableChange(TableChangeKind.refresh, '', remoteOrder: true),
+        );
+      }
     },
   );
   ref.onDispose(coordinator.dispose);

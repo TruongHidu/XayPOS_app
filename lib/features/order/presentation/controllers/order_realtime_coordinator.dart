@@ -3,6 +3,7 @@ import '../../../../core/realtime/realtime_connection_service.dart';
 import '../../../../core/realtime/realtime_envelope.dart';
 import '../../../../core/realtime/realtime_event_window.dart';
 import '../../data/dto/order_realtime_payload.dart';
+import '../../domain/policies/order_table_policy.dart';
 import 'order_invalidation.dart';
 
 /// One cache per channel: order/kitchen fan-out must reach both consumers.
@@ -27,6 +28,9 @@ class OrderRealtimeCoordinator {
   final Set<String> _orders = {}, _sessions = {}, _freshEvents = {};
   Timer? _timer;
   bool _all = false, _active = true, _disposed = false;
+
+  /// Any change in the pending batch that a table card would show.
+  bool _affectsTables = false;
   RealtimeChannel get channel => RealtimeChannel(
     id: id,
     destination: '/user/queue/$id',
@@ -48,6 +52,7 @@ class OrderRealtimeCoordinator {
         _sessions.clear();
       }
     }
+    if (OrderTablePolicy.affectedBy(payload.kinds)) _affectsTables = true;
     if (payload.newKitchenItemIds.isNotEmpty &&
         _freshEvents.length < capacity) {
       _freshEvents.add(event.eventId);
@@ -58,6 +63,7 @@ class OrderRealtimeCoordinator {
   void resync() {
     if (!_live) return;
     _all = true;
+    _affectsTables = true; // After a gap nothing is known: reload everything.
     // Snapshot recovery is deliberately silent.
     _freshEvents.clear();
     _schedule();
@@ -76,6 +82,7 @@ class OrderRealtimeCoordinator {
     _sessions.clear();
     _freshEvents.clear();
     _all = false;
+    _affectsTables = false;
   }
 
   void _schedule() {
@@ -90,12 +97,14 @@ class OrderRealtimeCoordinator {
         orderIds: _orders,
         sessionIds: _sessions,
         all: _all,
+        affectsTables: _affectsTables,
       );
       final fresh = _freshEvents.length;
       _orders.clear();
       _sessions.clear();
       _freshEvents.clear();
       _all = false;
+      _affectsTables = false;
       invalidate(hint);
       if (_live && fresh > 0) onNewItems?.call(fresh);
     });

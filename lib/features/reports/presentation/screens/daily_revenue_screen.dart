@@ -86,23 +86,12 @@ class DailyRevenueScreen extends ConsumerWidget {
       spacing: 12,
       runSpacing: 8,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Doanh thu ngày',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Theo dõi tình hình thu tiền và doanh số theo từng ngày lịch',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
-              ),
-            ),
-          ],
+        // The app bar already says "Doanh thu ngày".
+        Text(
+          'Theo dõi tình hình thu tiền và doanh số theo từng ngày lịch',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.outline,
+          ),
         ),
         if (meta != null)
           Wrap(
@@ -148,7 +137,7 @@ class DailyRevenueScreen extends ConsumerWidget {
         title: 'Doanh số đơn hoàn tất',
         money: data.orders.completedOrderSalesAmount,
         icon: Icons.point_of_sale_outlined,
-        color: const Color(0xFFEA580C),
+        color: AppColors.accentOrange,
         tooltip:
             'Tổng giá trị các đơn COMPLETED theo thời điểm hoàn tất (completedAt) trong ngày.',
         secondaryText: '${data.orders.completedOrderCount} đơn hoàn tất',
@@ -167,7 +156,7 @@ class DailyRevenueScreen extends ConsumerWidget {
         title: 'Giá trị TB / đơn hoàn tất',
         money: data.orders.averageCompletedOrderValue,
         icon: Icons.trending_up,
-        color: const Color(0xFF8B5CF6),
+        color: AppColors.accentViolet,
         tooltip:
             'Giá trị trung bình của mỗi đơn hoàn tất do backend tính toán.',
         secondaryText:
@@ -186,29 +175,29 @@ class DailyRevenueScreen extends ConsumerWidget {
     final fail = controller.failure!;
 
     return Card(
-      color: Colors.red.shade50,
+      color: AppColors.dangerSoft,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.red.shade200),
+        side: BorderSide(color: AppColors.dangerBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red.shade700),
+            Icon(Icons.error_outline, size: 48, color: AppColors.danger),
             const SizedBox(height: 12),
             Text(
               'Không thể tải báo cáo doanh thu ngày',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.red.shade900,
+                color: AppColors.dangerStrong,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               fail.message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.red.shade800),
+              style: TextStyle(color: AppColors.dangerStrong),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

@@ -1,29 +1,30 @@
+import '../../../../core/ui/formatters/elapsed.dart';
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
 
 abstract final class KitchenStyle {
-  static const background = Color(0xFFF1F3F5);
+  static const background = AppColors.grey100;
   static const cardBackground = Colors.white;
-  static const borderColor = Color(0xFFE2E8F0);
+  static const borderColor = AppColors.grey200;
 
   static Color color(OrderItemStatus status) => switch (status) {
     OrderItemStatus.pending => AppColors.warning,
-    OrderItemStatus.cooking => const Color(0xFF1D4ED8),
+    OrderItemStatus.cooking => AppColors.infoStrong,
     _ => AppColors.success,
   };
 
   static Color bgColor(OrderItemStatus status) => switch (status) {
     OrderItemStatus.pending => AppColors.warningTint,
-    OrderItemStatus.cooking => const Color(0xFFEFF6FF),
-    _ => const Color(0xFFF0FDF4),
+    OrderItemStatus.cooking => AppColors.infoSoft,
+    _ => AppColors.successTint,
   };
 
   static Color borderColorFor(OrderItemStatus status) => switch (status) {
     OrderItemStatus.pending => AppColors.warningBorder,
-    OrderItemStatus.cooking => const Color(0xFFBFDBFE),
-    _ => const Color(0xFFBBF7D0),
+    OrderItemStatus.cooking => AppColors.infoBorder,
+    _ => AppColors.successBorder,
   };
 
   static String label(OrderItemStatus status) => switch (status) {
@@ -36,18 +37,7 @@ abstract final class KitchenStyle {
 }
 
 /// How long a dish has waited, in the largest units that read naturally.
-String kitchenWaited(Duration elapsed) {
-  final minutes = elapsed.inMinutes;
-  if (minutes < 1) return 'Vừa vào';
-  if (minutes < 60) return '$minutes phút';
-  final hours = minutes ~/ 60;
-  if (hours < 24) {
-    final rest = minutes % 60;
-    return '$hours giờ${rest == 0 ? '' : ' $rest phút'}';
-  }
-  final rest = hours % 24;
-  return '${hours ~/ 24} ngày${rest == 0 ? '' : ' $rest giờ'}';
-}
+String kitchenWaited(Duration elapsed) => formatElapsed(elapsed);
 
 class KitchenStatusBadge extends StatelessWidget {
   const KitchenStatusBadge({super.key, required this.status});
@@ -89,9 +79,7 @@ class KitchenQueueContext extends StatelessWidget {
     final time =
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
     final isDelayed = elapsed >= KitchenStyle.warningAfter;
-    final timerColor = isDelayed
-        ? const Color(0xFFB91C1C)
-        : Colors.blueGrey.shade700;
+    final timerColor = isDelayed ? AppColors.dangerStrong : AppColors.grey700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,14 +94,14 @@ class KitchenQueueContext extends StatelessWidget {
                   ? Icons.shopping_bag_outlined
                   : Icons.table_restaurant_outlined,
               size: 18,
-              color: const Color(0xFF334155),
+              color: AppColors.grey700,
             ),
             Text(
               item.seating.isEmpty ? 'Tại bàn' : item.seating,
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 13,
-                color: Color(0xFF334155),
+                color: AppColors.grey700,
               ),
             ),
           ],
@@ -127,7 +115,7 @@ class KitchenQueueContext extends StatelessWidget {
             Text(
               item.orderCode,
               style: TextStyle(
-                color: Colors.blueGrey.shade700,
+                color: AppColors.grey700,
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
               ),
@@ -221,7 +209,7 @@ class KitchenItemCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.grey900,
                     height: 1.25,
                   ),
                 ),
@@ -242,7 +230,7 @@ class KitchenItemCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF92400E),
+                        color: AppColors.warning,
                       ),
                     ),
                   ),
@@ -251,7 +239,7 @@ class KitchenItemCard extends StatelessWidget {
                 const Divider(
                   height: 16,
                   thickness: 1,
-                  color: Color(0xFFF1F5F9),
+                  color: AppColors.grey100,
                 ),
                 KitchenQueueContext(item: item, now: now),
                 const SizedBox(height: 10),
@@ -371,7 +359,7 @@ class KitchenOrderCard extends StatelessWidget {
     final headerAccentColor = allReady
         ? AppColors.success
         : hasCooking
-        ? const Color(0xFF1D4ED8)
+        ? AppColors.infoStrong
         : AppColors.warning;
 
     return Card(
@@ -399,7 +387,7 @@ class KitchenOrderCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.grey900,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -410,21 +398,21 @@ class KitchenOrderCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
-                    color: Colors.blueGrey.shade700,
+                    color: AppColors.grey700,
                   ),
                 ),
                 for (final item in items) ...[
                   const Divider(
                     height: 18,
                     thickness: 1,
-                    color: Color(0xFFF1F5F9),
+                    color: AppColors.grey100,
                   ),
                   Text(
                     '${item.quantity} ${item.unit} · ${item.itemName}',
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                      color: AppColors.grey800,
                     ),
                   ),
                   if (item.note?.trim().isNotEmpty == true)
@@ -435,7 +423,7 @@ class KitchenOrderCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF92400E),
+                          color: AppColors.warning,
                         ),
                       ),
                     ),
@@ -477,7 +465,7 @@ class KitchenOrderCard extends StatelessWidget {
                 const Divider(
                   height: 18,
                   thickness: 1,
-                  color: Color(0xFFF1F5F9),
+                  color: AppColors.grey100,
                 ),
                 const SizedBox(height: 4),
                 if (orderStatus == OrderStatus.served)
@@ -485,7 +473,7 @@ class KitchenOrderCard extends StatelessWidget {
                     'Đơn đã được phục vụ',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF475569),
+                      color: AppColors.grey600,
                     ),
                   )
                 else if ((allReady || orderStatus == OrderStatus.ready) &&
@@ -600,7 +588,7 @@ class KitchenServingList extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBBF7D0)),
+        border: Border.all(color: AppColors.successBorder),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -610,7 +598,7 @@ class KitchenServingList extends StatelessWidget {
             key: const ValueKey('kitchen-serving-toggle'),
             onTap: onToggle,
             child: Container(
-              color: const Color(0xFFF0FDF4),
+              color: AppColors.successTint,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
@@ -626,7 +614,7 @@ class KitchenServingList extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
-                        color: Color(0xFF166534),
+                        color: AppColors.success,
                       ),
                     ),
                   ),
@@ -637,7 +625,7 @@ class KitchenServingList extends StatelessWidget {
           ),
           if (expanded)
             for (var i = 0; i < orders.length; i++) ...[
-              if (i > 0) const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              if (i > 0) const Divider(height: 1, color: AppColors.grey100),
               _ServingRow(
                 key: ValueKey('kitchen-serving-${orders[i].first.orderId}'),
                 items: orders[i],
@@ -685,7 +673,7 @@ class _ServingRow extends StatelessWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14.5,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.grey900,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -696,7 +684,7 @@ class _ServingRow extends StatelessWidget {
                   ].join(', '),
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF334155),
+                    color: AppColors.grey700,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -706,8 +694,8 @@ class _ServingRow extends StatelessWidget {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: elapsed >= KitchenStyle.warningAfter
-                        ? const Color(0xFFB91C1C)
-                        : Colors.blueGrey.shade700,
+                        ? AppColors.dangerStrong
+                        : AppColors.grey700,
                   ),
                 ),
               ],
@@ -745,7 +733,7 @@ class KitchenSummaryBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -760,7 +748,7 @@ class KitchenSummaryBar extends StatelessWidget {
           if (summaries.isEmpty)
             const Text(
               'Không có món chờ nấu hoặc đang nấu.',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              style: TextStyle(color: AppColors.grey500, fontSize: 13),
             ),
           Wrap(
             spacing: 8,
@@ -775,7 +763,7 @@ class KitchenSummaryBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: KitchenStyle.background,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: AppColors.grey200),
                   ),
                   child: Text(
                     '${summary.quantity} ${summary.unit} · ${summary.name}'

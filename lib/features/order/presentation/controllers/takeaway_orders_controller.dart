@@ -30,6 +30,10 @@ class TakeawayOrdersController extends OrderController {
     events.addListener(_event);
   }
   static const pollInterval = Duration(seconds: 30);
+
+  /// With realtime connected every change already reloads the board; the
+  /// poll only guards against a missed event, as on the kitchen screen.
+  static const connectedPollInterval = Duration(seconds: 60);
   final GetActiveTakeawayOrders get;
   final void Function(int count)? onCount;
   List<OrderSummary> rows = const [];
@@ -37,8 +41,25 @@ class TakeawayOrdersController extends OrderController {
   bool loading = false, hasLoaded = false;
   int _revision = 0, _visible = 0;
   Future<void>? _reading;
-  bool _reloadRequested = false;
+  bool _reloadRequested = false, _realtimeConnected = false;
   Timer? _poll;
+
+  Duration get currentPollInterval =>
+      _realtimeConnected ? connectedPollInterval : pollInterval;
+
+  void setRealtimeConnected(bool value) {
+    if (_realtimeConnected == value) return;
+    _realtimeConnected = value;
+    if (_poll != null) {
+      _poll!.cancel();
+      _poll = null;
+      _startPoll();
+    }
+  }
+
+  void _startPoll() {
+    _poll ??= Timer.periodic(currentPollInterval, (_) => unawaited(load()));
+  }
 
   int get activeCount => rows.length;
   List<OrderSummary> stage(TakeawayStage stage) =>
@@ -57,7 +78,7 @@ class TakeawayOrdersController extends OrderController {
   void setVisible(bool visible) {
     _visible += visible ? 1 : -1;
     if (_visible > 0 && current) {
-      _poll ??= Timer.periodic(pollInterval, (_) => unawaited(load()));
+      _startPoll();
     } else {
       _visible = 0;
       _poll?.cancel();

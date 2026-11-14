@@ -16,6 +16,14 @@ abstract final class AppSidebarRegistry {
       title: 'BÁN HÀNG & VẬN HÀNH',
       items: [
         SidebarMenuItem(
+          id: 'overview',
+          label: 'Tổng quan',
+          icon: Icons.dashboard_outlined,
+          routePath: '/app/overview',
+          requiredPermissions: ['REPORT_DAILY_VIEW'],
+          requiredFeatures: ['DAILY_REVENUE'],
+        ),
+        SidebarMenuItem(
           id: 'orders',
           label: 'Đơn hàng',
           icon: Icons.receipt_long_outlined,

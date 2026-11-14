@@ -95,9 +95,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                               ? Icons.task_alt
                               : Icons.check_circle,
                           size: 56,
-                          color: draft
-                              ? const Color(0xFF9A6700)
-                              : AppColors.success,
+                          color: draft ? AppColors.warning : AppColors.success,
                         ),
                         const SizedBox(height: 8),
                         Text(

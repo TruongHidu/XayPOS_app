@@ -83,7 +83,14 @@ void main() {
       await tester.pumpWidget(buildTestApp(child: const DailyRevenueScreen()));
       await tester.pumpAndSettle();
 
-      expect(find.text('Doanh thu ngày'), findsOneWidget);
+      // The app bar names the screen; the page shows only its purpose.
+      expect(find.text('Doanh thu ngày'), findsNothing);
+      expect(
+        find.text(
+          'Theo dõi tình hình thu tiền và doanh số theo từng ngày lịch',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Tiền đã thu'), findsOneWidget);
       expect(find.text('Doanh số đơn hoàn tất'), findsWidgets);
       expect(find.text('Đơn hoàn tất'), findsWidgets);

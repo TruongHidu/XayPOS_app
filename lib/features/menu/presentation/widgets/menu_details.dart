@@ -7,6 +7,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/widgets/app_network_image.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/menu_group.dart';
 import '../../domain/entities/menu_item.dart';
@@ -59,38 +60,12 @@ class MenuImage extends StatelessWidget {
       ),
     );
 
-    final hasUrl = url != null && url!.isNotEmpty;
-
-    Widget image;
-    if (size != null) {
-      // Legacy square mode
-      image = SizedBox.square(
-        dimension: size,
-        child: hasUrl
-            ? Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : placeholder,
-                errorBuilder: (_, __, ___) => placeholder,
-              )
-            : placeholder,
-      );
-    } else {
-      // Aspect ratio mode
-      image = AspectRatio(
-        aspectRatio: aspectRatio,
-        child: hasUrl
-            ? Image.network(
-                url!,
-                fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) =>
-                    progress == null ? child : placeholder,
-                errorBuilder: (_, __, ___) => placeholder,
-              )
-            : placeholder,
-      );
-    }
+    final picture = AppNetworkImage(url: url, placeholder: placeholder);
+    final Widget image = size != null
+        // Legacy square mode
+        ? SizedBox.square(dimension: size, child: picture)
+        // Aspect ratio mode
+        : AspectRatio(aspectRatio: aspectRatio, child: picture);
 
     final clipped = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -118,10 +93,13 @@ class MenuImagePreview extends StatelessWidget {
         child: InteractiveViewer(
           minScale: 0.5,
           maxScale: 4.0,
-          child: Image.network(
-            url,
+          child: AppNetworkImage(
+            url: url,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
+            // Room for pinch-zoom: twice the screen, within the 2048 cap.
+            oversample: 2,
+            placeholder: const CircularProgressIndicator(color: Colors.white54),
+            error: const Icon(
               Icons.broken_image_outlined,
               color: Colors.white54,
               size: 64,

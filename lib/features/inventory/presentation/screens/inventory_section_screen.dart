@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/providers.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../widgets/inventory_widgets.dart';
@@ -61,19 +62,18 @@ class InventorySectionScreen extends ConsumerWidget {
   }
 }
 
+/// The app bar already names the section, so the page only says what it is
+/// for.
 enum InventorySection {
-  balances('Tồn kho', 'Theo dõi số lượng hàng hóa tại từng kho.'),
-  warehouses('Quản lý kho', 'Quản lý kho hàng và kho mặc định.'),
-  documents('Chứng từ kho', 'Theo dõi phiếu nhập, xuất và điều chỉnh tồn kho.'),
-  transactions(
-    'Biến động kho',
-    'Xem lại mọi lần nhập, xuất, điều chỉnh và tiêu thụ hàng hóa.',
-  ),
-  alerts('Cảnh báo tồn kho', 'Theo dõi và xử lý các đợt cảnh báo tồn kho.'),
-  audits('Kiểm kê', 'Đối chiếu tồn thực tế và chốt kết quả kiểm kê.');
+  balances('Theo dõi số lượng hàng hóa tại từng kho.'),
+  warehouses('Quản lý kho hàng và kho mặc định.'),
+  documents('Theo dõi phiếu nhập, xuất và điều chỉnh tồn kho.'),
+  transactions('Xem lại mọi lần nhập, xuất, điều chỉnh và tiêu thụ hàng hóa.'),
+  alerts('Theo dõi và xử lý các đợt cảnh báo tồn kho.'),
+  audits('Đối chiếu tồn thực tế và chốt kết quả kiểm kê.');
 
-  const InventorySection(this.title, this.description);
-  final String title, description;
+  const InventorySection(this.description);
+  final String description;
 }
 
 class _InventoryWorkspace extends ConsumerStatefulWidget {
@@ -161,7 +161,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
           // Chứng từ kho starts at its search bar; creation moves to the FAB.
           if (!documentsTab)
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               sliver: SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -172,17 +172,10 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
                       spacing: 16,
                       runSpacing: 12,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _tab.title,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(_tab.description),
-                          ],
+                        Text(
+                          _tab.description,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.grey600),
                         ),
                         Wrap(
                           spacing: 8,

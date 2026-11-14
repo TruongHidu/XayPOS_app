@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/controllers/refresh_throttle.dart';
 import '../../domain/entities/inventory_queries.dart';
 import '../../domain/use_cases/inventory_use_cases.dart';
 import 'inventory_controller.dart';
@@ -15,12 +16,15 @@ class InventoryLowStockCountController extends InventoryController {
     super.onAccessDenied,
     required this.get,
     bool foreground = true,
+    RefreshThrottle? freshness,
   }) : _foreground = foreground,
+       _fresh = freshness ?? RefreshThrottle(),
        _revision = events.revision {
     events.addListener(_event);
   }
 
   final GetLowStockBalances get;
+  final RefreshThrottle _fresh;
   int? _count;
   int? get count => canLowStock ? _count : null;
   Failure? failure;
@@ -62,8 +66,13 @@ class InventoryLowStockCountController extends InventoryController {
     } else {
       ++_generation;
       _again = false;
+      _fresh.markStale(); // Events were missed while in the background.
     }
   }
+
+  /// For "show the badge" moments such as opening the sidebar: inventory
+  /// events already keep the count current, so a recent one is kept.
+  Future<void> refreshIfStale() => _fresh.isFresh ? Future.value() : load();
 
   Future<void> load() {
     if (!canLowStock || !_foreground) return Future.value();
@@ -103,14 +112,17 @@ class InventoryLowStockCountController extends InventoryController {
           switch (result) {
             case Success(value: final page):
               _count = page.totalElements;
+              _fresh.markLoaded();
             case Error(failure: final error):
               _count = null;
               failure = error;
+              _fresh.markStale();
           }
         } catch (_) {
           if (canLowStock && _foreground && generation == _generation) {
             _count = null;
             failure = InventoryController.invalidResponse;
+            _fresh.markStale();
           }
         }
       } while (_again && canLowStock && _foreground);

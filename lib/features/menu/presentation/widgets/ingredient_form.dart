@@ -259,8 +259,8 @@ class _IngredientFormState extends ConsumerState<IngredientForm> {
                       style: const TextStyle(fontSize: 12),
                     ),
                     backgroundColor: _baseline!.active
-                        ? Colors.green.withAlpha(30)
-                        : Colors.grey.withAlpha(30),
+                        ? AppColors.success.withAlpha(30)
+                        : AppColors.grey500.withAlpha(30),
                   ),
                   const Text(
                     'Trạng thái được đổi bằng thao tác riêng.',

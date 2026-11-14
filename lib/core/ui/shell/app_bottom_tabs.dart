@@ -9,7 +9,7 @@ import '../sidebar/sidebar_menu_item.dart';
 List<String> _preferredTabs(UserRole role) => switch (role) {
   UserRole.kitchen => const ['kitchen-display', 'orders'],
   UserRole.owner ||
-  UserRole.manager => const ['order-create', 'orders', 'reports', 'menu'],
+  UserRole.manager => const ['overview', 'order-create', 'orders', 'reports'],
   _ => const ['order-create', 'orders', 'takeaway-orders', 'tables'],
 };
 

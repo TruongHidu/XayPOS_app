@@ -7,7 +7,7 @@ import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/policies/order_access_policy.dart';
 import '../../domain/use_cases/order_use_cases.dart';
-import 'order_append_dialog.dart';
+import 'order_append_navigation.dart';
 import 'order_mutation_forms.dart';
 import 'order_payment_dialog.dart';
 import 'order_widgets.dart';
@@ -122,12 +122,7 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
               action: OrderFormAction.confirm,
             ),
           ),
-          TakeawayQuickAction.append => showOrderDialog<void>(
-            context,
-            ref,
-            permission: 'ORDER_UPDATE',
-            child: OrderAppendDialog(order: order),
-          ),
+          TakeawayQuickAction.append => openOrderAppend(context, order.id),
           TakeawayQuickAction.pay => showOrderPaymentDialog(
             context,
             ref,

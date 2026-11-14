@@ -45,6 +45,7 @@ void main() {
   group('tabs by role', () {
     final all = [
       for (final id in [
+        'overview',
         'orders',
         'order-create',
         'takeaway-orders',
@@ -68,12 +69,18 @@ void main() {
       ]);
       expect(ids(UserRole.kitchen), ['kitchen-display', 'orders']);
       expect(ids(UserRole.owner), [
+        'overview',
         'order-create',
         'orders',
         'reports',
-        'menu',
       ]);
       expect(ids(UserRole.manager), ids(UserRole.owner));
+      // Without the daily report the owner starts on Gọi món, as before.
+      expect(ids(UserRole.owner, all.skip(1).toList()), [
+        'order-create',
+        'orders',
+        'reports',
+      ]);
     });
 
     test('a section the user cannot open never becomes a tab', () {

@@ -287,7 +287,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         title: 'Doanh số đơn hoàn tất',
         money: data.orders.completedOrderSalesAmount,
         icon: Icons.point_of_sale_outlined,
-        color: const Color(0xFFEA580C),
+        color: AppColors.accentOrange,
         tooltip:
             'Tổng giá trị các đơn COMPLETED theo thời điểm hoàn tất (completedAt) trong khoảng.',
         secondaryText: '${data.orders.completedOrderCount} đơn hoàn tất',
@@ -306,7 +306,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         title: 'Giá trị TB / đơn hoàn tất',
         money: data.orders.averageCompletedOrderValue,
         icon: Icons.trending_up,
-        color: const Color(0xFF8B5CF6),
+        color: AppColors.accentViolet,
         tooltip:
             'Giá trị trung bình của mỗi đơn hoàn tất do backend tính toán.',
         secondaryText:
@@ -460,29 +460,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     required VoidCallback onRetry,
   }) {
     return Card(
-      color: Colors.red.shade50,
+      color: AppColors.dangerSoft,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.red.shade200),
+        side: BorderSide(color: AppColors.dangerBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 36, color: Colors.red.shade700),
+            Icon(Icons.error_outline, size: 36, color: AppColors.danger),
             const SizedBox(height: 8),
             Text(
               title,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.red.shade900,
+                color: AppColors.dangerStrong,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.red.shade800),
+              style: TextStyle(fontSize: 13, color: AppColors.dangerStrong),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(

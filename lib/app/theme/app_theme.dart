@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
 import 'slide_page_transitions.dart';
 
 abstract final class AppTheme {
-  static const primaryColor = Color(0xFF0863BE);
+  static const primaryColor = AppColors.primary;
 
   static ThemeData get light {
     // fromSeed shifts the tone, so pin primary to the exact brand blue.
@@ -57,7 +58,7 @@ abstract final class AppTheme {
       ),
       textSelectionTheme: const TextSelectionThemeData(
         cursorColor: primaryColor,
-        selectionColor: Color(0x330878F9),
+        selectionColor: AppColors.selection,
         selectionHandleColor: primaryColor,
       ),
     );

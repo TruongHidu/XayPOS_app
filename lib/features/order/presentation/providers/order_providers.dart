@@ -22,6 +22,7 @@ import '../../data/data_sources/order_remote_data_source.dart';
 import '../../data/repositories/order_repository_impl.dart';
 import '../../data/order_key_generator.dart';
 import '../controllers/order_events.dart';
+import '../controllers/takeaway_count_refresher.dart';
 import '../controllers/order_list_controller.dart';
 import '../controllers/order_detail_controller.dart';
 import '../controllers/order_append_controller.dart';
@@ -108,22 +109,31 @@ final takeawayCountProvider = StateProvider<int?>((ref) {
   return null;
 });
 
-/// One-shot count refresh, run when the sidebar opens.
-final takeawayCountRefreshProvider = Provider<Future<void> Function()>((ref) {
-  return () async {
-    final auth = ref.read(authControllerProvider);
-    final scope = AccessPolicy.orderScope(auth.state.session);
-    bool current() =>
-        AccessPolicy.orderScope(auth.state.session) == scope &&
-        AccessPolicy.canTakeawayOrders(auth.state.session);
-    if (!current()) return;
-    final result = await GetActiveTakeawayOrders(
-      GetOrders(ref.read(orderRepositoryProvider)),
-    )(isCurrent: current);
-    if (result case Success(value: final rows) when current()) {
-      ref.read(takeawayCountProvider.notifier).state = rows.length;
-    }
-  };
+/// Keeps the sidebar badge count; one per order scope, so a new restaurant or
+/// staff member never sees an old count as fresh.
+final takeawayCountRefresherProvider = Provider<TakeawayCountRefresher>((ref) {
+  ref.watch(orderScopeProvider);
+  final auth = ref.read(authControllerProvider);
+  final scope = AccessPolicy.orderScope(auth.state.session);
+  bool current() =>
+      AccessPolicy.orderScope(auth.state.session) == scope &&
+      AccessPolicy.canTakeawayOrders(auth.state.session);
+  final refresher = TakeawayCountRefresher(
+    events: ref.read(orderEventsProvider),
+    read: () async {
+      if (!current()) return null;
+      final result = await GetActiveTakeawayOrders(
+        GetOrders(ref.read(orderRepositoryProvider)),
+      )(isCurrent: current);
+      if (result case Success(value: final rows) when current()) {
+        return rows.length;
+      }
+      return null;
+    },
+    publish: (count) => ref.read(takeawayCountProvider.notifier).state = count,
+  );
+  ref.onDispose(refresher.dispose);
+  return refresher;
 });
 
 final takeawayOrdersProvider = ChangeNotifierProvider.autoDispose((ref) {
@@ -134,7 +144,14 @@ final takeawayOrdersProvider = ChangeNotifierProvider.autoDispose((ref) {
     events: ref.read(orderEventsProvider),
     onAccessDenied: ref.read(orderRecoveryProvider).handle,
     get: GetActiveTakeawayOrders(GetOrders(ref.watch(orderRepositoryProvider))),
-    onCount: (count) => ref.read(takeawayCountProvider.notifier).state = count,
+    onCount: ref.read(takeawayCountRefresherProvider).record,
+  );
+  controller.setRealtimeConnected(
+    ref.read(realtimeChannelConnectedProvider('orders')),
+  );
+  ref.listen(
+    realtimeChannelConnectedProvider('orders'),
+    (_, value) => controller.setRealtimeConnected(value),
   );
   Future.microtask(controller.load);
   return controller;

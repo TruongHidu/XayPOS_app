@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
 import '../controllers/login_form_controller.dart';
+import '../../../../app/theme/app_colors.dart';
 
 class LoginForm extends StatelessWidget {
   const LoginForm({
@@ -9,6 +10,7 @@ class LoginForm extends StatelessWidget {
     required this.controller,
     required this.isLoading,
     required this.onLogin,
+    this.onRegister,
     this.emailError,
     this.passwordError,
     this.generalError,
@@ -17,6 +19,9 @@ class LoginForm extends StatelessWidget {
   final LoginFormController controller;
   final bool isLoading;
   final VoidCallback onLogin;
+
+  /// Opens sign-up on the web; null hides the link.
+  final VoidCallback? onRegister;
   final String? emailError;
   final String? passwordError;
   final String? generalError;
@@ -68,7 +73,7 @@ class LoginForm extends StatelessWidget {
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
                   size: 21,
-                  color: const Color(0xFFACB0B8),
+                  color: AppColors.grey400,
                 ),
               ),
             ),
@@ -115,6 +120,24 @@ class LoginForm extends StatelessWidget {
                     : const Text('Đăng nhập'),
               ),
             ),
+            if (onRegister != null) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Text(
+                    'Chưa có tài khoản?',
+                    style: TextStyle(color: AppColors.grey600, fontSize: 14),
+                  ),
+                  TextButton(
+                    key: const Key('register-button'),
+                    onPressed: isLoading ? null : onRegister,
+                    child: const Text('Đăng ký nhà hàng'),
+                  ),
+                ],
+              ),
+            ],
           ],
         );
       },
@@ -154,7 +177,7 @@ class _LoginTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: Color(0xFFD8DBE1), width: 1.2),
+      borderSide: const BorderSide(color: AppColors.grey300, width: 1.2),
     );
     return TextField(
       controller: controller,
@@ -165,11 +188,11 @@ class _LoginTextField extends StatelessWidget {
       textInputAction: textInputAction,
       autofillHints: autofillHints,
       onSubmitted: onSubmitted,
-      style: const TextStyle(color: Color(0xFF23262B), fontSize: 16),
+      style: const TextStyle(color: AppColors.grey900, fontSize: 16),
       decoration: InputDecoration(
         hintText: hintText,
         errorText: errorText,
-        hintStyle: const TextStyle(color: Color(0xFFC5C7CC), fontSize: 16),
+        hintStyle: const TextStyle(color: AppColors.grey400, fontSize: 16),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 14,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../app/theme/app_colors.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, required this.size});
@@ -32,7 +33,7 @@ class XayPosWordmark extends StatelessWidget {
         Text(
           'Xây POS',
           style: TextStyle(
-            color: const Color(0xFF0863BE),
+            color: AppColors.primary,
             fontSize: height * 0.62,
             fontWeight: FontWeight.w600,
             letterSpacing: -0.5,
@@ -53,7 +54,7 @@ class _XayPosMarkPainter extends CustomPainter {
     final gradient = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFF0877D9), Color(0xFF0754AB)],
+      colors: [AppColors.primaryLight, AppColors.primaryDark],
     ).createShader(bounds);
     final stroke = Paint()
       ..shader = gradient

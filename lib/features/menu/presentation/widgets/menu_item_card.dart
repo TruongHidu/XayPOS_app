@@ -215,7 +215,7 @@ class _StatusPill extends StatelessWidget {
         ? ('Ngừng bán', colors.outline)
         : item.availabilityStatus == AvailabilityStatus.outOfStock
         ? ('Hết hàng', AppColors.danger)
-        : ('Chưa thể bán', const Color(0xFFD97706));
+        : ('Chưa thể bán', AppColors.warning);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

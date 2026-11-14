@@ -7,6 +7,7 @@ import '../providers/qr_request_providers.dart';
 import 'qr_inbox_visibility.dart';
 import 'qr_request_review_dialog.dart';
 import 'qr_request_format.dart';
+import '../../../../app/theme/app_colors.dart';
 
 Future<void> showQrRequestInbox(
   BuildContext context,
@@ -184,7 +185,7 @@ class _RequestCard extends StatelessWidget {
             ),
             const Text(
               'Xem và duyệt',
-              style: TextStyle(fontSize: 13, color: Color(0xFF1565C0)),
+              style: TextStyle(fontSize: 13, color: AppColors.infoStrong),
             ),
           ],
         ),

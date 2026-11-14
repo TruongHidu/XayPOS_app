@@ -322,7 +322,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                   : 'Cập nhật ${_time(display.lastUpdated!)}'),
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.blueGrey.shade700,
+                          color: AppColors.grey700,
                         ),
                       ),
                       if (display.loading && display.items.isEmpty) ...[
@@ -373,7 +373,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                         ),
                       for (final e in trouble)
                         Card(
-                          color: const Color(0xFFFFF7E8),
+                          color: AppColors.warningTint,
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(

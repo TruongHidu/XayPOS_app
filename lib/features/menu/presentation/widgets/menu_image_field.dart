@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/ui/images/image_sizing.dart';
 import '../providers/menu_image_picker.dart';
 import '../providers/menu_providers.dart';
 import 'menu_details.dart';
@@ -111,11 +112,21 @@ class _MenuImageFieldState extends ConsumerState<MenuImageField> {
       borderRadius: BorderRadius.circular(10),
       child: AspectRatio(
         aspectRatio: 4 / 3,
-        child: Image.memory(
-          pending.bytes,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) =>
-              const MenuImage(url: null, aspectRatio: 4 / 3, borderRadius: 0),
+        // A freshly taken photo can be 12 MP: decode it at the preview size.
+        child: LayoutBuilder(
+          builder: (context, constraints) => Image(
+            image: ResizeImage.resizeIfNeeded(
+              decodeExtent(
+                constraints.maxWidth,
+                MediaQuery.devicePixelRatioOf(context),
+              ),
+              null,
+              MemoryImage(pending.bytes),
+            ),
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) =>
+                const MenuImage(url: null, aspectRatio: 4 / 3, borderRadius: 0),
+          ),
         ),
       ),
     );

@@ -55,6 +55,27 @@ class OrderServiceContextController extends OrderController {
                 (query.areaId == null || t.area?.id == query.areaId),
           ),
         );
+
+  /// Tables in the chosen area that a filter would show: null counts all,
+  /// true the ones in use, false the free ones.
+  int countWhere(bool? occupied) => !tableAccess
+      ? 0
+      : _tables
+            .where(
+              (t) =>
+                  (occupied == null || t.occupied == occupied) &&
+                  (query.areaId == null || t.area?.id == query.areaId),
+            )
+            .length;
+
+  /// In-use and total tables across every area, ignoring the filters.
+  ({int occupied, int total}) get occupancy => !tableAccess
+      ? (occupied: 0, total: 0)
+      : (
+          occupied: _tables.where((t) => t.occupied).length,
+          total: _tables.length,
+        );
+
   ServingOrderSnapshot? _snapshot;
   Failure? failure, areasFailure, billsFailure;
   bool loading = false,
@@ -122,6 +143,9 @@ class OrderServiceContextController extends OrderController {
   void _orderEvent() {
     if (_revision == events.revision) return;
     _revision = events.revision;
+    // Remote kitchen progress leaves every card as it is; this device's own
+    // changes always refresh.
+    if (events.remote?.affectsTables == false) return;
     _scheduleRefresh();
   }
 

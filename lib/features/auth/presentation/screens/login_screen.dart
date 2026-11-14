@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../app/providers.dart';
+import '../../../../core/config/environment.dart';
+import '../../../../core/platform/external_link_opener.dart';
 import '../controllers/auth_state.dart';
 import '../controllers/login_form_controller.dart';
 import '../widgets/brand_logo.dart';
@@ -32,6 +34,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void dispose() {
     _formController.dispose();
     super.dispose();
+  }
+
+  final String _phone = Environment.supportPhone;
+
+  /// Only a real web address is offered; anything else stays hidden.
+  final Uri? _website = () {
+    final uri = Uri.tryParse(Environment.supportWebUrl);
+    return uri != null &&
+            (uri.scheme == 'https' || uri.scheme == 'http') &&
+            uri.host.isNotEmpty
+        ? uri
+        : null;
+  }();
+
+  Future<void> _call() => _open(
+    Uri(scheme: 'tel', path: _phone.replaceAll(RegExp(r'[^0-9+]'), '')),
+    fallback: 'Không mở được trình gọi. Hotline: $_phone',
+  );
+
+  Future<void> _register() {
+    final uri = Uri.tryParse(Environment.registerUrl);
+    if (uri == null || !uri.hasScheme) {
+      _showMessage('Chưa có trang đăng ký.');
+      return Future.value();
+    }
+    return _open(uri, fallback: 'Không mở được trang đăng ký ${uri.host}.');
+  }
+
+  Future<void> _openWebsite() =>
+      _open(_website!, fallback: 'Không mở được trang ${_website.host}.');
+
+  Future<void> _open(Uri uri, {required String fallback}) async {
+    var opened = false;
+    try {
+      opened = await ref.read(externalLinkOpenerProvider)(uri);
+    } on Object {
+      opened = false;
+    }
+    if (!opened && mounted) _showMessage(fallback);
   }
 
   void _showMessage(String message) {
@@ -90,6 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             passwordError: authState.fieldErrors['password'],
                             generalError: loginError,
                             onLogin: _login,
+                            onRegister: _register,
                           ),
                         ),
                       ),
@@ -97,9 +139,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: SupportFooter(
-                          onCall: () => _showMessage('Hotline: 1900 6522'),
-                          onChat: () =>
-                              _showMessage('Mở trò chuyện với Xây POS.'),
+                          phone: _phone,
+                          onCall: _call,
+                          webLabel: _website?.host.replaceFirst('www.', ''),
+                          onWeb: _website == null ? null : _openWebsite,
                           stackActions: stackFooterActions,
                         ),
                       ),

@@ -563,14 +563,14 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.amber.shade50,
+                                color: AppColors.warningSoft,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
                                 'Ghi chú: ${line.note}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.brown.shade700,
+                                  color: AppColors.warning,
                                 ),
                               ),
                             ),
@@ -600,7 +600,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   ),
                                   label: const Text('Bỏ món'),
                                   style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red.shade700,
+                                    foregroundColor: AppColors.danger,
                                   ),
                                 ),
                               ],
@@ -753,7 +753,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                 ),
                                 decoration: BoxDecoration(
                                   color: widget.contextInput.sessionAlreadyOpen
-                                      ? const Color(0xFFFFF0EB)
+                                      ? AppColors.primarySoft
                                       : AppColors.grey100,
                                   borderRadius: BorderRadius.circular(12),
                                 ),

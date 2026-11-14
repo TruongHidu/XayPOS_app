@@ -8,10 +8,13 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/qr_preview.dart';
 import '../../../subscription/domain/entities/entitlement.dart';
+import '../../../../core/values/vietnam_banks.dart';
 import '../../domain/entities/restaurant_profile.dart';
+import '../../domain/entities/transfer_account.dart';
 import '../providers/settings_providers.dart';
 import '../widgets/package_feature_labels.dart';
 import '../widgets/restaurant_profile_dialog.dart';
+import '../widgets/transfer_account_dialog.dart';
 
 /// Restaurant, package, account and app settings. Each section shows only
 /// what the signed-in account may see; Tài khoản and Ứng dụng are for everyone.
@@ -30,6 +33,9 @@ class SettingsScreen extends ConsumerWidget {
       session,
       'RESTAURANT_PROFILE_UPDATE',
     );
+    final canManageTransferAccount = AccessPolicy.canManageTransferAccount(
+      session,
+    );
     final canViewPackage = AccessPolicy.hasPermission(
       session,
       'SUBSCRIPTION_VIEW',
@@ -38,25 +44,35 @@ class SettingsScreen extends ConsumerWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 720),
-        child: ListView(
+        // A handful of sections, each loading its own data: keep them all
+        // mounted while Cài đặt is open. A lazy ListView would drop the ones
+        // scrolled out of view, dispose their providers and refetch on return.
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            if (canViewRestaurant) ...[
-              _RestaurantSection(canEdit: canManageMenuLink),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (canViewRestaurant) ...[
+                _RestaurantSection(canEdit: canManageMenuLink),
+                const SizedBox(height: 16),
+              ],
+              if (canManageMenuLink) ...[
+                const _MenuLinkSection(),
+                const SizedBox(height: 16),
+              ],
+              if (canViewRestaurant || canManageTransferAccount) ...[
+                _TransferAccountSection(canEdit: canManageTransferAccount),
+                const SizedBox(height: 16),
+              ],
+              if (canViewPackage) ...[
+                const _PackageSection(),
+                const SizedBox(height: 16),
+              ],
+              _AccountSection(session: session),
               const SizedBox(height: 16),
+              const _AppSection(),
             ],
-            if (canManageMenuLink) ...[
-              const _MenuLinkSection(),
-              const SizedBox(height: 16),
-            ],
-            if (canViewPackage) ...[
-              const _PackageSection(),
-              const SizedBox(height: 16),
-            ],
-            _AccountSection(session: session),
-            const SizedBox(height: 16),
-            const _AppSection(),
-          ],
+          ),
         ),
       ),
     );
@@ -362,6 +378,146 @@ class _MenuLinkSectionState extends ConsumerState<_MenuLinkSection> {
               maxCardHeight: 320,
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// The bank account behind the VietQR shown when a customer pays by
+/// transfer. Everyone who may see the restaurant sees it; only
+/// [AccessPolicy.canManageTransferAccount] may change it.
+class _TransferAccountSection extends ConsumerStatefulWidget {
+  const _TransferAccountSection({required this.canEdit});
+
+  final bool canEdit;
+
+  @override
+  ConsumerState<_TransferAccountSection> createState() =>
+      _TransferAccountSectionState();
+}
+
+class _TransferAccountSectionState
+    extends ConsumerState<_TransferAccountSection> {
+  bool _busy = false;
+
+  Future<void> _edit(TransferAccount? account) async {
+    final saved = await showDialog<TransferAccount>(
+      context: context,
+      builder: (_) => TransferAccountDialog(account: account),
+    );
+    if (saved == null || !mounted) return;
+    ref.invalidate(transferAccountProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Đã lưu tài khoản nhận chuyển khoản.')),
+    );
+  }
+
+  Future<void> _remove() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Gỡ tài khoản nhận chuyển khoản?'),
+        content: const Text(
+          'Khi khách chọn chuyển khoản sẽ không còn hiện mã QR cho đến khi bạn thêm tài khoản mới. Các khoản đã thu không bị ảnh hưởng.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Huỷ'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Gỡ tài khoản'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    final result = await ref.read(transferAccountRepositoryProvider).remove();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ref.invalidate(transferAccountProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(switch (result) {
+          Success() => 'Đã gỡ tài khoản nhận chuyển khoản.',
+          Error(:final failure) => failure.message,
+        }),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final account = ref.watch(transferAccountProvider);
+    final value = account.value;
+    final bank = value == null ? null : bankByBin(value.bankBin);
+    return _Section(
+      title: 'Tài khoản nhận chuyển khoản',
+      icon: Icons.account_balance_outlined,
+      action: widget.canEdit && value != null
+          ? IconButton(
+              tooltip: 'Sửa tài khoản nhận chuyển khoản',
+              onPressed: _busy ? null : () => _edit(value),
+              icon: const Icon(Icons.edit_outlined),
+            )
+          : null,
+      children: [
+        if (_busy) const LinearProgressIndicator(),
+        if (account.isLoading && !account.hasValue)
+          _loading
+        else if (account.hasError && !account.hasValue)
+          _Failed(
+            error: account.error!,
+            onRetry: () => ref.invalidate(transferAccountProvider),
+          )
+        else if (value == null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.canEdit
+                      ? 'Chưa có tài khoản nhận chuyển khoản. Thêm tài khoản để hiện mã VietQR có sẵn số tiền khi khách chọn chuyển khoản.'
+                      : 'Nhà hàng chưa cài tài khoản nhận chuyển khoản.',
+                ),
+                if (widget.canEdit) ...[
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _busy ? null : () => _edit(null),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Thêm tài khoản'),
+                  ),
+                ],
+              ],
+            ),
+          )
+        else ...[
+          _Field(
+            'Ngân hàng',
+            bank == null
+                ? bankLabel(value.bankBin)
+                : '${bank.shortName} · ${bank.name}',
+          ),
+          _Field('Số tài khoản', value.accountNumber),
+          _Field('Chủ tài khoản', value.accountName),
+          if (value.updatedAt != null)
+            _Field('Cập nhật', _date(value.updatedAt!)),
+          if (widget.canEdit)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 16, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _busy ? null : _remove,
+                  icon: const Icon(Icons.link_off),
+                  label: const Text('Gỡ tài khoản'),
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }

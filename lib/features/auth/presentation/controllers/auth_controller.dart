@@ -247,11 +247,14 @@ class AuthController extends ChangeNotifier {
               session: AppSession.fromEntitlement(
                 user: latestAuth.user,
                 tokens: tokens,
-                entitlement: const Entitlement(
+                entitlement: Entitlement(
                   subscriptionId: null,
                   packageCode: null,
-                  status: SubscriptionStatus.missing,
-                  features: [],
+                  // Expired → "Gia hạn gói"; never subscribed → "Đăng ký gói".
+                  status: failure.subscriptionExpired
+                      ? SubscriptionStatus.inactive
+                      : SubscriptionStatus.missing,
+                  features: const [],
                 ),
               ),
             ),

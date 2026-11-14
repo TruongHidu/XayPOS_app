@@ -187,7 +187,8 @@ void main() {
             width: width,
             scale: scale,
           );
-          expect(find.text('Tồn kho'), findsOneWidget);
+          // The app bar names the section; the page no longer repeats it.
+          expect(find.text('Tồn kho'), findsNothing);
           expect(
             find.text('Theo dõi số lượng hàng hóa tại từng kho.'),
             findsOneWidget,
@@ -215,7 +216,10 @@ void main() {
             scale: scale,
             screen: const InventoryWarehousesScreen(),
           );
-          expect(find.text('Quản lý kho'), findsOneWidget);
+          expect(
+            find.text('Quản lý kho hàng và kho mặc định.'),
+            findsOneWidget,
+          );
           await tester.scrollUntilVisible(
             find.text('Mặc định'),
             300,
@@ -232,7 +236,8 @@ void main() {
             screen: const InventoryLowStockScreen(),
           );
           // The old low-stock link opens Tồn kho with the filter on.
-          expect(find.text('Tồn kho'), findsOneWidget);
+          // The app bar names the section; the page no longer repeats it.
+          expect(find.text('Tồn kho'), findsNothing);
           expect(
             find.text('Theo dõi số lượng hàng hóa tại từng kho.'),
             findsOneWidget,

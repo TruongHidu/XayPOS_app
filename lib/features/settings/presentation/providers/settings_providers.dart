@@ -9,9 +9,13 @@ import '../../../../core/ui/widgets/qr_preview.dart';
 import '../../../subscription/domain/entities/entitlement.dart';
 import '../../data/settings_remote_data_source.dart';
 import '../../data/settings_repository_impl.dart';
+import '../../data/transfer_account_remote_data_source.dart';
+import '../../data/transfer_account_repository_impl.dart';
 import '../../domain/entities/public_menu_link.dart';
 import '../../domain/entities/restaurant_profile.dart';
+import '../../domain/entities/transfer_account.dart';
 import '../../domain/repositories/settings_repository.dart';
+import '../../domain/repositories/transfer_account_repository.dart';
 
 export '../../../../core/platform/external_link_opener.dart';
 
@@ -63,6 +67,22 @@ final menuLinkFileProvider = FutureProvider.autoDispose
             : await repository.menuLinkQrImage(),
       );
     }, retry: _noRetry);
+
+final transferAccountRepositoryProvider = Provider<TransferAccountRepository>(
+  (ref) => TransferAccountRepositoryImpl(
+    TransferAccountRemoteDataSource(
+      ref.watch(apiClientsProvider).authenticated,
+    ),
+  ),
+);
+
+/// The receiving bank account; null until the owner sets one.
+final transferAccountProvider = FutureProvider.autoDispose<TransferAccount?>((
+  ref,
+) async {
+  ref.watch(settingsScopeProvider);
+  return _value(await ref.watch(transferAccountRepositoryProvider).get());
+}, retry: _noRetry);
 
 /// Read fresh so dates and the remaining days are current.
 final currentEntitlementProvider = FutureProvider.autoDispose<Entitlement>((

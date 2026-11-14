@@ -5,12 +5,13 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
+import '../../../../core/ui/widgets/app_network_image.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/policies/order_access_policy.dart';
 import '../../domain/policies/order_table_policy.dart';
 import '../../../tables/domain/entities/table_entities.dart';
 import '../../../tables/presentation/widgets/table_transfer_dialog.dart';
-import '../widgets/order_append_dialog.dart';
+import '../widgets/order_append_navigation.dart';
 import '../widgets/order_line_actions.dart';
 import '../widgets/order_ingredient_dialog.dart';
 import '../widgets/order_mutation_forms.dart';
@@ -68,6 +69,8 @@ class OrderDetailScreen extends ConsumerWidget {
     OrderDetail order,
     String? currentTableName,
   ) {
+    // One full-screen "Gọi thêm món" everywhere; the inline composer result
+    // of Gọi món keeps its bill route.
     final router = GoRouter.maybeOf(context);
     if (router != null && isOrderCreateFlow) {
       final param = currentTableName != null
@@ -75,12 +78,7 @@ class OrderDetailScreen extends ConsumerWidget {
           : '';
       context.push('/app/order-create/bill/${order.id}/add-items$param');
     } else {
-      showOrderDialog<void>(
-        context,
-        ref,
-        permission: 'ORDER_UPDATE',
-        child: OrderAppendDialog(order: order),
-      );
+      openOrderAppend(context, order.id, tableName: currentTableName);
     }
   }
 
@@ -185,21 +183,14 @@ class OrderDetailScreen extends ConsumerWidget {
         width: 48,
         height: 48,
         color: AppColors.grey100,
-        child: cached != null
-            ? Image.network(
-                cached,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const Icon(
-                  Icons.restaurant,
-                  color: OrderPalette.primary,
-                  size: 24,
-                ),
-              )
-            : const Icon(
-                Icons.restaurant,
-                color: OrderPalette.primary,
-                size: 24,
-              ),
+        child: AppNetworkImage(
+          url: cached,
+          placeholder: const Icon(
+            Icons.restaurant,
+            color: OrderPalette.primary,
+            size: 24,
+          ),
+        ),
       ),
     );
   }
@@ -331,14 +322,14 @@ class OrderDetailScreen extends ConsumerWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
+                                    color: AppColors.infoSoft,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     s.status.label,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.blue.shade900,
+                                      color: AppColors.infoStrong,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -352,8 +343,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                     color:
                                         s.paymentStatus ==
                                             OrderPaymentStatus.paid
-                                        ? Colors.green.shade50
-                                        : Colors.amber.shade50,
+                                        ? AppColors.successTint
+                                        : AppColors.warningSoft,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -363,8 +354,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                       color:
                                           s.paymentStatus ==
                                               OrderPaymentStatus.paid
-                                          ? Colors.green.shade900
-                                          : Colors.amber.shade900,
+                                          ? AppColors.success
+                                          : AppColors.warning,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -567,7 +558,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     'Ghi chú: ${order.note}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.brown.shade800,
+                                      color: AppColors.warning,
                                     ),
                                   ),
                                 ],
@@ -577,7 +568,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     'Lý do hủy: ${order.cancelReason}',
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: Colors.red,
+                                      color: AppColors.danger,
                                     ),
                                   ),
                                 ],
@@ -653,7 +644,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                           'Ghi chú: ${line.note}',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.brown.shade800,
+                                            color: AppColors.warning,
                                           ),
                                         ),
                                       ],
@@ -662,7 +653,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                           'Lý do hủy: ${line.cancelReason}',
                                           style: const TextStyle(
                                             fontSize: 12,
-                                            color: Colors.red,
+                                            color: AppColors.danger,
                                           ),
                                         ),
                                       const SizedBox(height: 4),
@@ -749,8 +740,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                           style: TextButton.styleFrom(
                                             padding: EdgeInsets.zero,
                                             minimumSize: const Size(40, 28),
-                                            foregroundColor:
-                                                Colors.red.shade700,
+                                            foregroundColor: AppColors.danger,
                                           ),
                                           child: const Text('Hủy món'),
                                         ),
@@ -848,11 +838,10 @@ class OrderDetailScreen extends ConsumerWidget {
                               OutlinedButton(
                                 onPressed: c.busy
                                     ? null
-                                    : () => showOrderDialog<void>(
+                                    : () => openOrderAppend(
                                         context,
-                                        ref,
-                                        permission: 'ORDER_UPDATE',
-                                        child: OrderAppendDialog(order: order),
+                                        order.id,
+                                        tableName: tableName,
                                       ),
                                 child: const Text('Mở giỏ gọi thêm'),
                               ),

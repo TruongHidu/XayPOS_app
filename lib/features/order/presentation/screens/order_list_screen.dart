@@ -211,7 +211,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF7ED),
+            color: AppColors.warningTint,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -343,6 +343,48 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       return const Center(child: Text('Bạn không có quyền xem đơn.'));
     }
 
+    final orders = c.page?.content ?? const <OrderSummary>[];
+    final footer = orders.isNotEmpty;
+    // Banner, filters and loading/empty states sit above the cards.
+    final leading = <Widget>[
+      if (widget.sessionId != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.warningTint,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.warningBorder),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline, size: 16, color: OrderPalette.primary),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Lịch sử đơn trong phiên. Gọi món tại bàn từ màn hình Gọi món.',
+                    style: TextStyle(fontSize: 12.5, color: AppColors.warning),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+      // ── Phần tìm kiếm & bộ lọc thẩm mỹ (cuộn theo list) ────
+      _buildFilterCard(c),
+
+      // ── Danh sách đơn hàng ─────────────────────────────────
+      if (c.page == null && c.loading)
+        const ListSkeleton(count: 5, height: 84, maxColumns: 1),
+      if (c.page?.content.isEmpty == true)
+        const EmptyState(
+          icon: Icons.receipt_long_outlined,
+          message: 'Chưa có đơn phù hợp.',
+        ),
+    ];
+
     return Column(
       children: [
         LoadingStrip(loading: c.loading),
@@ -350,66 +392,29 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: c.load,
-            child: ListView(
+            // Built lazily: only the cards on screen exist, however many
+            // pages have been loaded, and a realtime refresh rebuilds only them.
+            child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(12),
-              children: [
-                if (widget.sessionId != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7ED),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFFEDD5)),
-                      ),
-                      child: Row(
-                        children: const [
-                          Icon(
-                            Icons.info_outline,
-                            size: 16,
-                            color: OrderPalette.primary,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Lịch sử đơn trong phiên. Gọi món tại bàn từ màn hình Gọi món.',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                color: Color(0xFF9A3412),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // ── Phần tìm kiếm & bộ lọc thẩm mỹ (cuộn theo list) ────
-                _buildFilterCard(c),
-
-                // ── Danh sách đơn hàng ─────────────────────────────────
-                if (c.page == null && c.loading)
-                  const ListSkeleton(count: 5, height: 84, maxColumns: 1),
-                if (c.page?.content.isEmpty == true)
-                  const EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    message: 'Chưa có đơn phù hợp.',
-                  ),
-                for (final order in c.page?.content ?? <OrderSummary>[])
-                  _buildOrderCard(order),
-                if (c.page?.content.isNotEmpty == true)
-                  EndlessListFooter(
-                    hasMore: c.hasMore,
-                    failureMessage: c.endless.failure?.message,
-                    endLabel: 'Đã hiển thị tất cả ${c.page!.totalElements} đơn',
-                    onLoadMore: c.loadMore,
-                  ),
-              ],
+              itemCount: leading.length + orders.length + (footer ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index < leading.length) return leading[index];
+                final at = index - leading.length;
+                if (at < orders.length) {
+                  final order = orders[at];
+                  return KeyedSubtree(
+                    key: ValueKey('order-card-${order.id}'),
+                    child: _buildOrderCard(order),
+                  );
+                }
+                return EndlessListFooter(
+                  hasMore: c.hasMore,
+                  failureMessage: c.endless.failure?.message,
+                  endLabel: 'Đã hiển thị tất cả ${c.page!.totalElements} đơn',
+                  onLoadMore: c.loadMore,
+                );
+              },
             ),
           ),
         ),

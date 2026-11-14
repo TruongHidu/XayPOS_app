@@ -1,4 +1,5 @@
 import '../../../../core/realtime/realtime_envelope.dart';
+import '../../domain/entities/order_change_kind.dart';
 import '../../domain/entities/order_entities.dart';
 
 class OrderRealtimePayload {
@@ -14,21 +15,28 @@ class OrderRealtimePayload {
   final OrderStatus status;
   final String? sessionId;
   final Set<String> changes, changedItemIds, newKitchenItemIds;
+
+  /// [changes] in domain terms.
+  Set<OrderChangeKind> get kinds => {
+    for (final code in changes)
+      if (kindsByCode[code] case final kind?) kind,
+  };
+
+  static const kindsByCode = {
+    'CREATED': OrderChangeKind.created,
+    'UPDATED': OrderChangeKind.updated,
+    'SUBMITTED': OrderChangeKind.submitted,
+    'ITEMS_ADDED': OrderChangeKind.itemsAdded,
+    'ITEM_UPDATED': OrderChangeKind.itemUpdated,
+    'ITEM_CANCELLED': OrderChangeKind.itemCancelled,
+    'ITEM_STATUS_CHANGED': OrderChangeKind.itemStatusChanged,
+    'CANCELLED': OrderChangeKind.cancelled,
+    'COMPLETED': OrderChangeKind.completed,
+  };
   static final _id = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
   );
   static bool validId(Object? value) => value is String && _id.hasMatch(value);
-  static const changeKinds = {
-    'CREATED',
-    'UPDATED',
-    'SUBMITTED',
-    'ITEMS_ADDED',
-    'ITEM_UPDATED',
-    'ITEM_CANCELLED',
-    'ITEM_STATUS_CHANGED',
-    'CANCELLED',
-    'COMPLETED',
-  };
 
   static OrderRealtimePayload? parse(RealtimeEnvelope event) {
     if (event.schemaVersion != 1 ||
@@ -47,7 +55,7 @@ class OrderRealtimePayload {
       final value = p[key];
       if (value is! List ||
           value.length > 2048 ||
-          value.any((v) => ids ? !validId(v) : !changeKinds.contains(v))) {
+          value.any((v) => ids ? !validId(v) : !kindsByCode.containsKey(v))) {
         return null;
       }
       return value.cast<String>().toSet();

@@ -6,6 +6,7 @@ Mở **Gọi món → chọn bàn → chi tiết đơn** hoặc **Đơn hàng �
 
 1. Chọn Thanh toán hóa đơn, kiểm tra mã đơn và tổng tiền từ backend.
 2. Chọn Tiền mặt hoặc Chuyển khoản (một chạm); chuyển khoản phải có mã tham chiếu giao dịch đã đối soát thủ công. Với tiền mặt, có thể nhập "Khách đưa" hoặc chạm nút gợi ý (Đủ tiền, mệnh giá tròn kế tiếp) để xem tiền thừa. Số này chỉ dùng để tính tiền thừa trên máy, không gửi lên backend; nếu nhỏ hơn số cần thu thì nút xác nhận bị khóa và hiện "Còn thiếu".
+   Khi chọn Chuyển khoản và nhà hàng đã cài tài khoản nhận, hộp thoại hiện mã VietQR có sẵn số tiền và nội dung chuyển khoản (chạm để phóng to cho khách), đồng thời điền sẵn nội dung đó vào ô mã tham chiếu nếu ô đang trống. QR chỉ để hiển thị, không tạo payment và không polling; chưa cài tài khoản thì chỉ có thông báo, vẫn nhập mã tham chiếu thủ công. Chi tiết: [transfer-account.md](transfer-account.md).
 3. Bấm nút "Đã nhận <số tiền>": chính nút ghi rõ số tiền là bước xác nhận đã nhận đủ. Hiện backend chỉ nhận thanh toán đủ một lần, amount > 0. Khi thanh toán đang chờ kết quả hoặc cần đối chiếu, phần tính tiền thừa được ẩn để chỉ còn các bước khôi phục.
 4. App nhận PaymentResponse và đọc lại OrderResponse. Khi đọc lại thất bại sau khi tiền đã được ghi nhận, chọn tải lại để xác minh; không tạo payment mới.
 5. Chọn Hoàn tất đơn và xác nhận. Nếu còn dòng chưa SERVED và có quyền ORDER_MARK_SERVED, xác nhận đã phục vụ thực tế tất cả món trước khi gửi. App gọi mark-served hàng loạt rồi complete bằng version mới trả về. Khi tất cả món đã SERVED, chỉ gọi complete. Đơn tại bàn đóng đúng phiên bàn trong cùng transaction backend; app không gọi thêm /close.
@@ -38,6 +39,8 @@ Thao tác từng món: OrderLineActions → OrderDetailController → Transition
 | --- | --- | --- | --- |
 | POST | /api/v1/orders/{id}/payments | Idempotency-Key; expectedOrderVersion, paymentMethod CASH/TRANSFER, amount, referenceNo tùy phương thức | 201 mới / 200 replay, PaymentResponse |
 | GET | /api/v1/orders/{id} | Không body | 200 OrderResponse mới |
+| GET | /api/v1/orders/{id}/transfer-qr | Không body (PAYMENT_CREATE) | 200 thông tin VietQR theo version hiện tại; 409 TRANSFER_ACCOUNT_NOT_CONFIGURED khi chưa cài tài khoản |
+| GET | /api/v1/orders/{id}/transfer-qr/image?format=png&size=720 | Không body (PAYMENT_CREATE) | 200 PNG mã QR |
 | POST | /api/v1/orders/{id}/complete | expectedVersion của order | 200 OrderResponse COMPLETED |
 | POST | /api/v1/orders/{id}/items/{lineId}/start-cooking | expectedOrderVersion của order | 200 OrderResponse, dòng COOKING |
 | POST | /api/v1/orders/{id}/items/{lineId}/mark-ready | expectedOrderVersion của order | 200 OrderResponse, dòng READY |

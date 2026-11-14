@@ -198,6 +198,12 @@ abstract final class AccessPolicy {
       session.permissions.contains('PAYMENT_CREATE') &&
       session.permissions.contains('PAYMENT_CONFIRM');
 
+  /// Setting or removing the receiving bank account changes where customers'
+  /// money goes, so it takes the profile-edit right.
+  static bool canManageTransferAccount(AppSession? session) =>
+      session != null &&
+      session.permissions.contains('RESTAURANT_PROFILE_UPDATE');
+
   static bool canCompleteOrder(AppSession? session, {required bool takeaway}) =>
       canOrders(session, 'ORDER_COMPLETE') &&
       (takeaway || canTables(session, 'TABLE_CLOSE'));
@@ -447,6 +453,8 @@ abstract final class AccessPolicy {
     'inventory-documents' => canInventory(session, 'INVENTORY_VIEW'),
     'inventory-alerts' => canViewInventoryAlerts(session),
     'inventory-audits' => canViewStockAudits(session),
+    // Tổng quan leads with today's takings, so it follows the daily report.
+    'overview' => canDailyReport(session),
     'daily-revenue' => canDailyReport(session),
     'reports' => canDetailReport(session),
     'reference-margin-reports' => canViewReferenceMarginReports(session),
@@ -464,6 +472,7 @@ abstract final class AccessPolicy {
     '/app/orders': 'orders',
     '/app/takeaway': 'takeaway-orders',
     '/app/order-create': 'order-create',
+    '/app/overview': 'overview',
     '/app/daily-revenue': 'daily-revenue',
     '/app/inventory/balances': 'inventory',
     '/app/inventory/warehouses': 'inventory',
@@ -563,6 +572,13 @@ abstract final class AccessPolicy {
     final path = uri?.path ?? location;
     if (RegExp(r'^/app/menu/items/[^/]+/recipes$').hasMatch(path)) {
       return canRecipe(session, 'RECIPE_VIEW');
+    }
+    // "Gọi thêm món" opened from Đơn hàng or the takeaway board: the same
+    // rule as from Gọi món below.
+    if (RegExp(r'^/app/(orders|takeaway)/[^/]+/add-items$').hasMatch(path)) {
+      return canOrders(session, 'ORDER_UPDATE') &&
+          canMenu(session, 'MENU_VIEW') &&
+          (!path.startsWith('/app/takeaway/') || canTakeawayOrders(session));
     }
     if (path.startsWith('/app/orders/')) {
       return canOrders(session, 'ORDER_VIEW');

@@ -108,7 +108,7 @@ class PaymentMethodsCard extends StatelessWidget {
                             1000,
                           ),
                           child: Container(
-                            color: const Color(0xFF6366F1), // Indigo
+                            color: AppColors.accentIndigo, // Indigo
                           ),
                         ),
                     ],
@@ -127,7 +127,7 @@ class PaymentMethodsCard extends StatelessWidget {
               const Divider(height: 20),
               _buildMethodRow(
                 context: context,
-                color: const Color(0xFF6366F1),
+                color: AppColors.accentIndigo,
                 title: 'Chuyển khoản (TRANSFER)',
                 row: transferRow,
               ),

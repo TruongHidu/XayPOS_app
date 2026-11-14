@@ -6,6 +6,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/inventory_quantity.dart';
+import '../../../../app/theme/app_colors.dart';
 
 Future<T?> showInventoryDialog<T>(
   BuildContext context,
@@ -171,10 +172,10 @@ class InventoryBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
     decoration: BoxDecoration(
       color: warning
-          ? const Color(0xFFFFF3E0)
+          ? AppColors.warningSoft
           : positive
-          ? const Color(0xFFE8F5E9)
-          : const Color(0xFFF0F2F5),
+          ? AppColors.successTint
+          : AppColors.grey100,
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
@@ -183,10 +184,10 @@ class InventoryBadge extends StatelessWidget {
         fontSize: 12,
         fontWeight: FontWeight.w600,
         color: warning
-            ? const Color(0xFF8A4B00)
+            ? AppColors.warning
             : positive
-            ? const Color(0xFF256029)
-            : const Color(0xFF455A64),
+            ? AppColors.success
+            : AppColors.grey600,
       ),
     ),
   );

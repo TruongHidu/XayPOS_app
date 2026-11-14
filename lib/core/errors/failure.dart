@@ -24,6 +24,7 @@ class Failure {
     this.code,
     this.fieldErrors = const {},
     this.stockShortage,
+    this.subscriptionExpired = false,
   });
 
   final FailureType type;
@@ -34,6 +35,10 @@ class Failure {
   /// Which dishes ran short, when the server explained an
   /// INSUFFICIENT_AVAILABLE_STOCK refusal.
   final StockShortage? stockShortage;
+
+  /// With [FailureType.subscriptionNotActive]: the restaurant had a package
+  /// that ran out, so the owner renews rather than subscribes.
+  final bool subscriptionExpired;
 
   bool get isNetwork => type == FailureType.network;
 }

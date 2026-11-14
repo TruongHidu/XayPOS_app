@@ -25,6 +25,14 @@ abstract final class Environment {
       'PRIVACY_POLICY_URL': String.fromEnvironment('PRIVACY_POLICY_URL'),
     if (bool.hasEnvironment('TERMS_URL'))
       'TERMS_URL': String.fromEnvironment('TERMS_URL'),
+    if (bool.hasEnvironment('SUPPORT_WEB_URL'))
+      'SUPPORT_WEB_URL': String.fromEnvironment('SUPPORT_WEB_URL'),
+    if (bool.hasEnvironment('SUPPORT_PHONE'))
+      'SUPPORT_PHONE': String.fromEnvironment('SUPPORT_PHONE'),
+    if (bool.hasEnvironment('REGISTER_URL'))
+      'REGISTER_URL': String.fromEnvironment('REGISTER_URL'),
+    if (bool.hasEnvironment('SUBSCRIBE_URL'))
+      'SUBSCRIBE_URL': String.fromEnvironment('SUBSCRIBE_URL'),
   };
 
   static Future<void> load() async {
@@ -63,6 +71,20 @@ abstract final class Environment {
   static String get privacyPolicyUrl => _value('PRIVACY_POLICY_URL');
 
   static String get termsUrl => _value('TERMS_URL');
+
+  /// Website linked from the login screen; hidden while empty.
+  static String get supportWebUrl => _value('SUPPORT_WEB_URL');
+
+  /// Hotline shown on the login screen and dialled when tapped.
+  static String get supportPhone => _nonEmpty('SUPPORT_PHONE', '1900 6522');
+
+  /// Restaurant sign-up happens on the web; the login screen links here.
+  static String get registerUrl =>
+      _nonEmpty('REGISTER_URL', 'https://xaypos.hiducourse.click/register');
+
+  /// Where an owner buys or renews a package (the web onboarding page).
+  static String get subscribeUrl =>
+      _nonEmpty('SUBSCRIBE_URL', 'https://xaypos.hiducourse.click/onboarding');
 
   static String _nonEmpty(String key, String fallback) {
     final value = _value(key);

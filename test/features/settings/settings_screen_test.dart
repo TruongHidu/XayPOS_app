@@ -13,7 +13,9 @@ import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dar
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
 import 'package:pos_saas_app/features/settings/domain/entities/public_menu_link.dart';
 import 'package:pos_saas_app/features/settings/domain/entities/restaurant_profile.dart';
+import 'package:pos_saas_app/features/settings/domain/entities/transfer_account.dart';
 import 'package:pos_saas_app/features/settings/domain/repositories/settings_repository.dart';
+import 'package:pos_saas_app/features/settings/domain/repositories/transfer_account_repository.dart';
 import 'package:pos_saas_app/features/settings/presentation/providers/settings_providers.dart';
 import 'package:pos_saas_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:pos_saas_app/features/subscription/domain/entities/entitlement.dart';
@@ -115,6 +117,36 @@ class _FakeSettings implements SettingsRepository {
   }
 }
 
+class _FakeTransferAccounts implements TransferAccountRepository {
+  TransferAccount? account;
+  final saved = <TransferAccountDraft>[];
+  var removes = 0;
+
+  @override
+  Future<Result<TransferAccount?>> get() async => Success(account);
+
+  @override
+  Future<Result<TransferAccount>> save(TransferAccountDraft draft) async {
+    saved.add(draft);
+    final json = draft.toJson();
+    return Success(
+      account = TransferAccount(
+        bankBin: json['bankBin'] as String,
+        accountNumber: json['accountNumber'] as String,
+        accountName: json['accountName'] as String,
+        updatedAt: DateTime(2026, 11, 11),
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> remove() async {
+    removes++;
+    account = null;
+    return const Success(null);
+  }
+}
+
 const _ownerPermissions = {
   'MENU_VIEW',
   'RESTAURANT_PROFILE_VIEW',
@@ -124,6 +156,7 @@ const _ownerPermissions = {
 
 Future<(ProviderContainer, _FakeSettings)> _pump(
   WidgetTester tester, {
+  _FakeTransferAccounts? transferAccounts,
   UserRole role = UserRole.owner,
   Set<String> permissions = _ownerPermissions,
   String location = AppRoutes.settings,
@@ -133,8 +166,9 @@ Future<(ProviderContainer, _FakeSettings)> _pump(
   ),
   List<Uri>? opened,
   FakeFileExporter? exporter,
+  Size size = const Size(1200, 2200),
 }) async {
-  tester.view.physicalSize = const Size(1200, 1600);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -172,6 +206,9 @@ Future<(ProviderContainer, _FakeSettings)> _pump(
       authControllerProvider.overrideWith((ref) => auth),
       entitlementRepositoryProvider.overrideWithValue(entitlement),
       settingsRepositoryProvider.overrideWithValue(settings),
+      transferAccountRepositoryProvider.overrideWithValue(
+        transferAccounts ?? _FakeTransferAccounts(),
+      ),
       appVersionProvider.overrideWith((ref) async => '1.0.0 (1)'),
       legalLinksProvider.overrideWithValue(links),
       externalLinkOpenerProvider.overrideWithValue((uri) async {
@@ -199,6 +236,18 @@ Future<(ProviderContainer, _FakeSettings)> _pump(
 /// Text inside Cài đặt; the sidebar header also shows the restaurant name.
 Finder _inSettings(String text) =>
     find.descendant(of: find.byType(SettingsScreen), matching: find.text(text));
+
+/// Scrolling Cài đặt to the end and back on a phone must not refetch anything.
+Future<void> _scrollThrough(WidgetTester tester) async {
+  final list = find.descendant(
+    of: find.byType(SettingsScreen),
+    matching: find.byType(Scrollable),
+  );
+  for (final dy in [-3000.0, 3000.0, -3000.0, 3000.0]) {
+    await tester.drag(list.first, Offset(0, dy));
+    await tester.pumpAndSettle();
+  }
+}
 
 Future<void> _tap(WidgetTester tester, Finder target) async {
   await tester.ensureVisible(target);
@@ -327,6 +376,111 @@ void main() {
     expect(settings.calls, isEmpty);
   });
 
+  testWidgets('owner adds a transfer account with a normalized body', (
+    tester,
+  ) async {
+    final accounts = _FakeTransferAccounts();
+    await _pump(tester, transferAccounts: accounts);
+
+    expect(_inSettings('Tài khoản nhận chuyển khoản'), findsOneWidget);
+    await _tap(tester, find.text('Thêm tài khoản'));
+    await _tap(tester, find.text('Lưu'));
+    expect(find.text('Hãy chọn ngân hàng.'), findsOneWidget);
+    expect(find.text('Nhập số tài khoản.'), findsOneWidget);
+    expect(accounts.saved, isEmpty);
+
+    // The picker searches without diacritics.
+    await _tap(tester, find.byKey(const ValueKey('transfer-account-bank')));
+    await tester.enterText(
+      find.byKey(const ValueKey('bank-search')),
+      'ngoai thuong',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Techcombank'), findsNothing);
+    await _tap(tester, find.text('Vietcombank'));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Số tài khoản'),
+      '0123 456 789',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Tên chủ tài khoản'),
+      'Nguyễn Văn Đức',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Sẽ lưu là: NGUYEN VAN DUC'), findsOneWidget);
+    await _tap(tester, find.text('Lưu'));
+
+    expect(accounts.saved.single.toJson(), {
+      'bankBin': '970436',
+      'accountNumber': '0123456789',
+      'accountName': 'NGUYEN VAN DUC',
+    });
+    expect(find.text('Đã lưu tài khoản nhận chuyển khoản.'), findsOneWidget);
+    expect(
+      find.text('Vietcombank · Ngân hàng TMCP Ngoại thương Việt Nam'),
+      findsOneWidget,
+    );
+    expect(find.text('0123456789'), findsOneWidget);
+    expect(find.text('NGUYEN VAN DUC'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('removing the transfer account asks first', (tester) async {
+    final accounts = _FakeTransferAccounts()
+      ..account = const TransferAccount(
+        bankBin: '970422',
+        accountNumber: '9999',
+        accountName: 'QUAN PHO',
+      );
+    await _pump(tester, transferAccounts: accounts);
+
+    expect(find.text('9999'), findsOneWidget);
+    await _tap(tester, find.text('Gỡ tài khoản'));
+    expect(find.text('Gỡ tài khoản nhận chuyển khoản?'), findsOneWidget);
+    await _tap(tester, find.text('Huỷ'));
+    expect(accounts.removes, 0);
+    expect(find.text('9999'), findsOneWidget);
+
+    await _tap(tester, find.text('Gỡ tài khoản'));
+    await _tap(tester, find.widgetWithText(FilledButton, 'Gỡ tài khoản'));
+    expect(accounts.removes, 1);
+    expect(find.text('Đã gỡ tài khoản nhận chuyển khoản.'), findsOneWidget);
+    expect(find.text('9999'), findsNothing);
+    expect(find.text('Thêm tài khoản'), findsOneWidget);
+  });
+
+  testWidgets('transfer account is read-only without profile update right', (
+    tester,
+  ) async {
+    final accounts = _FakeTransferAccounts()
+      ..account = const TransferAccount(
+        bankBin: '970999',
+        accountNumber: '9999',
+        accountName: 'QUAN PHO',
+      );
+    final (container, _) = await _pump(
+      tester,
+      role: UserRole.manager,
+      permissions: const {'MENU_VIEW', 'RESTAURANT_PROFILE_VIEW'},
+      transferAccounts: accounts,
+    );
+
+    expect(_inSettings('Tài khoản nhận chuyển khoản'), findsOneWidget);
+    expect(find.text('BIN 970999'), findsOneWidget);
+    expect(find.byTooltip('Sửa tài khoản nhận chuyển khoản'), findsNothing);
+    expect(find.text('Gỡ tài khoản'), findsNothing);
+
+    accounts.account = null;
+    container.invalidate(transferAccountProvider);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Nhà hàng chưa cài tài khoản nhận chuyển khoản.'),
+      findsOneWidget,
+    );
+    expect(find.text('Thêm tài khoản'), findsNothing);
+    expect(accounts.saved, isEmpty);
+  });
+
   testWidgets('Cài đặt is in the menu, Tổng quan is not', (tester) async {
     final (container, _) = await _pump(tester);
 
@@ -338,5 +492,17 @@ void main() {
       container.read(appRouterProvider).routeInformationProvider.value.uri.path,
       AppRoutes.settings,
     );
+  });
+
+  testWidgets('scrolling a phone-sized Cài đặt never reloads its sections', (
+    tester,
+  ) async {
+    final (_, settings) = await _pump(tester, size: const Size(400, 700));
+    final before = List.of(settings.calls);
+    expect(before, isNotEmpty);
+    await _scrollThrough(tester);
+    expect(settings.calls, before);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

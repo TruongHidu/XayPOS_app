@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../result/result.dart';
+import '../values/vietnamese_text.dart';
 import 'api_error_mapper.dart';
 
 /// A file the API generated on request (e.g. a QR image). Never cached:
@@ -101,36 +102,11 @@ String? fileNameFromDisposition(String? header) {
   return name;
 }
 
-const _vietnamese = {
-  'a': 'àáạảãâầấậẩẫăằắặẳẵ',
-  'e': 'èéẹẻẽêềếệểễ',
-  'i': 'ìíịỉĩ',
-  'o': 'òóọỏõôồốộổỗơờớợởỡ',
-  'u': 'ùúụủũưừứựửữ',
-  'y': 'ỳýỵỷỹ',
-  'd': 'đ',
-};
-
 /// ASCII file-name slug: drops Vietnamese diacritics, lowercases and joins
 /// words with `-` (`BÀN 7` → `ban-7`). Never empty.
 String asciiSlug(String value) {
-  // Strip combining marks first in case the input is NFD-decomposed.
-  final lower = value.toLowerCase().replaceAll(RegExp(r'[\u0300-\u036f]'), '');
-  final buffer = StringBuffer();
-  for (final rune in lower.runes) {
-    final char = String.fromCharCode(rune);
-    var mapped = char;
-    for (final entry in _vietnamese.entries) {
-      if (entry.value.contains(char)) {
-        mapped = entry.key;
-        break;
-      }
-    }
-    buffer.write(mapped);
-  }
-  final slug = buffer
-      .toString()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-      .replaceAll(RegExp(r'^-+|-+$'), '');
+  final slug = removeVietnameseDiacritics(
+    value.toLowerCase(),
+  ).replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '');
   return slug.isEmpty ? 'qr' : slug;
 }

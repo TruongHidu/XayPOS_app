@@ -433,32 +433,32 @@ class ReportOrdersTable extends StatelessWidget {
 
     switch (status) {
       case OrderStatus.open:
-        bg = Colors.blue.shade50;
-        fg = Colors.blue.shade700;
+        bg = AppColors.infoSoft;
+        fg = AppColors.infoStrong;
         text = 'Mới tạo';
       case OrderStatus.confirmed:
-        bg = Colors.amber.shade50;
-        fg = Colors.amber.shade900;
+        bg = AppColors.warningSoft;
+        fg = AppColors.warning;
         text = 'Đã xác nhận';
       case OrderStatus.preparing:
-        bg = Colors.orange.shade50;
-        fg = Colors.orange.shade800;
+        bg = AppColors.accentOrangeSoft;
+        fg = AppColors.accentOrange;
         text = 'Đang chế biến';
       case OrderStatus.ready:
-        bg = Colors.cyan.shade50;
-        fg = Colors.cyan.shade800;
+        bg = AppColors.accentCyanSoft;
+        fg = AppColors.accentCyan;
         text = 'Sẵn sàng';
       case OrderStatus.served:
-        bg = Colors.teal.shade50;
-        fg = Colors.teal.shade800;
+        bg = AppColors.accentIndigoSoft;
+        fg = AppColors.accentIndigo;
         text = 'Đã phục vụ';
       case OrderStatus.completed:
-        bg = Colors.green.shade50;
-        fg = Colors.green.shade700;
+        bg = AppColors.successTint;
+        fg = AppColors.success;
         text = 'Hoàn tất';
       case OrderStatus.cancelled:
-        bg = Colors.red.shade50;
-        fg = Colors.red.shade700;
+        bg = AppColors.dangerSoft;
+        fg = AppColors.danger;
         text = 'Đã hủy';
     }
 
@@ -487,20 +487,20 @@ class ReportOrdersTable extends StatelessWidget {
         fg = AppColors.grey700;
         text = 'Chưa thanh toán';
       case OrderPaymentStatus.partiallyPaid:
-        bg = Colors.orange.shade50;
-        fg = Colors.orange.shade800;
+        bg = AppColors.accentOrangeSoft;
+        fg = AppColors.accentOrange;
         text = 'Một phần';
       case OrderPaymentStatus.paid:
         bg = AppColors.success.withValues(alpha: 0.12);
-        fg = const Color(0xFF059669);
+        fg = AppColors.success;
         text = 'Đã thanh toán';
       case OrderPaymentStatus.partiallyRefunded:
-        bg = Colors.purple.shade50;
-        fg = Colors.purple.shade700;
+        bg = AppColors.accentVioletSoft;
+        fg = AppColors.accentViolet;
         text = 'Hoàn một phần';
       case OrderPaymentStatus.refunded:
-        bg = Colors.purple.shade100;
-        fg = Colors.purple.shade800;
+        bg = AppColors.accentVioletSoft;
+        fg = AppColors.accentViolet;
         text = 'Đã hoàn tiền';
     }
 

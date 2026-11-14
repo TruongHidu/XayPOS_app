@@ -14,10 +14,20 @@ import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
 
 class OrderAppendScreen extends ConsumerStatefulWidget {
-  const OrderAppendScreen({super.key, required this.orderId, this.tableName});
+  const OrderAppendScreen({
+    super.key,
+    required this.orderId,
+    this.tableName,
+    this.backLocation,
+  });
 
   final String orderId;
   final String? tableName;
+
+  /// Where to land when there is nothing to pop back to (a deep link): the
+  /// order's page in the section it was opened from. Defaults to the bill in
+  /// Gọi món.
+  final String? backLocation;
 
   @override
   ConsumerState<OrderAppendScreen> createState() => _OrderAppendScreenState();
@@ -109,20 +119,33 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
     if (mounted && input != null) cart.edit(line.id, input.$1, input.$2);
   }
 
+  /// Back to the order once leaving is decided (sent, or the cart dropped):
+  /// pop when this screen was pushed, otherwise go to
+  /// [OrderAppendScreen.backLocation]. A plain pop, never maybePop: the
+  /// PopScope here would route straight back into [_back] and loop.
+  void _leave() {
+    final router = GoRouter.maybeOf(context);
+    if (router == null) {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) navigator.pop();
+    } else if (router.canPop()) {
+      router.pop();
+    } else {
+      router.go(
+        widget.backLocation ??
+            '/app/order-create/bill/${Uri.encodeComponent(widget.orderId)}',
+      );
+    }
+  }
+
   Future<void> _send(OrderAppendController cart, {bool retry = false}) async {
     final result = await (retry ? cart.retry() : cart.send());
-    if (mounted && cart.current && result is Success<OrderDetail>) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/app/order-create/bill/${widget.orderId}');
-      }
-    }
+    if (mounted && cart.current && result is Success<OrderDetail>) _leave();
   }
 
   Future<void> _back(OrderAppendController cart) async {
     if (cart.frozen) {
-      if (context.canPop()) context.pop();
+      _leave();
       return;
     }
     if (cart.dirty &&
@@ -137,11 +160,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
     }
     if (mounted && cart.current) {
       cart.discard();
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/app/order-create/bill/${widget.orderId}');
-      }
+      _leave();
     }
   }
 
@@ -251,14 +270,14 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.shade50,
+                                    color: AppColors.warningSoft,
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     'Ghi chú: ${line.note}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.brown.shade700,
+                                      color: AppColors.warning,
                                     ),
                                   ),
                                 ),
@@ -290,7 +309,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                       ),
                                       label: const Text('Bỏ món'),
                                       style: TextButton.styleFrom(
-                                        foregroundColor: Colors.red.shade700,
+                                        foregroundColor: AppColors.danger,
                                       ),
                                     ),
                                   ],
@@ -380,7 +399,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF0EB),
+                                        color: AppColors.primarySoft,
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: const Text(

@@ -364,7 +364,8 @@ void main() {
       await tester.tap(find.byTooltip('Thêm Trà đào'));
       await tester.tap(find.byTooltip('Thêm Trà đào'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ gọi thêm (2)'), findsOneWidget);
+      // Full-screen append: the cart count shows on its tab and bottom bar.
+      expect(find.text('Giỏ gọi thêm (2)'), findsWidgets);
       await tester.tap(find.text('Gửi món gọi thêm'));
       await tester.pumpAndSettle();
       expect(orders.submissions.single.$1, 'o1');

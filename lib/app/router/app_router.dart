@@ -91,6 +91,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 showBackButton: false,
               ),
             ),
+            routes: [
+              // The same full-screen "Gọi thêm món" as in Gọi món.
+              GoRoute(
+                path: 'add-items',
+                onExit: (context, state) =>
+                    ref.read(orderExitGuardProvider).allow(context),
+                builder: (context, state) {
+                  final orderId = state.pathParameters['orderId']!;
+                  return AppShell(
+                    initialSection: 'orders',
+                    showAppBar: false,
+                    child: OrderAppendScreen(
+                      orderId: orderId,
+                      tableName: state.uri.queryParameters['tableName'],
+                      backLocation:
+                          '/app/orders/${Uri.encodeComponent(orderId)}',
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -113,6 +134,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 showBackButton: false,
               ),
             ),
+            routes: [
+              // The same full-screen "Gọi thêm món" as in Gọi món.
+              GoRoute(
+                path: 'add-items',
+                onExit: (context, state) =>
+                    ref.read(orderExitGuardProvider).allow(context),
+                builder: (context, state) {
+                  final orderId = state.pathParameters['orderId']!;
+                  return AppShell(
+                    initialSection: 'takeaway-orders',
+                    showAppBar: false,
+                    child: OrderAppendScreen(
+                      orderId: orderId,
+                      tableName: state.uri.queryParameters['tableName'],
+                      backLocation:
+                          '/app/takeaway/${Uri.encodeComponent(orderId)}',
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -200,6 +242,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/app/staff',
         builder: (context, state) => const AppShell(initialSection: 'staff'),
+      ),
+      GoRoute(
+        path: AppRoutes.overview,
+        builder: (context, state) => const AppShell(initialSection: 'overview'),
       ),
       GoRoute(
         path: AppRoutes.dailyRevenue,
@@ -393,6 +439,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ownerMessage: 'Vui lòng chọn hoặc mua gói để tiếp tục.',
           staffMessage:
               'Nhà hàng chưa có gói hoạt động. Vui lòng liên hệ chủ nhà hàng.',
+          offerSubscription: true,
         ),
       ),
       GoRoute(

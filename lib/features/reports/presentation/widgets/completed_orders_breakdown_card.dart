@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/report_overview.dart';
+import '../../../../app/theme/app_colors.dart';
 
 class CompletedOrdersBreakdownCard extends StatelessWidget {
   final ReportOrdersSummary ordersSummary;
@@ -53,7 +54,7 @@ class CompletedOrdersBreakdownCard extends StatelessWidget {
               context,
               'Tổng giảm giá (Discount)',
               '-${ordersSummary.completedDiscountAmount.formatted}',
-              valueColor: Colors.red.shade700,
+              valueColor: AppColors.danger,
             ),
             const Divider(height: 16),
             _buildRow(
@@ -73,7 +74,7 @@ class CompletedOrdersBreakdownCard extends StatelessWidget {
               'Doanh số đơn hoàn tất',
               ordersSummary.completedOrderSalesAmount.formatted,
               isBold: true,
-              valueColor: const Color(0xFFEA580C),
+              valueColor: AppColors.accentOrange,
             ),
             const SizedBox(height: 8),
             _buildRow(

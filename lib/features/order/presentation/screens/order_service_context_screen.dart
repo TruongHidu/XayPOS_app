@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
+import '../../../../core/ui/formatters/elapsed.dart';
 import '../../../../core/ui/widgets/list_states.dart';
 import '../../../tables/domain/entities/table_entities.dart';
 import '../../../qr_order/presentation/widgets/qr_request_inbox.dart';
@@ -59,20 +61,20 @@ class OrderServiceContextScreen extends ConsumerWidget {
                 (false, 'Còn trống'),
               ])
                 Expanded(
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: c.query.occupied == filter.$1
-                          ? Colors.black
-                          : AppColors.grey500,
-                      minimumSize: const Size(0, 48),
-                    ),
-                    onPressed: c.selecting
+                  child: _OccupancyTab(
+                    key: ValueKey('table-filter-${filter.$1}'),
+                    label: filter.$2,
+                    // Counts follow the loaded snapshot; hide them until then.
+                    count: c.loading && c.countWhere(null) == 0
+                        ? null
+                        : c.countWhere(filter.$1),
+                    selected: c.query.occupied == filter.$1,
+                    onTap: c.selecting
                         ? null
                         : () => c.filter(
                             occupied: filter.$1,
                             areaId: c.query.areaId,
                           ),
-                    child: Text(filter.$2),
                   ),
                 ),
             ],
@@ -111,7 +113,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     Text(
                       'Có ${qr.arrivals} yêu cầu QR mới',
                       style: const TextStyle(
-                        color: Color(0xFF1565C0),
+                        color: AppColors.infoStrong,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -197,9 +199,10 @@ class OrderServiceContextScreen extends ConsumerWidget {
                         : (constraints.maxWidth / 200).floor().clamp(3, 6),
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
+                    // 22 more for the guests · seated-for line.
                     mainAxisExtent:
-                        160 +
-                        (MediaQuery.textScalerOf(context).scale(14) - 14) * 7 +
+                        182 +
+                        (MediaQuery.textScalerOf(context).scale(14) - 14) * 8 +
                         (!qrAllowed || qr.pending.isEmpty
                             ? 0
                             : 52 +
@@ -242,6 +245,8 @@ class OrderServiceContextScreen extends ConsumerWidget {
                       icon: Icons.table_restaurant,
                       hasOrder: tile.order != null,
                       hasUnconfirmedOrder: hasUnconfirmedOrder,
+                      guests: table.currentSession?.guestCount,
+                      seatedSince: table.currentSession?.openedAt,
                       qrRequests: qrRequests,
                       onQrTap: qrRequests == 0
                           ? null
@@ -338,6 +343,8 @@ class OrderContextCard extends StatelessWidget {
     required this.icon,
     this.hasOrder = false,
     this.hasUnconfirmedOrder = false,
+    this.guests,
+    this.seatedSince,
     this.qrRequests = 0,
     this.onQrTap,
     this.subtitle,
@@ -349,6 +356,10 @@ class OrderContextCard extends StatelessWidget {
   final IconData icon;
   final bool hasOrder;
   final bool hasUnconfirmedOrder;
+
+  /// Guests and opening time of the table's serving session, if any.
+  final int? guests;
+  final DateTime? seatedSince;
   final int qrRequests;
   final VoidCallback? onQrTap;
   final String? subtitle, amount;
@@ -359,22 +370,29 @@ class OrderContextCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = hasUnconfirmedOrder
-        ? const Color(0xFF9A6700)
+        ? AppColors.warning
         : hasOrder
-        ? const Color(0xFF2E7D32)
+        ? AppColors.success
         : OrderPalette.primary;
     return Semantics(
       button: true,
       enabled: onTap != null,
       excludeSemantics: qrRequests == 0,
       label: qrRequests == 0
-          ? [name, subtitle, amount].whereType<String>().join(', ')
+          ? [
+              name,
+              subtitle,
+              if (guests != null) '$guests khách',
+              if (seatedSince != null)
+                'ngồi ${formatElapsed(DateTime.now().difference(seatedSince!))}',
+              amount,
+            ].whereType<String>().join(', ')
           : null,
       child: Material(
         color: hasUnconfirmedOrder
-            ? const Color(0xFFFFF8E1)
+            ? AppColors.warningTint
             : hasOrder
-            ? const Color(0xFFE8F5E9)
+            ? AppColors.successTint
             : OrderPalette.clear,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -409,8 +427,8 @@ class OrderContextCard extends StatelessWidget {
                     child: TextButton(
                       key: const ValueKey('table-qr-requests'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF0D47A1),
-                        backgroundColor: const Color(0xFFE3F2FD),
+                        foregroundColor: AppColors.infoStrong,
+                        backgroundColor: AppColors.infoSoft,
                         minimumSize: const Size(0, 40),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -441,7 +459,7 @@ class OrderContextCard extends StatelessWidget {
                           : EdgeInsets.zero,
                       decoration: hasUnconfirmedOrder
                           ? BoxDecoration(
-                              color: const Color(0xFFFFECB3),
+                              color: AppColors.warningSoft,
                               borderRadius: BorderRadius.circular(4),
                             )
                           : null,
@@ -458,6 +476,11 @@ class OrderContextCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
+                if (seatedSince != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: _SeatedInfo(guests: guests, since: seatedSince!),
                   ),
                 const Spacer(),
                 Row(
@@ -485,6 +508,133 @@ class OrderContextCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// One of the "Tất cả / Sử dụng / Còn trống" filters: the chosen one is
+/// marked by weight, colour and an underline, not by text colour alone.
+class _OccupancyTab extends StatelessWidget {
+  const _OccupancyTab({
+    super.key,
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final int? count;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final color = selected ? primary : AppColors.grey600;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: selected ? primary : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 2,
+            children: [
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              if (count != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? primary.withValues(alpha: 0.12)
+                        : AppColors.grey100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "6 khách · 45 phút" for a table in use; the time moves on by itself.
+class _SeatedInfo extends StatefulWidget {
+  const _SeatedInfo({required this.guests, required this.since});
+  final int? guests;
+  final DateTime since;
+
+  @override
+  State<_SeatedInfo> createState() => _SeatedInfoState();
+}
+
+class _SeatedInfoState extends State<_SeatedInfo> {
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final elapsed = DateTime.now().difference(widget.since);
+    final seated = formatElapsed(elapsed.isNegative ? Duration.zero : elapsed);
+    // One line, so the card height stays predictable at large text.
+    return Row(
+      key: const ValueKey('table-seated-info'),
+      children: [
+        const Icon(Icons.schedule, size: 14, color: AppColors.grey600),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            widget.guests == null ? seated : '${widget.guests} khách · $seated',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, color: AppColors.grey700),
+          ),
+        ),
+      ],
     );
   }
 }

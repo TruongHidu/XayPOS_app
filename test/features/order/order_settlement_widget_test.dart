@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,10 +8,12 @@ import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dar
 import 'package:pos_saas_app/features/order/data/dto/order_dto.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_entities.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_payment.dart';
+import 'package:pos_saas_app/features/order/presentation/providers/order_transfer_qr_providers.dart';
 import 'package:pos_saas_app/features/order/presentation/screens/order_detail_screen.dart';
 import 'package:pos_saas_app/features/order/presentation/widgets/order_payment_dialog.dart';
 import '../../helpers/auth_fakes.dart';
 import 'order_fakes.dart';
+import 'order_transfer_qr_fakes.dart';
 
 const _permissions = {
   ...orderPermissions,
@@ -62,6 +65,7 @@ Future<ProviderContainer> _pump(
   Set<String> permissions = _permissions,
   double scale = 1,
   bool screen = false,
+  FakeTransferQrs? qrs,
 }) async {
   final auth = makeController(
     authRepository: FakeAuthRepository()
@@ -79,6 +83,10 @@ Future<ProviderContainer> _pump(
       authControllerProvider.overrideWith((ref) => auth),
       orderRepositoryProvider.overrideWithValue(orders),
       orderKeyGeneratorProvider.overrideWithValue(TestKeys()),
+      // No receiving account unless a test sets one up.
+      orderTransferQrRepositoryProvider.overrideWithValue(
+        qrs ?? FakeTransferQrs(configured: false),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -116,6 +124,24 @@ Future<ProviderContainer> _pump(
 
 const _confirm = ValueKey('payment-confirm');
 const _transfer = ValueKey('payment-method-TRANSFER');
+const _reference = ValueKey('payment-reference');
+const _qr = ValueKey('transfer-qr');
+const _qrImage = ValueKey('transfer-qr-image');
+const _prefillHint =
+    'Đã điền sẵn nội dung chuyển khoản. Có thể thay bằng mã giao dịch ngân hàng.';
+
+Future<void> _openTransfer(WidgetTester tester) async {
+  await tester.tap(find.text('Thanh toán hóa đơn'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(_transfer));
+  await tester.pumpAndSettle();
+}
+
+String _referenceText(WidgetTester tester) =>
+    tester.widget<TextFormField>(find.byKey(_reference)).controller!.text;
+
+Finder _inQr(String text) =>
+    find.descendant(of: find.byKey(_qr), matching: find.text(text));
 
 Future<void> _payCash(WidgetTester tester) async {
   await tester.tap(find.text('Thanh toán hóa đơn'));
@@ -252,6 +278,159 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('transfer shows the VietQR and confirms with its content', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    orders.onRecordPayment = () async {
+      orders.current = _order(paid: true, version: 6);
+      return Success(_receipt(orders));
+    };
+    final qrs = FakeTransferQrs();
+    await _pump(tester, orders, qrs: qrs);
+    await _openTransfer(tester);
+
+    expect(find.byKey(_qr), findsOneWidget);
+    expect(_inQr('Vietcombank'), findsOneWidget);
+    expect(_inQr('0123456789'), findsOneWidget);
+    expect(_inQr('NGUYEN VAN A'), findsOneWidget);
+    expect(_inQr('100.000 VND'), findsOneWidget);
+    expect(_inQr('TT ODTEST'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(_qr), matching: find.byType(Image)),
+      findsOneWidget,
+    );
+    expect(_referenceText(tester), 'TT ODTEST');
+    expect(find.text(_prefillHint), findsOneWidget);
+
+    // Enlarged for the customer, then back to the form.
+    await tester.ensureVisible(find.byKey(_qrImage));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_qrImage));
+    await tester.pumpAndSettle();
+    final fullScreen = find.byKey(const ValueKey('transfer-qr-fullscreen'));
+    expect(fullScreen, findsOneWidget);
+    expect(
+      find.descendant(of: fullScreen, matching: find.text('100.000 VND')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(of: fullScreen, matching: find.text('Đóng')),
+    );
+    await tester.pumpAndSettle();
+    expect(fullScreen, findsNothing);
+    expect(find.byType(OrderPaymentDialog), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(_confirm));
+    await tester.tap(find.byKey(_confirm));
+    await tester.pumpAndSettle();
+    final payment = orders.paymentCalls.single.$2;
+    expect(payment.paymentMethod, OrderPaymentMethod.transfer);
+    expect(payment.referenceNo, 'TT ODTEST');
+    expect(payment.amount.minorUnits, 10000000);
+    expect(find.byType(OrderPaymentDialog), findsNothing);
+    // Read once; nothing polls.
+    expect(qrs.detailCalls, ['o1']);
+    expect(qrs.imageCalls, [('o1', 720)]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a typed reference is kept and replaces the hint', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    final qrs = FakeTransferQrs()
+      ..onDetails = () async => const Error(networkFailure);
+    await _pump(tester, orders, qrs: qrs);
+    await _openTransfer(tester);
+
+    expect(find.byKey(const ValueKey('transfer-qr-error')), findsOneWidget);
+    expect(find.text(networkFailure.message), findsOneWidget);
+    expect(_referenceText(tester), isEmpty);
+    await tester.enterText(find.byKey(_reference), 'FT26111');
+    qrs.onDetails = null;
+    await tester.tap(find.text('Thử lại'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(_qr), findsOneWidget);
+    expect(_referenceText(tester), 'FT26111');
+    expect(find.text(_prefillHint), findsNothing);
+    expect(qrs.detailCalls.length, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('without a receiving account transfer is still recorded', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    orders.onRecordPayment = () async {
+      orders.current = _order(paid: true, version: 6);
+      return Success(_receipt(orders));
+    };
+    final qrs = FakeTransferQrs(configured: false);
+    await _pump(tester, orders, qrs: qrs);
+    await _openTransfer(tester);
+
+    expect(
+      find.byKey(const ValueKey('transfer-qr-not-configured')),
+      findsOneWidget,
+    );
+    expect(find.byKey(_qr), findsNothing);
+    expect(_referenceText(tester), isEmpty);
+    expect(qrs.imageCalls, isEmpty);
+    await tester.enterText(find.byKey(_reference), 'FT26111');
+    await tester.ensureVisible(find.byKey(_confirm));
+    await tester.tap(find.byKey(_confirm));
+    await tester.pumpAndSettle();
+    expect(orders.paymentCalls.single.$2.referenceNo, 'FT26111');
+    expect(
+      orders.paymentCalls.single.$2.paymentMethod,
+      OrderPaymentMethod.transfer,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a new order version reloads the QR', (tester) async {
+    final orders = FakeOrders()..current = _order();
+    final qrs = FakeTransferQrs();
+    final container = await _pump(tester, orders, qrs: qrs);
+    await _openTransfer(tester);
+    expect(qrs.detailCalls, ['o1']);
+
+    orders.current = _order(version: 6);
+    qrs.current = () => transferQr(version: 6, amount: '120000.00');
+    await container.read(orderDetailProvider('o1')).load();
+    await tester.pumpAndSettle();
+    expect(qrs.detailCalls, ['o1', 'o1']);
+    expect(_inQr('120.000 VND'), findsOneWidget);
+    // The dialog still asks for the amount it opened with, so it says so.
+    expect(
+      find.textContaining('Số tiền trong mã QR khác số cần thu.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the QR steps aside once a payment is out', (tester) async {
+    final orders = FakeOrders()
+      ..current = _order()
+      ..onRecordPayment = () async => const Error(networkFailure);
+    final qrs = FakeTransferQrs();
+    await _pump(tester, orders, qrs: qrs);
+    await _openTransfer(tester);
+    expect(find.byKey(_qr), findsOneWidget);
+    await tester.ensureVisible(find.byKey(_confirm));
+    await tester.tap(find.byKey(_confirm));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Chưa xác định kết quả thanh toán.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(_qr), findsNothing);
+    expect(orders.paymentCalls.single.$2.referenceNo, 'TT ODTEST');
+    expect(qrs.detailCalls, ['o1']);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'recorded payment with failed order readback never posts payment again',
     (tester) async {
@@ -293,10 +472,13 @@ void main() {
       final original = orders.paymentCalls.single;
       expect(
         tester
-            .widget<ChoiceChip>(
-              find.byKey(const ValueKey('payment-method-CASH')),
+            .widget<InkWell>(
+              find.descendant(
+                of: find.byKey(const ValueKey('payment-method-CASH')),
+                matching: find.byType(InkWell),
+              ),
             )
-            .onSelected,
+            .onTap,
         isNull,
       );
       orders.onRecordPayment = () async {
@@ -383,7 +565,13 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final orders = FakeOrders()..current = _order();
-      await _pump(tester, orders, scale: 2, screen: true);
+      await _pump(
+        tester,
+        orders,
+        scale: 2,
+        screen: true,
+        qrs: FakeTransferQrs(),
+      );
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Thanh toán hóa đơn'));
       await tester.pumpAndSettle();
@@ -402,6 +590,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(_transfer));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(_qrImage));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_qr), findsOneWidget);
+      expect(tester.takeException(), isNull);
       tester.view.viewInsets = const FakeViewPadding(bottom: 280);
       addTearDown(tester.view.resetViewInsets);
       await tester.pumpAndSettle();
@@ -413,4 +605,42 @@ void main() {
       expect(orders.paymentCalls, isEmpty);
     });
   }
+
+  testWidgets('tapping outside closes the payment dialog', (tester) async {
+    final orders = FakeOrders()..current = _order();
+    await _pump(tester, orders);
+    await tester.tap(find.text('Thanh toán hóa đơn'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OrderPaymentDialog), findsOneWidget);
+    expect(find.text('Đơn OD-TEST'), findsOneWidget);
+    expect(find.byKey(const ValueKey('payment-amount-due')), findsOneWidget);
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pumpAndSettle();
+    expect(find.byType(OrderPaymentDialog), findsNothing);
+    expect(orders.paymentCalls, isEmpty);
+  });
+
+  testWidgets('tapping outside never closes it while a payment is sent', (
+    tester,
+  ) async {
+    final orders = FakeOrders()..current = _order();
+    final reply = Completer<Result<OrderPayment>>();
+    orders.onRecordPayment = () => reply.future;
+    await _pump(tester, orders);
+    await tester.tap(find.text('Thanh toán hóa đơn'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_confirm));
+    await tester.pump();
+
+    await tester.tapAt(const Offset(4, 4));
+    await tester.pump();
+    expect(find.byType(OrderPaymentDialog), findsOneWidget);
+
+    orders.current = _order(paid: true, version: 6);
+    reply.complete(Success(_receipt(orders)));
+    await tester.pumpAndSettle();
+    expect(find.byType(OrderPaymentDialog), findsNothing);
+    expect(orders.paymentCalls, hasLength(1));
+  });
 }

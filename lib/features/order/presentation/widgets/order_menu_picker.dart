@@ -124,7 +124,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFC2410C),
+                              color: AppColors.primary,
                               letterSpacing: 0.8,
                             ),
                           ),

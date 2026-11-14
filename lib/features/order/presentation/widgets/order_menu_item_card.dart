@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../core/formatters/money_format.dart';
+import '../../../../core/ui/widgets/app_network_image.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
 import 'order_widgets.dart';
@@ -80,13 +81,10 @@ class OrderMenuItemCard extends StatelessWidget {
                 child: SizedBox(
                   width: thumbSize,
                   height: thumbSize,
-                  child: item.imageUrl != null && item.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholder(),
-                        )
-                      : _placeholder(),
+                  child: AppNetworkImage(
+                    url: item.imageUrl,
+                    placeholder: _placeholder(),
+                  ),
                 ),
               );
               final info = Column(
@@ -231,7 +229,7 @@ class OrderMenuItemCard extends StatelessWidget {
                               'Nhiều ghi chú',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.brown,
+                                color: AppColors.warning,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -274,7 +272,7 @@ class OrderMenuItemCard extends StatelessWidget {
                     style: IconButton.styleFrom(
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       backgroundColor: isSelected && canInteract
-                          ? const Color(0xFFFFF2EB)
+                          ? AppColors.primarySoft
                           : AppColors.grey50,
                       foregroundColor: isSelected && canInteract
                           ? OrderPalette.primary
@@ -285,7 +283,7 @@ class OrderMenuItemCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         side: BorderSide(
                           color: isSelected && canInteract
-                              ? const Color(0xFFFFD8C2)
+                              ? AppColors.primaryBorder
                               : AppColors.grey200,
                         ),
                       ),
@@ -383,7 +381,7 @@ class OrderMenuItemCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    color: const Color(0xFFFFF7F2),
+    color: AppColors.primarySoft,
     alignment: Alignment.center,
     child: const Icon(Icons.restaurant, color: OrderPalette.primary, size: 28),
   );

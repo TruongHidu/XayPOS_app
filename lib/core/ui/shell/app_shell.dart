@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../features/order/presentation/screens/order_list_screen.dart';
+import '../../../features/overview/presentation/screens/overview_screen.dart';
 import '../../../features/order/presentation/screens/order_service_context_screen.dart';
 import '../../../features/order/presentation/screens/takeaway_orders_screen.dart';
 import '../../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
@@ -31,6 +32,7 @@ import '../../../features/inventory/presentation/screens/inventory_balances_scre
 import '../../../features/inventory/presentation/screens/inventory_documents_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_alerts_screen.dart';
 import '../../../features/inventory/presentation/screens/inventory_audits_screen.dart';
+import '../../../app/theme/app_colors.dart';
 
 /// The single unified shell for the entire application.
 ///
@@ -117,10 +119,10 @@ class _AppShellState extends ConsumerState<AppShell>
       _sidebarController.forward();
       final session = ref.read(authControllerProvider).state.session;
       if (AccessPolicy.canViewInventoryAlerts(session)) {
-        ref.read(inventoryLowStockCountProvider).load();
+        ref.read(inventoryLowStockCountProvider).refreshIfStale();
       }
       if (AccessPolicy.canTakeawayOrders(session)) {
-        ref.read(takeawayCountRefreshProvider)();
+        ref.read(takeawayCountRefresherProvider).refreshIfStale();
       }
     }
   }
@@ -156,6 +158,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
   void _onItemTap(SidebarMenuItem item) async {
     if (const {
+      'overview',
       'orders',
       'order-create',
       'takeaway-orders',
@@ -375,7 +378,7 @@ class _AppShellState extends ConsumerState<AppShell>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline, size: 56, color: Colors.grey),
+              Icon(Icons.lock_outline, size: 56, color: AppColors.grey500),
               SizedBox(height: 16),
               Text(
                 'Tài khoản chưa được cấp quyền truy cập chức năng nào.',
@@ -390,6 +393,9 @@ class _AppShellState extends ConsumerState<AppShell>
     final selected = items.where((i) => i.id == _selectedId).firstOrNull;
     if (selected == null) {
       return const Center(child: Text('Chọn chức năng từ menu.'));
+    }
+    if (selected.id == 'overview') {
+      return OverviewScreen(key: ValueKey(AccessPolicy.reportScope(session)));
     }
     if (selected.id == 'orders') return const OrderListScreen();
     if (selected.id == 'order-create') return const OrderServiceContextScreen();

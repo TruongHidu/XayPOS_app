@@ -153,6 +153,18 @@ abstract final class ApiErrorMapper {
         FailureType.conflict,
         'Đơn hiện không đủ điều kiện thanh toán. Hãy kiểm tra trạng thái và số tiền.',
       ),
+      'TRANSFER_ACCOUNT_NOT_CONFIGURED' => (
+        FailureType.conflict,
+        'Nhà hàng chưa cài tài khoản nhận chuyển khoản. Chủ nhà hàng có thể thêm trong Cài đặt.',
+      ),
+      'TRANSFER_QR_CURRENCY_UNSUPPORTED' => (
+        FailureType.validation,
+        'Mã QR chuyển khoản chỉ hỗ trợ đơn tính bằng VND.',
+      ),
+      'INVALID_TRANSFER_ACCOUNT' => (
+        FailureType.validation,
+        'Thông tin tài khoản nhận chuyển khoản không hợp lệ. Hãy kiểm tra ngân hàng, số tài khoản và tên chủ tài khoản.',
+      ),
       'PAYMENT_AMOUNT_MISMATCH' => (
         FailureType.conflict,
         'Số tiền thanh toán phải bằng tổng tiền mới nhất của đơn. Hãy tải lại và đối chiếu.',
@@ -631,7 +643,10 @@ abstract final class ApiErrorMapper {
         type: FailureType.subscriptionNotActive,
         code: apiError.code,
         fieldErrors: apiError.fieldErrors,
-        message: 'Nhà hàng chưa có gói hoạt động.',
+        subscriptionExpired: apiError.subscriptionExpired,
+        message: apiError.subscriptionExpired
+            ? 'Gói dịch vụ của nhà hàng đã hết hạn.'
+            : 'Nhà hàng chưa có gói hoạt động.',
       ),
       'FEATURE_NOT_ENTITLED' => Failure(
         type: FailureType.featureNotEntitled,

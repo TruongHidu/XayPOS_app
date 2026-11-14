@@ -148,7 +148,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
                     width: 12,
                     height: 12,
                     decoration: const BoxDecoration(
-                      color: Color(0xFFEA580C), // Orange
+                      color: AppColors.accentOrange, // Orange
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -335,7 +335,11 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
             if (widget.showCompleted) ...[
               Row(
                 children: [
-                  const Icon(Icons.circle, size: 8, color: Color(0xFFEA580C)),
+                  const Icon(
+                    Icons.circle,
+                    size: 8,
+                    color: AppColors.accentOrange,
+                  ),
                   const SizedBox(width: 6),
                   const Text(
                     'Doanh số hoàn tất: ',
@@ -547,7 +551,7 @@ class _SeriesChartPainter extends CustomPainter {
             .map((p) => p.completedOrderSalesAmount.toDouble())
             .toList(),
         maxVal: maxVal,
-        color: const Color(0xFFEA580C),
+        color: AppColors.accentOrange,
         leftPad: leftPad,
         topPad: topPad,
         chartHeight: chartHeight,

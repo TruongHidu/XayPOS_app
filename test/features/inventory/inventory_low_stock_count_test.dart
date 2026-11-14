@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/auth/app_session.dart';
 import 'package:pos_saas_app/core/errors/failure.dart';
 import 'package:pos_saas_app/core/result/result.dart';
+import 'package:pos_saas_app/core/ui/controllers/refresh_throttle.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/inventory_entities.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/inventory_queries.dart';
@@ -53,6 +54,7 @@ class _Scope {
     AppSession? initial,
     bool foreground = true,
     Future<void> Function(Failure)? onAccessDenied,
+    RefreshThrottle? freshness,
   }) {
     session = initial ?? _session();
     controller = InventoryLowStockCountController(
@@ -61,6 +63,7 @@ class _Scope {
       get: GetLowStockBalances(repository),
       foreground: foreground,
       onAccessDenied: onAccessDenied,
+      freshness: freshness,
     );
     addTearDown(dispose);
   }
@@ -80,6 +83,35 @@ class _Scope {
 }
 
 void main() {
+  test('opening the sidebar again soon keeps a recent count', () async {
+    var now = DateTime(2026, 11, 13, 9);
+    final scope = _Scope(freshness: RefreshThrottle(now: () => now));
+    scope.repository.respond = (_) async => Success(_page(4));
+
+    await scope.controller.refreshIfStale();
+    await scope.controller.refreshIfStale();
+    expect(scope.repository.requests, hasLength(1));
+    expect(scope.controller.count, 4);
+
+    now = now.add(const Duration(seconds: 31));
+    await scope.controller.refreshIfStale();
+    expect(scope.repository.requests, hasLength(2));
+
+    // A failed read is never treated as fresh.
+    scope.repository.respond = (_) async =>
+        const Error(Failure(type: FailureType.network, message: 'offline'));
+    now = now.add(const Duration(seconds: 31));
+    await scope.controller.refreshIfStale();
+    await scope.controller.refreshIfStale();
+    expect(scope.repository.requests, hasLength(4));
+
+    // An explicit load always asks.
+    scope.repository.respond = (_) async => Success(_page(5));
+    await scope.controller.load();
+    await scope.controller.load();
+    expect(scope.repository.requests, hasLength(6));
+  });
+
   test(
     'count uses all-warehouse totals rather than the one-row sample',
     () async {

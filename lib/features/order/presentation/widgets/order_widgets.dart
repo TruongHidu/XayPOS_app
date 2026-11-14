@@ -11,11 +11,12 @@ import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../domain/entities/order_quantity.dart';
 import 'stock_shortage_dialog.dart';
+import '../../../../app/theme/app_colors.dart';
 
 abstract final class OrderPalette {
   static const clear = Colors.transparent;
   static const primary = AppTheme.primaryColor;
-  static const grey = Color(0xFFD0D0D0);
+  static const grey = AppColors.grey300;
 }
 
 String orderMoney(BigInt minor, {String? currency}) =>
