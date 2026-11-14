@@ -42,4 +42,25 @@ class KitchenRemoteDataSource {
     }
     return order;
   }
+
+  Future<OrderDetail> readyOrder(KitchenOrderReady input) async {
+    final response = await dio.post<Object?>(
+      '/api/v1/orders/${Uri.encodeComponent(input.orderId)}/mark-ready',
+      data: KitchenDto.transition(input),
+      options: Options(
+        contentType: Headers.jsonContentType,
+        headers: {'Accept': 'application/json'},
+      ),
+    );
+    if (response.statusCode != 200) {
+      throw const FormatException('Invalid kitchen mutation status');
+    }
+    final order = OrderDto.detail(response.data);
+    // A no-op retry may answer with the version it was sent; never older.
+    if (order.id != input.orderId ||
+        order.version < input.expectedOrderVersion) {
+      throw const FormatException('Kitchen mutation returned another resource');
+    }
+    return order;
+  }
 }

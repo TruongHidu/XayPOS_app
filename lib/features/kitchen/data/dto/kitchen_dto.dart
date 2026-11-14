@@ -58,7 +58,7 @@ abstract final class KitchenDto {
     );
   }
 
-  static Map<String, Object> transition(KitchenItemTransition input) => {
+  static Map<String, Object> transition(KitchenCommand input) => {
     'expectedOrderVersion': input.expectedOrderVersion,
   };
 }

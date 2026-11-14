@@ -105,7 +105,55 @@ class FakeKitchen implements KitchenRepository {
   final writes = <KitchenItemTransition>[];
   Future<Result<KitchenQueuePage>> Function(KitchenQueueQuery)? onQueue;
   Future<Result<OrderDetail>> Function(KitchenItemTransition)? onTransition;
+  final orderWrites = <KitchenOrderReady>[];
+  Future<Result<OrderDetail>> Function(KitchenOrderReady)? onReadyOrder;
   bool paid = false;
+
+  @override
+  Future<Result<OrderDetail>> readyOrder(KitchenOrderReady input) async {
+    orderWrites.add(input);
+    if (onReadyOrder != null) return onReadyOrder!(input);
+    return performReady(input);
+  }
+
+  /// Mirrors the server: PENDING and COOKING become READY in one version step;
+  /// nothing left to do is a no-op even with an old version.
+  Result<OrderDetail> performReady(KitchenOrderReady input) {
+    final group = rows.where((r) => r.orderId == input.orderId).toList();
+    final todo = group.where(
+      (r) =>
+          r.itemStatus == OrderItemStatus.pending ||
+          r.itemStatus == OrderItemStatus.cooking,
+    );
+    if (todo.isEmpty) return Success(kitchenOrder(group, paid: paid));
+    if (group.any((r) => r.orderVersion != input.expectedOrderVersion)) {
+      return const Error(
+        Failure(
+          type: FailureType.conflict,
+          code: 'CONCURRENT_ORDER_UPDATE',
+          message: 'Đơn đã thay đổi.',
+        ),
+      );
+    }
+    final order = kitchenOrder(
+      group,
+      version: input.expectedOrderVersion + 1,
+      paid: paid,
+      rootStatus: 'READY',
+      lineStatus: {for (final r in todo) r.orderItemId: 'READY'},
+    );
+    rows = [
+      for (final row in rows)
+        row.orderId == order.id
+            ? row.fromOrder(
+                order,
+                order.items.firstWhere((l) => l.id == row.orderItemId),
+              )
+            : row,
+    ];
+    return Success(order);
+  }
+
   @override
   Future<Result<KitchenQueuePage>> queue(KitchenQueueQuery query) async {
     queries.add(query);
@@ -217,6 +265,7 @@ class KitchenRig {
     actions = KitchenOrderActionController(
       session: () => appSession,
       transition: TransitionKitchenItem(repo),
+      readyOrderCommand: ReadyKitchenOrder(repo),
       display: display,
       events: events,
       externalBlocked: (s, owner) =>

@@ -4,11 +4,15 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/order_entities.dart';
 import '../../domain/entities/order_inputs.dart';
+import '../../domain/entities/order_line_configuration.dart';
+import '../../domain/policies/order_line_policy.dart';
 import '../../domain/entities/order_quantity.dart';
 import '../../domain/entities/order_submission.dart';
 import '../../domain/policies/order_submission_failure_policy.dart';
 import '../../domain/policies/order_validation.dart';
 import '../../domain/use_cases/order_use_cases.dart';
+import 'order_cart_editor.dart';
+import 'order_cart_lines.dart';
 import 'order_controller.dart';
 
 class OrderDraftLine {
@@ -22,9 +26,12 @@ class OrderDraftLine {
               BigInt.from(quantity.milliUnits) +
           BigInt.from(500)) ~/
       BigInt.from(1000);
+
+  OrderLineConfiguration get configuration =>
+      OrderLineConfiguration(menuItemId: item.id, note: note);
 }
 
-class OrderDraftController extends OrderController {
+class OrderDraftController extends OrderController implements OrderCartEditor {
   OrderDraftController({
     required super.session,
     required super.events,
@@ -46,6 +53,7 @@ class OrderDraftController extends OrderController {
   }
 
   final List<OrderDraftLine> _lines = [];
+  @override
   List<OrderDraftLine> get lines => List.unmodifiable(_lines);
   bool busy = false, uncertain = false;
   bool needsTableReview = false;
@@ -61,6 +69,7 @@ class OrderDraftController extends OrderController {
     return true;
   }
 
+  @override
   Failure? failure;
   OrderDetail? result;
   bool? replayed;
@@ -100,25 +109,54 @@ class OrderDraftController extends OrderController {
           can('ORDER_UPDATE'));
   BigInt get previewMinor =>
       _lines.fold(BigInt.zero, (sum, line) => sum + line.previewMinor);
-  void add(MenuItem item) {
-    if (!current ||
-        frozen ||
-        !canPick ||
-        !item.active ||
-        !item.sellable ||
-        item.availabilityStatus != AvailabilityStatus.available) {
-      return;
+
+  @override
+  bool get canChangeCart => current && !frozen && canPick;
+
+  /// A new plain line of [item], as before the menu item sheet: quick +/−
+  /// on the card already grows a single existing line instead.
+  void add(MenuItem item) =>
+      _addLine(item, OrderQuantity.one, note: null, merge: false);
+
+  @override
+  bool addLine(MenuItem item, OrderQuantity quantity, {String? note}) =>
+      _addLine(item, quantity, note: note, merge: true);
+
+  bool _addLine(
+    MenuItem item,
+    OrderQuantity quantity, {
+    required String? note,
+    required bool merge,
+  }) {
+    if (!canChangeCart ||
+        !OrderLinePolicy.orderable(item) ||
+        quantity.milliUnits <= 0) {
+      return false;
     }
-    if (_lines.length >= 100) {
+    if (OrderValidation.text(note, OrderLinePolicy.maxNoteLength) != null) {
+      failure = OrderController.invalid({'note': 'Tối đa 2000 ký tự.'});
+      changed();
+      return false;
+    }
+    final result = addToLines(
+      _lines,
+      item,
+      quantity,
+      note: note,
+      merge: merge,
+      newId: keys.next,
+    );
+    if (result == CartAddResult.full) {
       failure = OrderController.invalid({'items': 'Tối đa 100 dòng món.'});
       changed();
-      return;
+      return false;
     }
-    _lines.add(OrderDraftLine(keys.next(), item, OrderQuantity.one, null));
     failure = null;
     changed();
+    return true;
   }
 
+  @override
   void edit(String id, OrderQuantity quantity, String? note) {
     if (!current || frozen || !canPick) return;
     final i = _lines.indexWhere((l) => l.id == id);
@@ -133,6 +171,7 @@ class OrderDraftController extends OrderController {
     changed();
   }
 
+  @override
   void remove(String id) {
     if (!current || frozen || !canPick) return;
     _lines.removeWhere((l) => l.id == id);
@@ -141,6 +180,7 @@ class OrderDraftController extends OrderController {
 
   /// Undo of [remove]: puts the same line (id, quantity, note) back at
   /// [index]. False when the cart can no longer take it.
+  @override
   bool restore(OrderDraftLine line, int index) {
     if (!current ||
         frozen ||

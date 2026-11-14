@@ -81,6 +81,9 @@ final kitchenActionsProvider =
         session: () => auth.state.session,
         onAccessDenied: ref.read(orderRecoveryProvider).handle,
         transition: TransitionKitchenItem(ref.watch(kitchenRepositoryProvider)),
+        readyOrderCommand: ReadyKitchenOrder(
+          ref.watch(kitchenRepositoryProvider),
+        ),
         display: display,
         events: orders,
         externalBlocked: (sessionId, owner) =>

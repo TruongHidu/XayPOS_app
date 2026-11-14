@@ -18,6 +18,14 @@ class GetKitchenQueue {
       : Future.value(const Error(_invalid));
 }
 
+class ReadyKitchenOrder {
+  const ReadyKitchenOrder(this.repository);
+  final KitchenRepository repository;
+  Future<Result<OrderDetail>> call(KitchenOrderReady input) => input.valid
+      ? repository.readyOrder(input)
+      : Future.value(const Error(_invalid));
+}
+
 class TransitionKitchenItem {
   const TransitionKitchenItem(this.repository);
   final KitchenRepository repository;

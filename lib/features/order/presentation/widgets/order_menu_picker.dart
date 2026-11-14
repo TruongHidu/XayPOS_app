@@ -20,7 +20,7 @@ class OrderMenuPicker extends ConsumerStatefulWidget {
     this.cartLines = const [],
     this.onIncrement,
     this.onDecrement,
-    this.onEditLine,
+    required this.onOpenItem,
     this.currencyCode,
   });
 
@@ -30,7 +30,9 @@ class OrderMenuPicker extends ConsumerStatefulWidget {
   final List<OrderDraftLine> cartLines;
   final void Function(MenuItem)? onIncrement;
   final void Function(MenuItem)? onDecrement;
-  final void Function(MenuItem)? onEditLine;
+
+  /// Opens a dish's sheet; never switches to the cart.
+  final void Function(MenuItem) onOpenItem;
   final String? currencyCode;
 
   @override
@@ -341,7 +343,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                               }
                             },
                             onDecrement: () => widget.onDecrement?.call(item),
-                            onEdit: () => widget.onEditLine?.call(item),
+                            onOpen: () => widget.onOpenItem(item),
                           );
                         },
                       ),

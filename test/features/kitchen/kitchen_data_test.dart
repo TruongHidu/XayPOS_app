@@ -118,6 +118,43 @@ void main() {
       expect(error.failure.code, 'CONCURRENT_ORDER_UPDATE');
     },
   );
+  test('Ready cả đơn posts once to the order and checks the answer', () async {
+    final adapter = KitchenAdapter();
+    final dio = Dio(BaseOptions(baseUrl: 'https://kitchen.invalid'))
+      ..httpClientAdapter = adapter;
+    addTearDown(dio.close);
+    final repo = KitchenRepositoryImpl(KitchenRemoteDataSource(dio));
+    adapter.data = orderJson(
+      status: 'READY',
+      lineStatus: 'READY',
+      version: 4,
+      confirmed: true,
+    );
+    final result = await repo.readyOrder(
+      const KitchenOrderReady(orderId: 'o1', expectedOrderVersion: 3),
+    );
+    expect((result as Success<OrderDetail>).value.version, 4);
+    final request = adapter.requests.last;
+    expect(request.path, '/api/v1/orders/o1/mark-ready');
+    expect(request.data, {'expectedOrderVersion': 3});
+    expect(request.contentType, Headers.jsonContentType);
+
+    // Another order, or an older version than sent, is not this answer.
+    final other = await repo.readyOrder(
+      const KitchenOrderReady(orderId: 'o2', expectedOrderVersion: 3),
+    );
+    expect(
+      (other as Error<OrderDetail>).failure.code,
+      'INVALID_KITCHEN_RESPONSE',
+    );
+    final older = await repo.readyOrder(
+      const KitchenOrderReady(orderId: 'o1', expectedOrderVersion: 9),
+    );
+    expect(
+      (older as Error<OrderDetail>).failure.code,
+      'INVALID_KITCHEN_RESPONSE',
+    );
+  });
   test(
     'strict parsing preserves nullable seating/note and rejects invalid status/version',
     () {

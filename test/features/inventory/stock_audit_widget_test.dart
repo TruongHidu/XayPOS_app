@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/app/theme/app_theme.dart';
 import 'package:pos_saas_app/core/auth/session_events.dart';
+import 'package:pos_saas_app/core/errors/failure.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/auth/presentation/controllers/auth_controller.dart';
@@ -249,6 +250,52 @@ void main() {
       expect(find.textContaining('Xem chứng từ điều chỉnh'), findsOneWidget);
       await _tap(tester, find.textContaining('Xem chứng từ điều chỉnh'));
       expect(find.text('Document adjustment-a1'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'stock moved while counting: a dialog explains it and recount cancels',
+    (tester) async {
+      final repo = FakeStockAudits()..value = stockAuditJson(counted: 2);
+      repo.onConfirm = (_, _) async => const Error(
+        Failure(
+          type: FailureType.conflict,
+          code: 'STOCK_AUDIT_SNAPSHOT_STALE',
+          message: 'Tồn vật lý đã biến động sau khi bắt đầu.',
+        ),
+      );
+      final host = await pumpAudits(tester, repo: repo, width: 400);
+      await _tap(tester, find.text('Chốt kiểm kê'));
+      await _tap(tester, find.text('Chốt kiểm kê').last);
+
+      final dialog = find.byKey(const ValueKey('stock-audit-stale-dialog'));
+      expect(dialog, findsOneWidget);
+      expect(find.text('Chưa chốt được kiểm kê'), findsOneWidget);
+      // No red error panel and no reconcile card behind it.
+      expect(find.textContaining('Tồn vật lý đã biến động'), findsNothing);
+      expect(find.text('Cần đối chiếu dữ liệu'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      // Later: a calm notice stays and reopens the same dialog.
+      await _tap(tester, find.text('Để sau'));
+      expect(dialog, findsNothing);
+      expect(
+        find.byKey(const ValueKey('stock-audit-stale-notice')),
+        findsOneWidget,
+      );
+      expect(find.text('Hủy phiên'), findsOneWidget);
+      await _tap(tester, find.text('Xử lý'));
+      expect(dialog, findsOneWidget);
+
+      await _tap(
+        tester,
+        find.byKey(const ValueKey('stock-audit-stale-recount')),
+      );
+      expect(repo.cancels, 1);
+      expect(
+        host.router.routerDelegate.currentConfiguration.uri.path,
+        '/app/inventory/audits/new',
+      );
     },
   );
 

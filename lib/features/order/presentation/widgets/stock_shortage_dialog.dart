@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/errors/failure.dart';
-import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../../../core/values/ingredient_quantity.dart';
+import '../../domain/policies/stock_shortage_summary.dart';
 import 'order_ingredient_dialog.dart' show ingredientNumber;
 
 String _amount(IngredientQuantity q, String unit) =>
@@ -9,23 +9,32 @@ String _amount(IngredientQuantity q, String unit) =>
 
 /// Lists the dishes the kitchen can't make from stock right now. The refused
 /// command changed nothing, so the dialog only informs; the cart stays as is.
+///
+/// [cart] recovers each line's note; [onEditCart] adds a shortcut to the cart.
 Future<void> showStockShortageDialog(
   BuildContext context,
-  StockShortage shortage,
-) => showDialog<void>(
+  StockShortage shortage, {
+  List<ShortageCartLine> cart = const [],
+  VoidCallback? onEditCart,
+}) => showDialog<void>(
   context: context,
-  builder: (_) => StockShortageDialog(shortage: shortage),
+  builder: (_) => StockShortageDialog(
+    dishes: summarizeShortage(shortage, cart: cart),
+    onEditCart: onEditCart,
+  ),
 );
 
 class StockShortageDialog extends StatelessWidget {
-  const StockShortageDialog({super.key, required this.shortage});
-  final StockShortage shortage;
+  const StockShortageDialog({super.key, required this.dishes, this.onEditCart});
+  final List<ShortageDish> dishes;
+  final VoidCallback? onEditCart;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    void close() => Navigator.of(context).pop();
     return AlertDialog(
-      alignment: phoneDialogAlignment(context),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       scrollable: true,
       icon: Icon(Icons.inventory_2_outlined, color: scheme.error),
@@ -37,40 +46,50 @@ class StockShortageDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Chưa gửi được vì kho không đủ nguyên liệu cho '
-              '${shortage.lines.length} món dưới đây. '
-              'Chưa có thay đổi nào được lưu.',
-              style: theme.textTheme.bodyMedium?.copyWith(
+              dishes.length == 1
+                  ? 'Kho không đủ nguyên liệu cho món dưới đây.'
+                  : 'Kho không đủ nguyên liệu cho ${dishes.length} món '
+                        'dưới đây.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Chưa có gì được gửi đi, các món đã chọn vẫn còn nguyên.',
+              style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
-            for (final line in shortage.lines) ...[
-              _LineCard(line),
-              const SizedBox(height: 10),
+            for (final (i, dish) in dishes.indexed) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _DishCard(dish),
             ],
-            Text(
-              'Hãy giảm số lượng hoặc bỏ món, rồi gửi lại.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ],
         ),
       ),
       actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Đã hiểu'),
-        ),
+        if (onEditCart == null)
+          FilledButton(onPressed: close, child: const Text('Đã hiểu'))
+        else ...[
+          TextButton(onPressed: close, child: const Text('Đóng')),
+          FilledButton(
+            key: const ValueKey('stock-shortage-edit-cart'),
+            onPressed: () {
+              close();
+              onEditCart!();
+            },
+            child: const Text('Sửa giỏ hàng'),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _LineCard extends StatelessWidget {
-  const _LineCard(this.line);
-  final StockShortageLine line;
+class _DishCard extends StatelessWidget {
+  const _DishCard(this.dish);
+  final ShortageDish dish;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -78,7 +97,47 @@ class _LineCard extends StatelessWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    final ingredients = line.shortIngredients;
+    final unit = dish.unit;
+    final (chip, chipBack, chipFore) = switch (dish.verdict) {
+      ShortageVerdict.reduce => (
+        'Bớt ${_amount(dish.reduceBy!, unit)}',
+        scheme.tertiaryContainer,
+        scheme.onTertiaryContainer,
+      ),
+      ShortageVerdict.soldOut => (
+        'Hết',
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      ),
+      ShortageVerdict.unknown => (
+        'Không đủ',
+        scheme.errorContainer,
+        scheme.onErrorContainer,
+      ),
+    };
+    final ordered = 'Đã gọi ${_amount(dish.requested, unit)}';
+    final summary = switch (dish.verdict) {
+      ShortageVerdict.reduce =>
+        '$ordered · làm được tối đa ${_amount(dish.canMake!, unit)}',
+      ShortageVerdict.soldOut => '$ordered · kho đã hết nguyên liệu',
+      ShortageVerdict.unknown => '$ordered · kho không đủ',
+    };
+    final several = dish.portions.length > 1;
+    final hints = [
+      if (dish.verdict == ShortageVerdict.soldOut) 'Bỏ món này khỏi đơn.',
+      if (dish.verdict == ShortageVerdict.reduce &&
+          several &&
+          dish.sharedWith.isEmpty &&
+          !dish.mayShareWithOthers)
+        'Bớt ở phần nào cũng được.',
+      if (dish.sharedWith.isNotEmpty)
+        'Dùng chung nguyên liệu với ${dish.sharedWith.join(', ')}; '
+            'bớt món đó cũng được.'
+      else if (dish.mayShareWithOthers)
+        'Có thể dùng chung nguyên liệu với món khác trong đơn; '
+            'bớt món đó cũng được.',
+    ];
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -93,7 +152,7 @@ class _LineCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  line.itemName,
+                  dish.name,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -107,21 +166,15 @@ class _LineCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: line.soldOut
-                        ? scheme.errorContainer
-                        : scheme.tertiaryContainer,
+                    color: chipBack,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    line.soldOut
-                        ? 'Hết'
-                        : 'Còn ${_amount(line.maxAvailableQuantity, line.unit)}',
+                    chip,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: line.soldOut
-                          ? scheme.onErrorContainer
-                          : scheme.onTertiaryContainer,
+                      color: chipFore,
                     ),
                   ),
                 ),
@@ -129,29 +182,50 @@ class _LineCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            'Đã gọi ${_amount(line.requestedQuantity, line.unit)}',
-            style: theme.textTheme.bodyMedium,
-          ),
-          if (line.sharesIngredientWithOtherLines)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                'Dùng chung nguyên liệu với món khác trong đơn; '
-                'số còn lại tính khi giữ nguyên các món đó.',
-                style: muted,
+          Text(summary, style: theme.textTheme.bodyMedium),
+          if (several) ...[
+            const SizedBox(height: 6),
+            for (final (i, portion) in dish.portions.indexed)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('•  ', style: muted),
+                    Expanded(
+                      child: Text(
+                        !portion.matched
+                            ? 'Phần ${i + 1}'
+                            : portion.note ?? 'Không ghi chú',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _amount(portion.quantity, unit),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+          ],
+          for (final hint in hints)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(hint, style: muted),
             ),
-          if (ingredients != null && ingredients.isNotEmpty) ...[
+          if (dish.ingredients case final rows? when rows.isNotEmpty) ...[
             const SizedBox(height: 8),
-            for (final row in ingredients)
+            for (final row in rows)
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text.rich(
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: row.name,
+                        text: 'Thiếu ${row.name}',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       TextSpan(

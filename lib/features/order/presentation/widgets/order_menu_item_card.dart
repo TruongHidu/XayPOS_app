@@ -16,7 +16,7 @@ class OrderMenuItemCard extends StatelessWidget {
     required this.onAdd,
     required this.onIncrement,
     required this.onDecrement,
-    this.onEdit,
+    required this.onOpen,
     this.currencyCode,
     this.lowStock = false,
   });
@@ -28,7 +28,9 @@ class OrderMenuItemCard extends StatelessWidget {
   final VoidCallback onAdd;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
-  final VoidCallback? onEdit;
+
+  /// Opens the dish's sheet: details, its lines in the cart, a new portion.
+  final VoidCallback onOpen;
   final String? currencyCode;
 
   /// Stock is at or under its threshold; shown as a warning, never a block.
@@ -65,9 +67,8 @@ class OrderMenuItemCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: canInteract
-            ? (onEdit ?? (isSelected ? onIncrement : onAdd))
-            : null,
+        // The whole card opens the dish; quick +/− stay on the buttons.
+        onTap: onOpen,
         child: Padding(
           padding: const EdgeInsets.all(10),
           // Narrow cards (phones, large text) move the stepper below the
@@ -214,7 +215,7 @@ class OrderMenuItemCard extends StatelessWidget {
                         ),
                       if (hasMultipleConfigurations)
                         InkWell(
-                          onTap: canInteract ? onEdit : null,
+                          onTap: onOpen,
                           borderRadius: BorderRadius.circular(4),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -261,9 +262,7 @@ class OrderMenuItemCard extends StatelessWidget {
                   IconButton(
                     tooltip: 'Bớt ${item.name}',
                     onPressed: isSelected && canInteract
-                        ? (hasMultipleConfigurations && onEdit != null
-                              ? onEdit
-                              : onDecrement)
+                        ? (hasMultipleConfigurations ? onOpen : onDecrement)
                         : null,
                     constraints: const BoxConstraints(
                       minWidth: 44,
@@ -317,8 +316,8 @@ class OrderMenuItemCard extends StatelessWidget {
                   IconButton(
                     tooltip: 'Thêm ${item.name}',
                     onPressed: canInteract
-                        ? (hasMultipleConfigurations && onEdit != null
-                              ? onEdit
+                        ? (hasMultipleConfigurations
+                              ? onOpen
                               : (isSelected ? onIncrement : onAdd))
                         : null,
                     constraints: const BoxConstraints(

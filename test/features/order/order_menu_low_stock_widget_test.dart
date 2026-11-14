@@ -47,6 +47,7 @@ Widget _card(MenuItem item, {required bool lowStock, VoidCallback? onAdd}) =>
           onAdd: onAdd ?? () {},
           onIncrement: () {},
           onDecrement: () {},
+          onOpen: () {},
         ),
       ),
     );
@@ -103,7 +104,11 @@ void main() {
         container: container,
         child: MaterialApp(
           home: Scaffold(
-            body: OrderMenuPicker(permission: 'ORDER_CREATE', onSelect: (_) {}),
+            body: OrderMenuPicker(
+              permission: 'ORDER_CREATE',
+              onSelect: (_) {},
+              onOpenItem: (_) {},
+            ),
           ),
         ),
       ),

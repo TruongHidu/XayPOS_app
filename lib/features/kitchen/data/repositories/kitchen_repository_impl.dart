@@ -44,4 +44,7 @@ class KitchenRepositoryImpl implements KitchenRepository {
   @override
   Future<Result<OrderDetail>> transition(KitchenItemTransition input) =>
       _result(() => remote.transition(input));
+  @override
+  Future<Result<OrderDetail>> readyOrder(KitchenOrderReady input) =>
+      _result(() => remote.readyOrder(input));
 }

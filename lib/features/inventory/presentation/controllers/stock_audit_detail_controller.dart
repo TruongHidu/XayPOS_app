@@ -400,8 +400,15 @@ class StockAuditDetailController extends StockAuditController {
           failure = error;
           await report(error);
           if (!canView) return const Error(InventoryController.denied);
-          snapshotStale =
-              snapshotStale || error.code == 'STOCK_AUDIT_SNAPSHOT_STALE';
+          if (error.code == 'STOCK_AUDIT_SNAPSHOT_STALE') {
+            // A definite refusal checked after the version: nothing changed
+            // and recounting is the only way on, so there is nothing to
+            // reconcile. The screen explains it; cancelling stays open.
+            snapshotStale = true;
+            failure = null;
+            if (identical(pendingCommand, command)) pendingCommand = null;
+            return response;
+          }
           if (InventoryController.unknown(error)) {
             pendingCommand = command;
           } else if (identical(pendingCommand, command)) {

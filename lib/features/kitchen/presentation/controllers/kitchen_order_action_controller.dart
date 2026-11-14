@@ -10,7 +10,7 @@ import 'kitchen_display_controller.dart';
 
 class KitchenOrderActionState {
   final Object owner = Object();
-  KitchenItemTransition? intent;
+  KitchenCommand? intent;
   String? sessionId;
   Failure? failure;
   OrderDetail? lastResponse;
@@ -22,12 +22,14 @@ class KitchenOrderActionController extends KitchenController {
     required super.session,
     super.onAccessDenied,
     required this.transition,
+    required this.readyOrderCommand,
     required this.display,
     required this.events,
     this.externalBlocked,
     this.onSessionBlocked,
   });
   final TransitionKitchenItem transition;
+  final ReadyKitchenOrder readyOrderCommand;
   final KitchenDisplayController display;
   final OrderEvents events;
   final bool Function(String? sessionId, Object owner)? externalBlocked;
@@ -43,24 +45,31 @@ class KitchenOrderActionController extends KitchenController {
       s?.needsReview == true ||
       s?.uncertain == true ||
       externalBlocked?.call(row.sessionId, s?.owner ?? this) == true;
-  bool canAct(KitchenQueueItem row, KitchenAction action) =>
-      can('KITCHEN_VIEW') &&
-      can(action.permission) &&
-      row.itemStatus == action.source &&
+
+  /// The row still matches the queue and nothing holds its order.
+  bool _fresh(KitchenQueueItem row) =>
       display.find(row.key)?.orderVersion == row.orderVersion &&
       !display.failures.containsKey(row.itemStatus) &&
       !display.inconsistentOrders.contains(row.orderId) &&
       !_blocked(row, state(row.orderId));
+  bool canAct(KitchenQueueItem row, KitchenAction action) =>
+      can('KITCHEN_VIEW') &&
+      can(action.permission) &&
+      row.itemStatus == action.source &&
+      _fresh(row);
+
+  static bool _unfinished(KitchenQueueItem row) =>
+      row.itemStatus == OrderItemStatus.pending ||
+      row.itemStatus == OrderItemStatus.cooking;
+
+  /// Dishes nobody started count too: the server readies them directly.
   bool canReadyOrder(String id) {
     final rows = display.forOrder(id);
-    return rows.isNotEmpty &&
+    return rows.any(_unfinished) &&
         display.orderComplete(id) &&
-        !rows.any((r) => r.itemStatus == OrderItemStatus.pending) &&
-        rows.any(
-          (r) =>
-              r.itemStatus == OrderItemStatus.cooking &&
-              canAct(r, KitchenAction.markReady),
-        );
+        can('KITCHEN_VIEW') &&
+        can(KitchenAction.markReady.permission) &&
+        rows.every(_fresh);
   }
 
   bool canRetry(String id) {
@@ -82,7 +91,7 @@ class KitchenOrderActionController extends KitchenController {
     if (!canAct(row, action)) return const Error(KitchenController.busy);
     final s = _states.putIfAbsent(row.orderId, KitchenOrderActionState.new);
     s.sessionId = row.sessionId;
-    final intent = KitchenItemTransition(
+    final KitchenCommand intent = KitchenItemTransition(
       orderId: row.orderId,
       orderItemId: row.orderItemId,
       expectedOrderVersion: row.orderVersion,
@@ -100,7 +109,7 @@ class KitchenOrderActionController extends KitchenController {
 
   Future<Result<OrderDetail>> _run(
     KitchenOrderActionState s,
-    KitchenItemTransition intent,
+    KitchenCommand intent,
   ) async {
     if (!events.lock(intent.orderId)) {
       return const Error(KitchenController.busy);
@@ -121,12 +130,15 @@ class KitchenOrderActionController extends KitchenController {
 
   Future<Result<OrderDetail>> _post(
     KitchenOrderActionState s,
-    KitchenItemTransition intent,
+    KitchenCommand intent,
   ) async {
     if (!can(intent.action.permission) || !can('KITCHEN_VIEW')) {
       return const Error(KitchenController.denied);
     }
-    final result = await transition(intent);
+    final result = await switch (intent) {
+      KitchenItemTransition() => transition(intent),
+      KitchenOrderReady() => readyOrderCommand(intent),
+    };
     if (!current) return const Error(KitchenController.denied);
     switch (result) {
       case Success(value: final order):
@@ -167,79 +179,33 @@ class KitchenOrderActionController extends KitchenController {
     changed();
   }
 
+  /// One request for the whole order. Dishes appended since the queue was
+  /// read change the version, so the server refuses instead of readying them.
   Future<Result<OrderDetail>> readyOrder(String id) async {
     if (!canReadyOrder(id)) return const Error(KitchenController.busy);
     final rows = display.forOrder(id);
     final s = _states.putIfAbsent(id, KitchenOrderActionState.new);
-    if (!events.lock(id)) return const Error(KitchenController.busy);
     s.sessionId = rows.first.sessionId;
-    s.busy = true;
-    s.failure = null;
-    display.invalidateReads();
-    onSessionBlocked?.call(s.owner, s.sessionId, true);
-    changed();
-    var version = rows
-        .map((r) => r.orderVersion)
-        .reduce((a, b) => a > b ? a : b);
-    OrderDetail? latest;
-    try {
-      for (final row in rows.where(
-        (r) => r.itemStatus == OrderItemStatus.cooking,
-      )) {
-        if (!current || !can(KitchenAction.markReady.permission)) {
-          return const Error(KitchenController.denied);
-        }
-        if (latest != null) {
-          if (latest.items.any(
-            (line) => line.status == OrderItemStatus.pending,
-          )) {
-            s.needsReview = true;
-            s.failure = const Failure(
-              type: FailureType.conflict,
-              code: 'KITCHEN_NEW_ITEMS',
-              message:
-                  'Đơn có món chờ nấu mới. Đã giữ các món vừa xác nhận; hãy xem lại đơn.',
-            );
-            return Error(s.failure!);
-          }
-          final line = latest.items
-              .where((line) => line.id == row.orderItemId)
-              .firstOrNull;
-          if (line == null ||
-              line.status == OrderItemStatus.cancelled ||
-              line.status == OrderItemStatus.ready ||
-              line.status == OrderItemStatus.served) {
-            continue;
-          }
-          if (line.status != OrderItemStatus.cooking) break;
-        }
-        final intent = KitchenItemTransition(
-          orderId: id,
-          orderItemId: row.orderItemId,
-          expectedOrderVersion: version,
-          action: KitchenAction.markReady,
-        );
-        s.intent = intent;
-        final response = await _post(s, intent);
-        if (response case Error<OrderDetail>()) return response;
-        latest = (response as Success<OrderDetail>).value;
-        version = latest.version;
-      }
-      if (latest == null) return const Error(KitchenController.busy);
-      // Even the final response may contain a newly appended PENDING line.
-      if (latest.summary.status != OrderStatus.ready &&
-          latest.summary.status != OrderStatus.served) {
-        s.failure = const Failure(
-          type: FailureType.conflict,
-          code: 'KITCHEN_ORDER_NOT_READY',
-          message: 'Các món đã xác nhận được lưu; đơn vẫn còn món cần xử lý.',
-        );
-      }
-      return Success(latest);
-    } finally {
-      _release(s, id);
-      if (current) unawaited(display.refresh());
+    final result = await _run(
+      s,
+      KitchenOrderReady(
+        orderId: id,
+        expectedOrderVersion: rows
+            .map((r) => r.orderVersion)
+            .reduce((a, b) => a > b ? a : b),
+      ),
+    );
+    if (result case Success(value: final order)
+        when order.summary.status != OrderStatus.ready &&
+            order.summary.status != OrderStatus.served) {
+      s.failure = const Failure(
+        type: FailureType.conflict,
+        code: 'KITCHEN_ORDER_NOT_READY',
+        message: 'Đơn vẫn còn món cần xử lý; hãy xem lại đơn.',
+      );
+      changed();
     }
+    return result;
   }
 
   bool canServeOrder(String id) => display

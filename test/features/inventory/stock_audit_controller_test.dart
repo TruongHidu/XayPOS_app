@@ -578,8 +578,9 @@ void main() {
       await c.post();
       expect(c.snapshotStale, true);
       expect(c.audit!.status, StockAuditStatus.counting);
-      await c.verify();
-      c.acknowledgeReview();
+      // A definite refusal: nothing to reconcile, the screen explains it.
+      expect(c.requiresReview, false);
+      expect(c.failure, isNull);
       expect(c.canPost, false);
       expect(c.headerEditable, true);
       await c.cancelAudit(null);

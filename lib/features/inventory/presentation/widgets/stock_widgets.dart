@@ -18,6 +18,7 @@ String stockDay(DateTime value) {
   return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
 
+const stockAuditCreateLocation = '/app/inventory/audits/new';
 String stockDetailLocation(String id) =>
     '/app/inventory/stock-documents/${Uri.encodeComponent(id)}';
 String stockHistoryLocation({

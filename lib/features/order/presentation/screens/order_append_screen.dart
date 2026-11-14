@@ -9,6 +9,7 @@ import '../../domain/entities/order_quantity.dart';
 import '../controllers/order_append_controller.dart';
 import '../controllers/order_draft_controller.dart' show OrderDraftLine;
 import '../providers/order_providers.dart';
+import '../widgets/menu_item_sheet.dart';
 import '../widgets/order_cart_layout.dart';
 import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
@@ -82,6 +83,21 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
     if (removed != null) cart.restore(removed.line, removed.index);
   }
 
+  /// The dish's own sheet; the menu stays in view behind it.
+  void _openItem(OrderAppendController cart, MenuItem item) =>
+      showMenuItemSheet(
+        context,
+        ref,
+        item: item,
+        cart: cart,
+        permission: 'ORDER_UPDATE',
+        currencyCode: ref
+            .read(orderDetailProvider(widget.orderId))
+            .order
+            ?.summary
+            .currencyCode,
+      );
+
   void _increment(OrderAppendController cart, MenuItem item) {
     final matching = cart.lines.where((l) => l.item.id == item.id).toList();
     if (matching.isEmpty) {
@@ -90,7 +106,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
       final line = matching.first;
       cart.edit(line.id, line.quantity + OrderQuantity.one, line.note);
     } else {
-      _showCart();
+      // Several ways of making it: let the cashier pick the line.
+      _openItem(cart, item);
     }
   }
 
@@ -105,7 +122,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
         cart.edit(line.id, line.quantity - OrderQuantity.one, line.note);
       }
     } else {
-      _showCart();
+      // Several ways of making it: let the cashier pick the line.
+      _openItem(cart, item);
     }
   }
 
@@ -201,7 +219,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
               onSelect: cart.add,
               onIncrement: (item) => _increment(cart, item),
               onDecrement: (item) => _decrement(cart, item),
-              onEditLine: (item) => _showCart(),
+              onOpenItem: (item) => _openItem(cart, item),
             );
 
             final Widget cartPane = ListView(
@@ -469,6 +487,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                   failure: cart.failure,
                   retry: cart.canRetry ? () => _send(cart, retry: true) : null,
                   label: 'Kiểm tra lại lần gọi thêm',
+                  cart: shortageCartOf(cart.lines),
+                  onEditCart: _showCart,
                 ),
                 if (cart.uncertain)
                   const Padding(

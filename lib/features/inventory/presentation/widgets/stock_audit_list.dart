@@ -36,7 +36,7 @@ class StockAuditList extends ConsumerWidget {
                     ? null
                     : () {
                         if (create.result != null) create.begin();
-                        context.push('/app/inventory/audits/new');
+                        context.push(stockAuditCreateLocation);
                       },
                 icon: const Icon(Icons.add),
                 label: Text(

@@ -45,6 +45,25 @@ class StockAuditDetailScreen extends ConsumerWidget {
       confirm: 'Chốt kiểm kê',
     )) {
       await c.post();
+      if (c.snapshotStale && context.mounted) await _stale(context, ref);
+    }
+  }
+
+  /// Stock moved while counting: explain once, then offer the only way on.
+  Future<void> _stale(BuildContext context, WidgetRef ref) async {
+    final c = ref.read(stockAuditDetailProvider(id));
+    if (!c.snapshotStale || c.audit?.status != StockAuditStatus.counting) {
+      return;
+    }
+    final recount = await showStockAuditDialog<bool>(
+      context,
+      ref,
+      child: StockAuditStaleDialog(canCancel: c.headerEditable),
+    );
+    if (recount != true || !context.mounted || !c.headerEditable) return;
+    final response = await c.cancelAudit(null);
+    if (response is Success && context.mounted) {
+      context.pushReplacement(stockAuditCreateLocation);
     }
   }
 
@@ -131,15 +150,8 @@ class StockAuditDetailScreen extends ConsumerWidget {
               ),
             ),
           if (c.requiresReview) _AuditReview(controller: c),
-          if (c.snapshotStale)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Text(
-                  'Tồn kho đã thay đổi kể từ lúc bắt đầu nên phiên này không thể chốt. Số đếm được giữ để tham khảo; hãy hủy phiên và tạo phiên kiểm kê mới để đếm lại.',
-                ),
-              ),
-            ),
+          if (c.snapshotStale && a?.status == StockAuditStatus.counting)
+            StockAuditStaleNotice(onOpen: () => _stale(context, ref)),
           if (a != null) ...[
             Card(
               margin: EdgeInsets.zero,
@@ -219,7 +231,8 @@ class StockAuditDetailScreen extends ConsumerWidget {
               )
             else ...[
               if (a.status == StockAuditStatus.counting &&
-                  c.stockMayHaveChanged)
+                  c.stockMayHaveChanged &&
+                  !c.snapshotStale)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
@@ -228,7 +241,8 @@ class StockAuditDetailScreen extends ConsumerWidget {
                 ),
               if (a.status == StockAuditStatus.counting &&
                   c.canConfirm &&
-                  !c.canPost)
+                  !c.canPost &&
+                  !c.snapshotStale)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(

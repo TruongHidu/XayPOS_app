@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../app/providers.dart';
+import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
 import '../providers/kitchen_providers.dart';
 
@@ -49,7 +50,7 @@ class KitchenActionConfirmationDialog extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               wholeOrder
-                  ? 'Xác nhận các món đang nấu đã hoàn thành? Mỗi dòng sẽ được cập nhật lần lượt.'
+                  ? 'Tất cả món chưa xong của đơn sẽ chuyển sang Đã xong cùng lúc.'
                   : '${item.quantity} ${item.unit} · ${item.itemName}\nXác nhận hoàn thành toàn bộ số lượng của dòng này.',
             ),
             if (wholeOrder)
@@ -58,11 +59,15 @@ class KitchenActionConfirmationDialog extends ConsumerWidget {
                       .forOrder(item.orderId)
                       .where(
                         (row) =>
-                            row.itemStatus == KitchenAction.markReady.source,
+                            row.itemStatus == OrderItemStatus.pending ||
+                            row.itemStatus == OrderItemStatus.cooking,
                       ))
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: Text('${row.quantity} ${row.unit} · ${row.itemName}'),
+                  child: Text(
+                    '${row.quantity} ${row.unit} · ${row.itemName}'
+                    '${row.itemStatus == OrderItemStatus.pending ? ' (chưa bắt đầu nấu)' : ''}',
+                  ),
                 ),
             if (item.note?.trim().isNotEmpty == true && !wholeOrder) ...[
               const SizedBox(height: 8),

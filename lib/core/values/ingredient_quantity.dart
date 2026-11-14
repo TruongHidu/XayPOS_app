@@ -1,6 +1,11 @@
 /// Immutable NUMERIC(14,3) used by historical ingredient reads across features.
 class IngredientQuantity {
   const IngredientQuantity._(this.scaled);
+
+  /// From thousandths, for totals derived from parsed quantities.
+  IngredientQuantity.fromScaled(this.scaled) {
+    if (scaled.isNegative) throw ArgumentError.value(scaled, 'scaled');
+  }
   final BigInt scaled;
   factory IngredientQuantity.parse(String text) {
     final match = RegExp(r'^(\d+)(?:\.(\d+))?$').firstMatch(text);

@@ -226,3 +226,133 @@ class InventoryInstantDateFilter extends ConsumerWidget {
     ],
   );
 }
+
+/// Explains why the server refused to confirm a counting session whose stock
+/// moved after it started. Pops `true` when staff choose to recount.
+class StockAuditStaleDialog extends StatelessWidget {
+  const StockAuditStaleDialog({super.key, required this.canCancel});
+
+  /// Staff may cancel the session here; otherwise a manager has to.
+  final bool canCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    Widget fact(IconData icon, String text) => Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+    return AlertDialog(
+      key: const ValueKey('stock-audit-stale-dialog'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      scrollable: true,
+      icon: Icon(Icons.sync_problem_outlined, color: scheme.tertiary),
+      title: const Text('Chưa chốt được kiểm kê'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Trong lúc đếm, kho đã có nhập, xuất hoặc bếp đã dùng nguyên '
+              'liệu. Số đã đếm không còn khớp với tồn lúc bắt đầu nên hệ '
+              'thống không chốt, tránh làm lệch kho.',
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  fact(Icons.inventory_2_outlined, 'Tồn kho chưa bị thay đổi.'),
+                  fact(
+                    Icons.fact_check_outlined,
+                    'Số đã đếm vẫn được giữ để xem lại.',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              canCancel
+                  ? 'Hãy hủy phiên này và đếm lại ở phiên mới, nên làm lúc '
+                        'ít đơn.'
+                  : 'Người quản lý kiểm kê cần hủy phiên này để đếm lại ở '
+                        'phiên mới.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: canCancel
+          ? [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Để sau'),
+              ),
+              FilledButton(
+                key: const ValueKey('stock-audit-stale-recount'),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Hủy phiên, đếm lại'),
+              ),
+            ]
+          : [
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Đã hiểu'),
+              ),
+            ],
+    );
+  }
+}
+
+/// Stays on the page after the dialog is closed, so the disabled confirm
+/// button never goes unexplained.
+class StockAuditStaleNotice extends StatelessWidget {
+  const StockAuditStaleNotice({super.key, required this.onOpen});
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      key: const ValueKey('stock-audit-stale-notice'),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.sync_problem_outlined, size: 20, color: scheme.tertiary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Phiên này không chốt được vì tồn kho đã thay đổi trong lúc đếm.',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          TextButton(onPressed: onOpen, child: const Text('Xử lý')),
+        ],
+      ),
+    );
+  }
+}

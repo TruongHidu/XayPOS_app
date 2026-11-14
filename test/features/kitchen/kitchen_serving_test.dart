@@ -96,8 +96,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('serve-order-o2')), findsOneWidget);
     expect(find.byKey(const ValueKey('ready-order-o2')), findsNothing);
-    // Pending dishes block "Ready cả đơn", so no dead button either.
-    expect(find.byKey(const ValueKey('ready-order-o1')), findsNothing);
+    // Dishes nobody started no longer hide "Ready cả đơn".
+    expect(find.byKey(const ValueKey('ready-order-o1')), findsOneWidget);
     expect(find.textContaining('Chờ phục vụ ·'), findsNothing);
     expect(tester.takeException(), isNull);
   });

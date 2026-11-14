@@ -116,20 +116,52 @@ enum KitchenAction {
   final OrderItemStatus source, target;
 }
 
-class KitchenItemTransition {
+/// A kitchen write against one order version. Kept whole so an uncertain
+/// outcome can be retried exactly, whether it moved one dish or the order.
+sealed class KitchenCommand {
+  const KitchenCommand();
+  String get orderId;
+  int get expectedOrderVersion;
+  KitchenAction get action;
+  bool get valid;
+}
+
+class KitchenItemTransition extends KitchenCommand {
   const KitchenItemTransition({
     required this.orderId,
     required this.orderItemId,
     required this.expectedOrderVersion,
     required this.action,
   });
-  final String orderId, orderItemId;
+  @override
+  final String orderId;
+  final String orderItemId;
+  @override
   final int expectedOrderVersion;
+  @override
   final KitchenAction action;
+  @override
   bool get valid =>
       orderId.trim().isNotEmpty &&
       orderItemId.trim().isNotEmpty &&
       expectedOrderVersion >= 0;
+}
+
+/// Every dish of the order that is not done yet becomes ready at once,
+/// including dishes nobody started: the server deducts their stock then.
+class KitchenOrderReady extends KitchenCommand {
+  const KitchenOrderReady({
+    required this.orderId,
+    required this.expectedOrderVersion,
+  });
+  @override
+  final String orderId;
+  @override
+  final int expectedOrderVersion;
+  @override
+  KitchenAction get action => KitchenAction.markReady;
+  @override
+  bool get valid => orderId.trim().isNotEmpty && expectedOrderVersion >= 0;
 }
 
 class KitchenDishSummary {

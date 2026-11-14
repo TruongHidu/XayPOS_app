@@ -7,14 +7,17 @@ import '../../domain/entities/order_inputs.dart';
 import '../../domain/entities/order_quantity.dart';
 import '../../domain/entities/order_submission.dart';
 import '../../domain/policies/order_access_policy.dart';
+import '../../domain/policies/order_line_policy.dart';
 import '../../domain/policies/order_submission_failure_policy.dart';
 import '../../domain/policies/order_validation.dart';
 import '../../domain/use_cases/order_use_cases.dart';
+import 'order_cart_editor.dart';
+import 'order_cart_lines.dart';
 import 'order_controller.dart';
 import 'order_draft_controller.dart' show OrderDraftLine;
 
 /// New-line cart and one immutable append intent, independent of old-line edits.
-class OrderAppendController extends OrderController {
+class OrderAppendController extends OrderController implements OrderCartEditor {
   OrderAppendController({
     required super.session,
     required super.events,
@@ -46,9 +49,11 @@ class OrderAppendController extends OrderController {
   bool uncertain = false, needsReview = false;
   bool _mutating = false;
   bool get ownsMutationBlock => _mutating || uncertain;
+  @override
   Failure? failure;
   OrderSubmission? result;
 
+  @override
   List<OrderDraftLine> get lines => List.unmodifiable(_lines);
   bool get busy => events.pending(id);
   bool get keyConflict => failure?.code == 'IDEMPOTENCY_KEY_REUSED';
@@ -116,24 +121,54 @@ class OrderAppendController extends OrderController {
     _baseline = target;
   }
 
-  void add(MenuItem item) {
+  @override
+  bool get canChangeCart => canPick;
+
+  /// A new plain line of [item], as before the menu item sheet: quick +/−
+  /// on the card already grows a single existing line instead.
+  void add(MenuItem item) =>
+      _addLine(item, OrderQuantity.one, note: null, merge: false);
+
+  @override
+  bool addLine(MenuItem item, OrderQuantity quantity, {String? note}) =>
+      _addLine(item, quantity, note: note, merge: true);
+
+  bool _addLine(
+    MenuItem item,
+    OrderQuantity quantity, {
+    required String? note,
+    required bool merge,
+  }) {
     if (!canPick ||
-        !item.active ||
-        !item.sellable ||
-        item.availabilityStatus != AvailabilityStatus.available) {
-      return;
+        !OrderLinePolicy.orderable(item) ||
+        quantity.milliUnits <= 0) {
+      return false;
     }
-    if (_lines.length >= 100) {
+    if (OrderValidation.text(note, OrderLinePolicy.maxNoteLength) != null) {
+      failure = OrderController.invalid({'note': 'Tối đa 2000 ký tự.'});
+      changed();
+      return false;
+    }
+    final result = addToLines(
+      _lines,
+      item,
+      quantity,
+      note: note,
+      merge: merge,
+      newId: keys.next,
+    );
+    if (result == CartAddResult.full) {
       failure = OrderController.invalid({'items': 'Tối đa 100 dòng món.'});
       changed();
-      return;
+      return false;
     }
-    _baseline ??= root();
-    _lines.add(OrderDraftLine(keys.next(), item, OrderQuantity.one, null));
+    if (result == CartAddResult.added) _baseline ??= root();
     failure = null;
     changed();
+    return true;
   }
 
+  @override
   void edit(String lineId, OrderQuantity quantity, String? note) {
     if (!canPick) return;
     final index = _lines.indexWhere((line) => line.id == lineId);
@@ -152,6 +187,7 @@ class OrderAppendController extends OrderController {
     changed();
   }
 
+  @override
   void remove(String lineId) {
     if (!canPick) return;
     _lines.removeWhere((line) => line.id == lineId);
@@ -160,6 +196,7 @@ class OrderAppendController extends OrderController {
 
   /// Undo of [remove]: puts the same line back at [index]. False when the
   /// cart can no longer take it.
+  @override
   bool restore(OrderDraftLine line, int index) {
     if (!canPick ||
         _lines.length >= 100 ||

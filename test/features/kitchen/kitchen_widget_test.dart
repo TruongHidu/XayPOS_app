@@ -324,4 +324,38 @@ void main() {
       );
     }
   }
+
+  testWidgets('Ready cả đơn lists dishes not started yet and sends once', (
+    tester,
+  ) async {
+    final repo = FakeKitchen()
+      ..rows = [
+        KitchenDto.item(kitchenJson(itemId: 'i1', status: 'COOKING')),
+        KitchenDto.item(kitchenJson(itemId: 'i2', name: 'Bún chả')),
+      ];
+    await pumpKitchen(tester, repo);
+    await tapKitchen(tester, find.text('Theo đơn'));
+    await tapKitchen(tester, find.byKey(const ValueKey('ready-order-o1')));
+    expect(find.text('Ready cả đơn?'), findsOneWidget);
+    expect(
+      find.text(
+        'Tất cả món chưa xong của đơn sẽ chuyển sang Đã xong cùng lúc.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('2 tô · Bún chả (chưa bắt đầu nấu)'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('2 tô · Phở bò'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Xác nhận Ready cả đơn'));
+    await tester.pumpAndSettle();
+    expect(repo.orderWrites.length, 1);
+    expect(repo.writes, isEmpty);
+    expect(find.text('Đơn ORD-o1 đã sẵn sàng.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

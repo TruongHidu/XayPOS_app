@@ -14,6 +14,7 @@ import '../../domain/entities/order_quantity.dart';
 import '../../domain/entities/order_submission.dart';
 import '../../domain/policies/order_access_policy.dart';
 import '../controllers/order_draft_controller.dart';
+import '../widgets/menu_item_sheet.dart';
 import '../widgets/order_cart_layout.dart';
 import '../widgets/order_exit_guard.dart';
 import '../widgets/order_menu_picker.dart';
@@ -264,6 +265,15 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
     if (removed != null) d.restore(removed.line, removed.index);
   }
 
+  /// The dish's own sheet; the menu stays in view behind it.
+  void _openItem(OrderDraftController d, MenuItem item) => showMenuItemSheet(
+    context,
+    ref,
+    item: item,
+    cart: d,
+    permission: 'ORDER_CREATE',
+  );
+
   void _increment(OrderDraftController d, MenuItem item) {
     final matching = d.lines.where((l) => l.item.id == item.id).toList();
     if (matching.isEmpty) {
@@ -272,7 +282,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       final line = matching.first;
       d.edit(line.id, line.quantity + OrderQuantity.one, line.note);
     } else {
-      _showCart();
+      // Several ways of making it: let the cashier pick the line.
+      _openItem(d, item);
     }
   }
 
@@ -287,7 +298,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
         d.edit(line.id, line.quantity - OrderQuantity.one, line.note);
       }
     } else {
-      _showCart();
+      // Several ways of making it: let the cashier pick the line.
+      _openItem(d, item);
     }
   }
 
@@ -470,7 +482,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
             onSelect: d.add,
             onIncrement: (item) => _increment(d, item),
             onDecrement: (item) => _decrement(d, item),
-            onEditLine: (item) => _showCart(),
+            onOpenItem: (item) => _openItem(d, item),
             enabled: !d.frozen && d.canPick,
           ),
         ),
@@ -866,6 +878,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                   failure: d.failure,
                   retry: d.canRetry ? d.retry : null,
                   label: 'Kiểm tra lại lần gửi này',
+                  cart: shortageCartOf(d.lines),
+                  onEditCart: _showCart,
                 ),
                 if (d.needsTableReview && d.can('ORDER_VIEW'))
                   Padding(

@@ -35,37 +35,33 @@ void main() {
   });
 
   test(
-    'append during Ready batch stops remaining lines and retains new PENDING',
+    'a dish appended after the queue was read makes Ready cả đơn refuse, not ready it',
     () async {
       final repo = FakeKitchen()
         ..rows = [
           KitchenDto.item(kitchenJson(itemId: 'i1', status: 'COOKING')),
           KitchenDto.item(kitchenJson(itemId: 'i2', status: 'COOKING')),
         ];
-      repo.onTransition = (input) async {
-        repo.perform(input);
-        repo.rows.add(KitchenDto.item(kitchenJson(itemId: 'new', version: 4)));
-        return Success(
-          kitchenOrder(repo.rows, version: 4, rootStatus: 'PREPARING'),
-        );
-      };
       final rig = KitchenRig(repository: repo);
       addTearDown(rig.dispose);
       await rig.display.refresh();
-      await rig.actions.readyOrder('o1');
-      expect(repo.writes.length, 1);
-      expect(
-        rig.display
-            .forOrder('o1')
-            .any(
-              (r) =>
-                  r.orderItemId == 'new' &&
-                  r.itemStatus == OrderItemStatus.pending,
-            ),
-        true,
-      );
-      expect(rig.display.orderStatuses['o1'], OrderStatus.preparing);
+      // Another device appends a dish: the order moves to version 4.
+      repo.rows = [
+        for (final r in repo.rows)
+          KitchenDto.item(
+            kitchenJson(itemId: r.orderItemId, status: 'COOKING', version: 4),
+          ),
+        KitchenDto.item(kitchenJson(itemId: 'new', version: 4)),
+      ];
+      final result = await rig.actions.readyOrder('o1');
+      expect(result, isA<Error<OrderDetail>>());
+      expect(repo.orderWrites.single.expectedOrderVersion, 3);
+      expect(repo.writes, isEmpty);
       expect(rig.actions.state('o1')!.needsReview, true);
+      expect(
+        repo.rows.where((r) => r.itemStatus == OrderItemStatus.ready),
+        isEmpty,
+      );
     },
   );
   test(
@@ -186,20 +182,26 @@ void main() {
     },
   );
   test(
-    'Ready batch chains order versions and trusts server root, even when PAID',
+    'Ready cả đơn is one request that also takes dishes nobody started, even when PAID',
     () async {
       final repo = FakeKitchen()
         ..paid = true
         ..rows = [
           KitchenDto.item(kitchenJson(itemId: 'i1', status: 'COOKING')),
-          KitchenDto.item(kitchenJson(itemId: 'i2', status: 'COOKING')),
+          KitchenDto.item(kitchenJson(itemId: 'i2')),
+          KitchenDto.item(kitchenJson(itemId: 'i3')),
         ];
       final rig = KitchenRig(repository: repo);
       addTearDown(rig.dispose);
       await rig.display.refresh();
+      expect(rig.actions.canReadyOrder('o1'), true);
       final result = await rig.actions.readyOrder('o1');
       expect(result, isA<Success<OrderDetail>>());
-      expect(repo.writes.map((i) => i.expectedOrderVersion), [3, 4]);
+      expect(repo.orderWrites.map((i) => (i.orderId, i.expectedOrderVersion)), [
+        ('o1', 3),
+      ]);
+      expect(repo.writes, isEmpty, reason: 'no per-dish requests');
+      expect(rig.actions.state('o1')!.failure, isNull);
       expect(rig.display.orderStatuses['o1'], OrderStatus.ready);
       expect(
         rig.display
@@ -207,6 +209,7 @@ void main() {
             .every((r) => r.itemStatus == OrderItemStatus.ready),
         true,
       );
+      expect(rig.actions.canReadyOrder('o1'), false);
     },
   );
   test(
@@ -239,34 +242,32 @@ void main() {
     },
   );
   test(
-    'batch stops at uncertain second line and preserves confirmed first line',
+    'an uncertain Ready cả đơn is retried as the very same order command',
     () async {
       final repo = FakeKitchen()
         ..rows = [
           KitchenDto.item(kitchenJson(itemId: 'i1', status: 'COOKING')),
-          KitchenDto.item(kitchenJson(itemId: 'i2', status: 'COOKING')),
-          KitchenDto.item(kitchenJson(itemId: 'i3', status: 'COOKING')),
+          KitchenDto.item(kitchenJson(itemId: 'i2')),
         ];
-      repo.onTransition = (input) async => input.orderItemId == 'i2'
-          ? const Error(networkFailure)
-          : repo.perform(input);
+      repo.onReadyOrder = (input) async {
+        repo.performReady(input);
+        return const Error(networkFailure);
+      };
       final rig = KitchenRig(repository: repo);
       addTearDown(rig.dispose);
       await rig.display.refresh();
       await rig.actions.readyOrder('o1');
-      expect(repo.writes.length, 2);
-      expect(
-        rig.display
-            .forOrder('o1')
-            .firstWhere((r) => r.orderItemId == 'i1')
-            .itemStatus,
-        OrderItemStatus.ready,
-      );
-      final original = repo.writes.last;
-      repo.onTransition = null;
-      await rig.actions.retry('o1');
-      expect(identical(repo.writes.last, original), true);
-      expect(repo.writes.any((i) => i.orderItemId == 'i3'), false);
+      expect(rig.actions.state('o1')!.uncertain, true);
+      expect(rig.actions.canReadyOrder('o1'), false);
+      final original = repo.orderWrites.single;
+      repo.onReadyOrder = null;
+      expect(rig.actions.canRetry('o1'), true);
+      final retried = await rig.actions.retry('o1');
+      expect(retried, isA<Success<OrderDetail>>());
+      expect(repo.orderWrites.length, 2);
+      expect(identical(repo.orderWrites.last, original), true);
+      expect(repo.writes, isEmpty);
+      expect(rig.actions.state('o1')!.uncertain, false);
     },
   );
   test(

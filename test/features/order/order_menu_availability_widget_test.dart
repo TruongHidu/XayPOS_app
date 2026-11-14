@@ -70,6 +70,7 @@ void main() {
                 body: OrderMenuPicker(
                   permission: permission,
                   onSelect: (item) => selected.add(item.id),
+                  onOpenItem: (_) {},
                 ),
               ),
             ),
@@ -99,7 +100,7 @@ void main() {
     tester,
   ) async {
     final item = _dish(outOfStock: true);
-    var adds = 0, increments = 0, edits = 0;
+    var adds = 0, increments = 0, opens = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -110,7 +111,7 @@ void main() {
             onAdd: () => adds++,
             onIncrement: () => increments++,
             onDecrement: () {},
-            onEdit: () => edits++,
+            onOpen: () => opens++,
           ),
         ),
       ),
@@ -120,9 +121,10 @@ void main() {
     await tester.tap(find.byTooltip('Thêm ${item.name}'));
     await tester.tap(find.text('Nhiều ghi chú'));
     await tester.pumpAndSettle();
+    // Sold out: nothing reaches the cart, but the dish can still be read.
     expect(adds, 0);
     expect(increments, 0);
-    expect(edits, 0);
+    expect(opens, greaterThan(0));
     expect(tester.takeException(), isNull);
   });
 
@@ -130,7 +132,7 @@ void main() {
     'locking selection does not relabel an available dish as sold out',
     (tester) async {
       final item = _dish(outOfStock: false);
-      var actions = 0;
+      var actions = 0, opens = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -141,7 +143,7 @@ void main() {
               onAdd: () => actions++,
               onIncrement: () => actions++,
               onDecrement: () => actions++,
-              onEdit: () => actions++,
+              onOpen: () => opens++,
             ),
           ),
         ),
@@ -152,6 +154,7 @@ void main() {
       await tester.tap(find.byTooltip('Thêm ${item.name}'));
       await tester.pumpAndSettle();
       expect(actions, 0);
+      expect(opens, greaterThan(0), reason: 'the sheet opens read-only');
       expect(tester.takeException(), isNull);
     },
   );
