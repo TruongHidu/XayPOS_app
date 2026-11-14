@@ -18,7 +18,7 @@ class MarginCoverageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final status = value.costCoverageStatus;
-    final style = marginCoverageStyle(theme.colorScheme, status);
+    final style = marginCoverageStyle(context, status);
     final completed = value.completedOrderCount;
     final progress = completed == 0
         ? 0.0

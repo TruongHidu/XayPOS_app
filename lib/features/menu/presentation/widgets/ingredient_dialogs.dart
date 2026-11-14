@@ -6,6 +6,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/result/result.dart';
 import '../../domain/entities/ingredient.dart';
 import 'menu_dialogs.dart';
+import '../../../../core/ui/widgets/confirm_dialog.dart';
 
 Future<T?> showIngredientDialog<T>(
   BuildContext context,
@@ -70,23 +71,12 @@ Future<bool> confirmIngredientDraftReload(
       context,
       ref,
       permission: permission,
-      child: AlertDialog(
-        title: const Text('Thay thế bản đang sửa?'),
-        content: const Text(
-          'Tải lại sẽ thay nội dung bạn đang sửa bằng dữ liệu mới nhất từ máy chủ.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(false),
-            child: const Text('Giữ bản nháp'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(true),
-            child: const Text('Thay thế bản nháp'),
-          ),
-        ],
+      child: const AppConfirmDialog(
+        title: 'Thay thế bản đang sửa?',
+        message:
+            'Tải lại sẽ thay nội dung bạn đang sửa bằng dữ liệu mới nhất từ máy chủ.',
+        cancelLabel: 'Giữ bản nháp',
+        confirmLabel: 'Thay thế bản nháp',
       ),
     ) ??
     false;

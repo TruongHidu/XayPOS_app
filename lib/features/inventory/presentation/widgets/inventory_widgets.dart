@@ -6,7 +6,10 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/ui/widgets/filter_panel_button.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/inventory_quantity.dart';
-import '../../../../app/theme/app_colors.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/confirm_dialog.dart';
 
 Future<T?> showInventoryDialog<T>(
   BuildContext context,
@@ -134,25 +137,13 @@ class InventoryFailurePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => failure == null
       ? const SizedBox.shrink()
-      : Container(
-          margin: const EdgeInsets.symmetric(vertical: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.errorContainer,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(failure!.message),
-              if (failure!.fieldErrors.isNotEmpty)
-                Text(failure!.fieldErrors.values.join('\n')),
-              if (retry != null)
-                TextButton.icon(
-                  onPressed: retry,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(label),
-                ),
+      : Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: ErrorBanner(
+            message: failure!.message,
+            details: failure!.fieldErrors.values.join('\n'),
+            actions: [
+              if (retry != null) RetryButton(onPressed: retry, label: label),
             ],
           ),
         );
@@ -168,28 +159,13 @@ class InventoryBadge extends StatelessWidget {
   final String label;
   final bool warning, positive;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-    decoration: BoxDecoration(
-      color: warning
-          ? AppColors.warningSoft
-          : positive
-          ? AppColors.successTint
-          : AppColors.grey100,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: warning
-            ? AppColors.warning
-            : positive
-            ? AppColors.success
-            : AppColors.grey600,
-      ),
-    ),
+  Widget build(BuildContext context) => StatusBadge(
+    label: label,
+    tone: warning
+        ? AppTone.warning
+        : positive
+        ? AppTone.success
+        : AppTone.neutral,
   );
 }
 
@@ -337,22 +313,11 @@ Future<bool> confirmInventoryDraftReload(
 ) => showInventoryDialog<bool>(
   context,
   ref,
-  child: Builder(
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('Thay thế bản đang sửa?'),
-      content: const Text(
+  child: const AppConfirmDialog(
+    title: 'Thay thế bản đang sửa?',
+    message:
         'Nội dung đang nhập sẽ được thay bằng dữ liệu mới nhất. Hãy kiểm tra lại trước khi lưu.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('Giữ bản nháp'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('Tải dữ liệu mới'),
-        ),
-      ],
-    ),
+    cancelLabel: 'Giữ bản nháp',
+    confirmLabel: 'Tải dữ liệu mới',
   ),
 ).then((value) => value ?? false);

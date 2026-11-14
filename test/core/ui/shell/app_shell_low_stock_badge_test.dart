@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/inventory_entities.dart';
 import 'package:pos_saas_app/features/inventory/domain/entities/inventory_queries.dart';

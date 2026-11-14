@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/ui/shell/app_bottom_tabs.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/core/ui/sidebar/sidebar_menu_item.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';

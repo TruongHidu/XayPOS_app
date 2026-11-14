@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/ui/shell/app_shell.dart';
+import '../../app/shell/app_shell.dart';
 import '../../features/kitchen/presentation/providers/kitchen_providers.dart';
 import '../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
 import '../../features/menu/presentation/screens/recipe_management_screen.dart';

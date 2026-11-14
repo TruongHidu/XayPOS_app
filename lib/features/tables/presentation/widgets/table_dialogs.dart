@@ -5,6 +5,8 @@ import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/confirm_dialog.dart';
 
 Future<T?> showTableDialog<T>(
   BuildContext context,
@@ -152,32 +154,15 @@ class TableFailurePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (failure == null) return const SizedBox.shrink();
-    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: colors.errorContainer,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              failure!.message,
-              style: TextStyle(color: colors.onErrorContainer),
-            ),
-            if (onReload != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: onReload,
-                  child: Text(reloadLabel),
-                ),
-              ),
-          ],
-        ),
+      child: ErrorBanner(
+        message: failure!.message,
+        actionsAlignment: CrossAxisAlignment.end,
+        actions: [
+          if (onReload != null)
+            TextButton(onPressed: onReload, child: Text(reloadLabel)),
+        ],
       ),
     );
   }
@@ -192,23 +177,12 @@ Future<bool> confirmTableDraftReload(
       context,
       ref,
       permission: permission,
-      child: AlertDialog(
-        title: const Text('Thay thế bản đang sửa?'),
-        content: const Text(
-          'Tải lại sẽ thay nội dung bạn đang sửa bằng dữ liệu mới nhất từ máy chủ.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(false),
-            child: const Text('Giữ bản nháp'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(true),
-            child: const Text('Thay thế bản nháp'),
-          ),
-        ],
+      child: const AppConfirmDialog(
+        title: 'Thay thế bản đang sửa?',
+        message:
+            'Tải lại sẽ thay nội dung bạn đang sửa bằng dữ liệu mới nhất từ máy chủ.',
+        cancelLabel: 'Giữ bản nháp',
+        confirmLabel: 'Thay thế bản nháp',
       ),
     ) ??
     false;

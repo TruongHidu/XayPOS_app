@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/validation/menu_validation.dart';
 import 'menu_dialogs.dart';
+import '../../../../core/ui/widgets/confirm_dialog.dart';
 
 /// Edits an explicit price intent; displaying a numeric zero never confirms it.
 class ReferenceCostField extends StatelessWidget {
@@ -103,24 +104,14 @@ class ReferenceCostField extends StatelessWidget {
   }
 }
 
-Future<bool> confirmReferenceCostClear(BuildContext context) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Xóa cấu hình giá vốn?'),
-        content: const Text(
-          'Khi lưu, giá vốn tham chiếu sẽ về 0 và được đánh dấu chưa cấu hình. Công thức và lịch sử đơn vẫn được giữ.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Giữ giá vốn'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Xóa cấu hình'),
-          ),
-        ],
-      ),
-    ) ??
-    false;
+Future<bool> confirmReferenceCostClear(
+  BuildContext context,
+) async => showAppConfirmDialog(
+  context,
+  title: 'Xóa cấu hình giá vốn?',
+  message:
+      'Khi lưu, giá vốn tham chiếu sẽ về 0 và được đánh dấu chưa cấu hình. Công thức và lịch sử đơn vẫn được giữ.',
+  cancelLabel: 'Giữ giá vốn',
+  confirmLabel: 'Xóa cấu hình',
+  destructive: true,
+);

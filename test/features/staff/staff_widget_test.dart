@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/features/staff/domain/entities/staff_permission_config.dart';
 import 'package:pos_saas_app/features/staff/presentation/controllers/staff_permission_controller.dart';
 import 'package:pos_saas_app/features/staff/presentation/widgets/staff_permission_dialog.dart';

@@ -290,7 +290,6 @@ class _MarginHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final meta = this.meta;
     Widget chip(IconData icon, String text) => Chip(
       avatar: Icon(icon, size: 16),

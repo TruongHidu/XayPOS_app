@@ -303,7 +303,7 @@ class _StockCreateWorkspaceState extends ConsumerState<_StockCreateWorkspace> {
                       row.$2.ingredient.ingredientName,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Text('${row.$2.ingredient.baseUnit}'),
+                    Text(row.$2.ingredient.baseUnit),
                     const SizedBox(height: 8),
                     Text(
                       'Số lượng: ${inventoryAmount(row.$2.input.quantity, row.$2.ingredient.baseUnit)}',

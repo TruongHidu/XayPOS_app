@@ -8,6 +8,7 @@ import '../../domain/entities/report_date.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_filters.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// Applies the summary draft filter and pushes it to the tabs that have
 /// already been opened, so unopened tabs keep loading lazily.
@@ -256,12 +257,9 @@ class _SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-    );
-  }
+  Widget build(BuildContext context) => SectionHeader(
+    text,
+    size: SectionHeaderSize.label,
+    padding: EdgeInsets.zero,
+  );
 }

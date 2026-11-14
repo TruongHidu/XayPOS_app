@@ -33,6 +33,13 @@ abstract final class AppColors {
   static const grey800 = Color(0xFF1F2937);
   static const grey900 = Color(0xFF111827);
 
+  // ── Surfaces ──────────────────────────────────────────────────────────
+  /// Page background behind white cards and panels.
+  static const background = Color(0xFFF4F6F8);
+
+  /// Between [grey100] and [grey200]: hovered rows, pressed tiles.
+  static const surfaceHigh = Color(0xFFECEEF2);
+
   // ── Status ────────────────────────────────────────────────────────────
   /// Done, in stock, paid, has an order.
   static const success = Color(0xFF0F766E);
@@ -68,6 +75,9 @@ abstract final class AppColors {
   /// For charts and status chips that need more distinct hues than the
   /// statuses above; never to signal success, warning or danger.
   static const accentOrange = Color(0xFFEA580C);
+
+  /// [accentOrange] dark enough for small text on [accentOrangeSoft].
+  static const accentOrangeStrong = Color(0xFFC2410C);
   static const accentOrangeSoft = Color(0xFFFFEDD5);
   static const accentCyan = Color(0xFF0E7490);
   static const accentCyanSoft = Color(0xFFCFFAFE);

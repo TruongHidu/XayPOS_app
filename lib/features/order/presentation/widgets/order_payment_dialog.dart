@@ -14,6 +14,7 @@ import '../controllers/order_settlement_controller.dart';
 import '../providers/order_transfer_qr_providers.dart';
 import 'order_widgets.dart';
 import 'transfer_qr_panel.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 Future<void> showOrderPaymentDialog(
   BuildContext context,
@@ -904,12 +905,10 @@ class _SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
+  Widget build(BuildContext context) => SectionHeader(
     text,
-    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-      color: AppColors.grey700,
-      fontWeight: FontWeight.w600,
-    ),
+    size: SectionHeaderSize.small,
+    padding: EdgeInsets.zero,
   );
 }
 

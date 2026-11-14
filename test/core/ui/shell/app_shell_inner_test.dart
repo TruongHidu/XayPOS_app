@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/core/ui/sidebar/app_sidebar.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 

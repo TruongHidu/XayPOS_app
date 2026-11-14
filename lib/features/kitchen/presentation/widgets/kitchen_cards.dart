@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
 
 abstract final class KitchenStyle {
   static const background = AppColors.grey100;
@@ -27,6 +29,12 @@ abstract final class KitchenStyle {
     _ => AppColors.successBorder,
   };
 
+  static AppTone tone(OrderItemStatus status) => switch (status) {
+    OrderItemStatus.pending => AppTone.warning,
+    OrderItemStatus.cooking => AppTone.info,
+    _ => AppTone.success,
+  };
+
   static String label(OrderItemStatus status) => switch (status) {
     OrderItemStatus.pending => 'Chờ nấu',
     OrderItemStatus.cooking => 'Đang nấu',
@@ -44,27 +52,11 @@ class KitchenStatusBadge extends StatelessWidget {
   final OrderItemStatus status;
 
   @override
-  Widget build(BuildContext context) {
-    final color = KitchenStyle.color(status);
-    final bg = KitchenStyle.bgColor(status);
-    final border = KitchenStyle.borderColorFor(status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: border, width: 0.8),
-      ),
-      child: Text(
-        KitchenStyle.label(status),
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusBadge(
+    label: KitchenStyle.label(status),
+    tone: KitchenStyle.tone(status),
+    dot: true,
+  );
 }
 
 class KitchenQueueContext extends StatelessWidget {

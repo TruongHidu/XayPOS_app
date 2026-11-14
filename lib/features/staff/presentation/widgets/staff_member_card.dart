@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/staff_member.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
 
 class StaffMemberCard extends StatelessWidget {
   const StaffMemberCard({
@@ -179,23 +181,17 @@ class StaffMemberCard extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _StaffBadge(
+            StatusBadge(
               icon: Icons.badge_outlined,
               label: staff.role.name,
-              backgroundColor: colors.surfaceContainerHighest,
-              foregroundColor: colors.onSurfaceVariant,
+              maxLines: 3,
             ),
-            _StaffBadge(
+            StatusBadge(
               icon: staff.active
                   ? Icons.check_circle_outline
                   : Icons.block_outlined,
               label: staff.active ? 'Hoạt động' : 'Đã vô hiệu hóa',
-              backgroundColor: staff.active
-                  ? colors.primaryContainer
-                  : colors.errorContainer,
-              foregroundColor: staff.active
-                  ? colors.onPrimaryContainer
-                  : colors.onErrorContainer,
+              tone: staff.active ? AppTone.success : AppTone.danger,
             ),
           ],
         ),
@@ -244,51 +240,6 @@ class _ContactLine extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
       ],
-    );
-  }
-}
-
-class _StaffBadge extends StatelessWidget {
-  const _StaffBadge({
-    required this.icon,
-    required this.label,
-    required this.backgroundColor,
-    required this.foregroundColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color backgroundColor;
-  final Color foregroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 1),
-            child: Icon(icon, size: 16, color: foregroundColor),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: foregroundColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

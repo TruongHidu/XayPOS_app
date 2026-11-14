@@ -3,6 +3,10 @@ import '../../../../core/errors/failure.dart';
 import '../../../reports/domain/entities/report_meta.dart';
 import '../../domain/entities/reference_margin_enums.dart';
 import '../controllers/reference_margin_reports_controller.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../core/ui/widgets/app_section_card.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// Width classes measured on the report's own content area, so the shell
 /// sidebar never makes a phone layout appear on a narrow desktop window.
@@ -46,58 +50,14 @@ class MarginSectionCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      color: color ?? theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title != null) ...[
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 22, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                      ],
-                      Flexible(
-                        child: Text(
-                          title!,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (trailing != null) trailing!,
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            child,
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppSectionCard(
+    title: title,
+    icon: icon,
+    trailing: trailing,
+    color: color,
+    padding: padding,
+    child: child,
+  );
 }
 
 /// A section heading with an optional one-line explanation underneath.
@@ -107,32 +67,11 @@ class MarginSectionHeader extends StatelessWidget {
   final String? subtitle;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              subtitle!,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SectionHeader(
+    title,
+    subtitle: subtitle,
+    padding: const EdgeInsets.only(bottom: 8),
+  );
 }
 
 enum MarginNoticeTone { info, warning, error }
@@ -263,63 +202,43 @@ class MarginPanelView<T> extends StatelessWidget {
   }
 }
 
-({Color background, Color foreground, IconData icon}) marginCoverageStyle(
-  ColorScheme colors,
-  CostCoverageStatus status,
-) => switch (status) {
-  CostCoverageStatus.complete => (
-    background: colors.primaryContainer,
-    foreground: colors.onPrimaryContainer,
-    icon: Icons.check_circle_outline,
-  ),
-  CostCoverageStatus.partial => (
-    background: colors.tertiaryContainer,
-    foreground: colors.onTertiaryContainer,
-    icon: Icons.warning_amber_rounded,
-  ),
-  CostCoverageStatus.unavailable => (
-    background: colors.errorContainer,
-    foreground: colors.onErrorContainer,
-    icon: Icons.help_outline,
-  ),
-  CostCoverageStatus.noData => (
-    background: colors.surfaceContainerHighest,
-    foreground: colors.onSurfaceVariant,
-    icon: Icons.inbox_outlined,
-  ),
+AppTone marginCoverageTone(CostCoverageStatus status) => switch (status) {
+  CostCoverageStatus.complete => AppTone.success,
+  CostCoverageStatus.partial => AppTone.warning,
+  CostCoverageStatus.unavailable => AppTone.danger,
+  CostCoverageStatus.noData => AppTone.neutral,
 };
+
+IconData marginCoverageIcon(CostCoverageStatus status) => switch (status) {
+  CostCoverageStatus.complete => Icons.check_circle_outline,
+  CostCoverageStatus.partial => Icons.warning_amber_rounded,
+  CostCoverageStatus.unavailable => Icons.help_outline,
+  CostCoverageStatus.noData => Icons.inbox_outlined,
+};
+
+/// Colours and icon of a coverage status, from the theme's tone colours.
+({Color background, Color foreground, IconData icon}) marginCoverageStyle(
+  BuildContext context,
+  CostCoverageStatus status,
+) {
+  final tone = context.tone(marginCoverageTone(status));
+  return (
+    background: tone.background,
+    foreground: tone.foreground,
+    icon: marginCoverageIcon(status),
+  );
+}
 
 class MarginCoverageChip extends StatelessWidget {
   const MarginCoverageChip({super.key, required this.status});
   final CostCoverageStatus status;
 
   @override
-  Widget build(BuildContext context) {
-    final style = marginCoverageStyle(Theme.of(context).colorScheme, status);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: style.background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(style.icon, size: 16, color: style.foreground),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              status.label,
-              style: TextStyle(
-                color: style.foreground,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusBadge(
+    label: status.label,
+    tone: marginCoverageTone(status),
+    icon: marginCoverageIcon(status),
+  );
 }
 
 /// A label/value line. An [unknown] value is a missing cost, never zero.

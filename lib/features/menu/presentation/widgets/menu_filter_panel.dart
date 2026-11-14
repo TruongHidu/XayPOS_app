@@ -10,6 +10,7 @@ import '../../domain/entities/menu_query.dart';
 import '../controllers/menu_list_controller.dart';
 import 'menu_dialogs.dart';
 import 'menu_group_picker.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// Filters set in the overlay; the search text stays on the screen.
 int menuFilterCount(MenuQuery query, {required bool groups}) => [
@@ -334,12 +335,9 @@ class _SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(
-        context,
-      ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-    );
-  }
+  Widget build(BuildContext context) => SectionHeader(
+    text,
+    size: SectionHeaderSize.label,
+    padding: EdgeInsets.zero,
+  );
 }

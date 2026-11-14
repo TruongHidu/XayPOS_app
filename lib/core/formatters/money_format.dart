@@ -1,18 +1,18 @@
 /// Shown when an API gives no currency for the amount.
 const defaultCurrencySymbol = 'đ';
 
+final _thousands = RegExp(r'\B(?=(\d{3})+(?!\d))');
+final _trailingZeros = RegExp(r'0+$');
+
 /// Plain decimal text in Vietnamese style, without padding: 1250000.50 becomes
 /// 1.250.000,5. Also used for quantities.
 String formatDecimal(String decimal) {
   final negative = decimal.startsWith('-');
   final parts = (negative ? decimal.substring(1) : decimal).split('.');
-  final whole = parts.first.replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (_) => '.',
-  );
+  final whole = parts.first.replaceAllMapped(_thousands, (_) => '.');
   final fraction = parts.length == 1
       ? ''
-      : parts[1].replaceFirst(RegExp(r'0+$'), '');
+      : parts[1].replaceFirst(_trailingZeros, '');
   return '${negative ? '-' : ''}$whole${fraction.isEmpty ? '' : ',$fraction'}';
 }
 

@@ -14,6 +14,8 @@ import '../../domain/entities/menu_item.dart';
 import '../providers/menu_providers.dart';
 import 'menu_dialogs.dart';
 import 'recipe_application_control.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
 
 /// Displays a menu item image with consistent aspect ratio and placeholder.
 ///
@@ -159,39 +161,12 @@ class MenuBadge extends StatelessWidget {
   final bool positive;
   final IconData? icon;
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final bgColor = positive
-        ? colors.secondaryContainer
-        : colors.surfaceContainerHighest;
-    final fgColor = positive
-        ? colors.onSecondaryContainer
-        : colors.onSurfaceVariant;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: fgColor),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: fgColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusBadge(
+    label: label,
+    tone: positive ? AppTone.success : AppTone.neutral,
+    icon: icon,
+    maxLines: 2,
+  );
 }
 
 class MenuItemDetails extends ConsumerStatefulWidget {

@@ -6,7 +6,7 @@ import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/app/router/app_routes.dart';
 import 'package:pos_saas_app/app/theme/app_theme.dart';
 import 'package:pos_saas_app/core/result/result.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/inventory/presentation/screens/inventory_balances_screen.dart';
 import '../../../helpers/auth_fakes.dart';

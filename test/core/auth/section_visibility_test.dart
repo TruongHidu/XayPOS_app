@@ -41,11 +41,7 @@ void main() {
       permissions: _kitchen,
       features: _features,
     );
-    expect(_visible(kitchen), [
-      'orders',
-      'kitchen-display',
-      'settings',
-    ]);
+    expect(_visible(kitchen), ['orders', 'kitchen-display', 'settings']);
     // The old dish-status link still lands on the kitchen screen.
     expect(AccessPolicy.canOpenRoute(kitchen, '/app/dish-status'), isTrue);
     expect(AccessPolicy.canOpenRoute(kitchen, '/app/order-create'), isFalse);

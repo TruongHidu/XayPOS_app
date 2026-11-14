@@ -15,6 +15,8 @@ import '../../domain/policies/stock_shortage_summary.dart';
 import '../controllers/order_draft_controller.dart';
 import 'stock_shortage_dialog.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/confirm_dialog.dart';
 
 abstract final class OrderPalette {
   static const clear = Colors.transparent;
@@ -70,31 +72,22 @@ class OrderFailurePanel extends StatelessWidget {
         )
       : Padding(
           padding: const EdgeInsets.all(8),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(failure!.message),
-                if (failure!.fieldErrors.isNotEmpty)
-                  Text(failure!.fieldErrors.values.join('\n')),
-                if (failure!.stockShortage case final shortage?)
-                  _StockShortageButton(
-                    failure: failure!,
-                    shortage: shortage,
-                    cart: cart,
-                    onEditCart: onEditCart,
-                  ),
-                if (retry != null)
-                  TextButton(onPressed: retry, child: Text(label)),
-                if (failure!.code == 'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED')
-                  const _WarehouseSettingsLink(),
-              ],
-            ),
+          child: ErrorBanner(
+            message: failure!.message,
+            details: failure!.fieldErrors.values.join('\n'),
+            actions: [
+              if (failure!.stockShortage case final shortage?)
+                _StockShortageButton(
+                  failure: failure!,
+                  shortage: shortage,
+                  cart: cart,
+                  onEditCart: onEditCart,
+                ),
+              if (retry != null)
+                TextButton(onPressed: retry, child: Text(label)),
+              if (failure!.code == 'INVENTORY_DEFAULT_WAREHOUSE_REQUIRED')
+                const _WarehouseSettingsLink(),
+            ],
           ),
         );
 }
@@ -242,21 +235,10 @@ Future<bool> confirmOrderAction(
       context,
       ref,
       permission: permission,
-      child: AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(false),
-            child: const Text('Quay lại'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(context, rootNavigator: true).pop(true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
+      child: AppConfirmDialog(
+        title: title,
+        message: message,
+        cancelLabel: 'Quay lại',
       ),
     ) ??
     false;

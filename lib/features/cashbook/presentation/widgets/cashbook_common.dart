@@ -4,6 +4,9 @@ import '../../../reports/domain/entities/report_page.dart';
 import '../../domain/entities/cashbook_enums.dart';
 import '../controllers/cashbook_base_controller.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../core/ui/widgets/app_section_card.dart';
 
 /// Width classes measured on the cashbook's own content area, so the shell
 /// sidebar never makes a phone layout appear on a narrow desktop window.
@@ -57,70 +60,14 @@ class CashbookCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title != null) ...[
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (icon != null) ...[
-                        Icon(icon, size: 22, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                      ],
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title!,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (subtitle != null)
-                              Text(
-                                subtitle!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (trailing != null) trailing!,
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-            child,
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppSectionCard(
+    title: title,
+    subtitle: subtitle,
+    icon: icon,
+    trailing: trailing,
+    padding: padding,
+    child: child,
+  );
 }
 
 enum CashbookNoticeTone { info, warning, error }
@@ -318,35 +265,15 @@ class CashbookBadge extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: foreground),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: foreground,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusBadge(
+    label: label,
+    icon: icon,
+    colors: ToneColors(
+      foreground: foreground,
+      background: background,
+      border: background,
+    ),
+  );
 }
 
 /// Page controls: "21–40 / 135" with previous/next and a size menu.

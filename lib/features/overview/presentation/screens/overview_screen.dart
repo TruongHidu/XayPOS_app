@@ -13,6 +13,7 @@ import '../../../qr_order/presentation/widgets/qr_inbox_visibility.dart';
 import '../../../reports/presentation/controllers/daily_report_controller.dart';
 import '../../../reports/presentation/widgets/report_kpi_card.dart';
 import '../../../reports/presentation/widgets/report_kpi_grid.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// The owner's first look at the day: what came in so far and what needs
 /// attention right now. Each figure opens the screen that deals with it, and
@@ -143,21 +144,10 @@ class _SectionTitle extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => SectionHeader(
+    title,
+    trailing: action,
     padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-        ),
-        ?action,
-      ],
-    ),
   );
 }
 

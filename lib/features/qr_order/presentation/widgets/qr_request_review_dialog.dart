@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/theme/app_colors.dart';
 import '../../../order/presentation/widgets/order_widgets.dart';
 import '../../domain/entities/qr_request.dart';
 import '../../domain/entities/qr_request_messages.dart';
 import '../providers/qr_request_providers.dart';
 import '../controllers/qr_review_controller.dart';
 import 'qr_request_format.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../core/ui/widgets/app_section_card.dart';
 
 class QrRequestReviewDialog extends ConsumerStatefulWidget {
   const QrRequestReviewDialog({
@@ -579,34 +581,15 @@ class _StatusChip extends StatelessWidget {
   final QrRequestStatus status;
 
   @override
-  Widget build(BuildContext context) {
-    final (Color bg, Color fg) = switch (status) {
-      QrRequestStatus.pending => (
-        Theme.of(context).colorScheme.tertiaryContainer,
-        Theme.of(context).colorScheme.onTertiaryContainer,
-      ),
-      QrRequestStatus.approved => (AppColors.success, Colors.white),
-      QrRequestStatus.rejected => (
-        Theme.of(context).colorScheme.errorContainer,
-        Theme.of(context).colorScheme.onErrorContainer,
-      ),
-      QrRequestStatus.cancelled => (
-        Theme.of(context).colorScheme.surfaceContainerHighest,
-        Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status.label,
-        style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StatusBadge(
+    label: status.label,
+    tone: switch (status) {
+      QrRequestStatus.pending => AppTone.warning,
+      QrRequestStatus.approved => AppTone.success,
+      QrRequestStatus.rejected => AppTone.danger,
+      QrRequestStatus.cancelled => AppTone.neutral,
+    },
+  );
 }
 
 /// A card that groups a section with an icon + title header.
@@ -623,40 +606,18 @@ class _SectionCard extends StatelessWidget {
   final Color? borderColor;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: borderColor ?? colors.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: colors.primary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => AppSectionCard(
+    title: title,
+    icon: icon,
+    compact: true,
+    borderColor: borderColor,
+    padding: const EdgeInsets.all(12),
+    margin: const EdgeInsets.all(4),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ),
+  );
 }
 
 /// A label/amount pair that wraps the amount below on narrow widths.

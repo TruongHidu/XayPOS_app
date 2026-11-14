@@ -13,7 +13,7 @@ import 'package:pos_saas_app/app/theme/app_theme.dart';
 import 'package:pos_saas_app/core/auth/session_events.dart';
 import 'package:pos_saas_app/core/network/api_client.dart';
 import 'package:pos_saas_app/core/result/result.dart';
-import 'package:pos_saas_app/core/ui/shell/app_shell.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
 import 'package:pos_saas_app/features/auth/presentation/controllers/auth_controller.dart';

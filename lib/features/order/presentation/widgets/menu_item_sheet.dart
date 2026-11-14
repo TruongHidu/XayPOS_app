@@ -14,6 +14,7 @@ import '../controllers/order_cart_editor.dart';
 import '../controllers/order_draft_controller.dart' show OrderDraftLine;
 import 'order_cart_layout.dart';
 import 'order_widgets.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// Opens the dish's own sheet over the menu: what it is, the lines of it
 /// already in the cart, and a composer for a new portion. The menu stays on
@@ -403,12 +404,10 @@ class _SectionLabel extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Text(
+  Widget build(BuildContext context) => SectionHeader(
     text,
-    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-      color: AppColors.grey700,
-      fontWeight: FontWeight.w600,
-    ),
+    size: SectionHeaderSize.small,
+    padding: EdgeInsets.zero,
   );
 }
 
