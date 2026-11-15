@@ -12,6 +12,7 @@ import '../widgets/inventory_widgets.dart';
 import '../widgets/stock_widgets.dart';
 import '../widgets/stock_document_forms.dart';
 import '../widgets/stock_ingredient_picker.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Shows the stock document detail as a slide-up overlay covering 80% of the screen.
 Future<void> showStockDocumentDetailOverlay(
@@ -113,7 +114,7 @@ class _StockDetailOverlayState extends ConsumerState<_StockDetailOverlay> {
                       color: theme.colorScheme.outlineVariant.withValues(
                         alpha: 0.8,
                       ),
-                      borderRadius: BorderRadius.circular(2.5),
+                      borderRadius: AppRadius.xsAll,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -202,7 +203,7 @@ class StockDocumentDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scope = ref.watch(inventoryScopeProvider);
     if (!AccessPolicy.canInventory(
-      ref.watch(authControllerProvider).state.session,
+      ref.watch(currentSessionProvider),
       'INVENTORY_VIEW',
     )) {
       return const Center(child: Text('Bạn chưa có quyền xem chứng từ.'));
@@ -444,7 +445,7 @@ class _StockDetailBody extends ConsumerWidget {
             const SizedBox(height: 12),
             const InventoryBadge('Sinh từ kiểm kê — chỉ đọc'),
             if (AccessPolicy.canViewStockAudits(
-              ref.watch(authControllerProvider).state.session,
+              ref.watch(currentSessionProvider),
             ))
               TextButton.icon(
                 onPressed: () => context.push(
@@ -607,7 +608,7 @@ class _StockDetailBody extends ConsumerWidget {
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.mdAll,
                 ),
                 child: Column(
                   children: [
@@ -676,7 +677,7 @@ class _DocumentSummary extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -743,7 +744,7 @@ class _DocumentSummary extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: scheme.surface,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.buttonAll,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -6,6 +6,7 @@ import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
+import '../../../../core/ui/widgets/responsive_sliver_columns.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/ingredient.dart';
@@ -24,6 +25,7 @@ import '../widgets/menu_dialogs.dart';
 import '../widgets/menu_group_form.dart';
 import '../widgets/menu_item_card.dart';
 import '../widgets/menu_item_form.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class MenuManagementScreen extends ConsumerStatefulWidget {
   const MenuManagementScreen({super.key});
@@ -235,7 +237,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canMenuView = AccessPolicy.canMenu(session, 'MENU_VIEW');
     final canIngredientView = AccessPolicy.canIngredient(
       session,
@@ -460,13 +462,15 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 PinnedHeaderSliver(child: header),
+                // Separate slivers, not a group: the viewport then shares its
+                // cache between them, so the grid builds row by row and the
+                // footer (with its spinner) only once the end is near.
                 SliverPadding(
-                  // Bottom room so the floating add button never hides the end.
                   padding: EdgeInsets.fromLTRB(
                     horizontalPadding,
                     16,
                     horizontalPadding,
-                    88,
+                    0,
                   ),
                   sliver: SliverList.list(
                     children: [
@@ -533,28 +537,44 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                                       _opening.contains(group.id),
                                 ),
                             ],
-                          )
-                        else
-                          _buildItemGrid(
-                            itemController!,
-                            canMenuUpdate,
-                            canMenuDelete,
-                          ),
-
-                        // ── End of list ──
-                        if (menuState.rows.isNotEmpty)
-                          EndlessListFooter(
-                            hasMore: menuState.hasMore,
-                            failureMessage:
-                                menuController.endless.failure?.message,
-                            endLabel:
-                                'Đã hiển thị tất cả ${menuState.totalElements} ${_groups ? "nhóm" : "món"}',
-                            onLoadMore: menuController.loadMore,
                           ),
                       ],
                     ],
                   ),
                 ),
+                // Item cards build as their rows scroll into view.
+                if (!isIngredientTab && !_groups)
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    sliver: _buildItemGrid(
+                      itemController!,
+                      canMenuUpdate,
+                      canMenuDelete,
+                    ),
+                  ),
+                // ── End of list ──
+                if (!isIngredientTab && menuState!.rows.isNotEmpty)
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
+                    sliver: SliverList.list(
+                      children: [
+                        EndlessListFooter(
+                          hasMore: menuState.hasMore,
+                          failureMessage:
+                              menuController!.endless.failure?.message,
+                          endLabel:
+                              'Đã hiển thị tất cả ${menuState.totalElements} ${_groups ? "nhóm" : "món"}',
+                          onLoadMore: menuController.loadMore,
+                        ),
+                      ],
+                    ),
+                  ),
+                // Bottom room so the floating add button never hides the end.
+                const SliverToBoxAdapter(child: SizedBox(height: 88)),
               ],
             ),
           );
@@ -579,18 +599,18 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
         counterText: '',
         filled: true,
         fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+        border: const OutlineInputBorder(
+          borderRadius: AppRadius.mdAll,
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           borderSide: BorderSide(
             color: colors.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           borderSide: BorderSide(color: colors.primary, width: 1.5),
         ),
       ),
@@ -652,20 +672,19 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
     bool canUpdate,
     bool canDelete,
   ) {
-    return ResponsiveColumns(
+    final List<MenuItem> rows = itemController.state.rows;
+    return ResponsiveSliverColumns(
       // Two columns even on small phones; roomier tiles from tablets up.
       minColumnWidth: MediaQuery.sizeOf(context).width < 600 ? 140 : 190,
       maxColumns: 6,
       spacing: 12,
-      children: [
-        for (final item in itemController.state.rows)
-          _itemCard(
-            item,
-            canUpdate,
-            canDelete,
-            itemController.isPending(item.id) || _opening.contains(item.id),
-          ),
-      ],
+      itemCount: rows.length,
+      itemBuilder: (context, i) => _itemCard(
+        rows[i],
+        canUpdate,
+        canDelete,
+        itemController.isPending(rows[i].id) || _opening.contains(rows[i].id),
+      ),
     );
   }
 
@@ -720,12 +739,12 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: InkWell(
         onTap: busy ? null : () => _groupAction(group, 'view'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -737,7 +756,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen> {
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: colors.primaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: AppRadius.buttonAll,
                     ),
                     child: Icon(Icons.folder_outlined, color: colors.primary),
                   ),

@@ -284,7 +284,10 @@ void main() {
           CreateOrderInput(
             context: const OrderCreationContext.takeaway(),
             items: [
-              CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one),
+              const CreateOrderLine(
+                itemId: itemId,
+                quantity: OrderQuantity.one,
+              ),
             ],
           ),
           'same-key',

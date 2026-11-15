@@ -7,6 +7,7 @@ import '../../errors/failure.dart';
 import '../../network/binary_download.dart';
 import '../../platform/external_link_opener.dart';
 import '../../platform/file_exporter.dart';
+import '../../../app/theme/app_tokens.dart';
 
 /// Which QR picture the API renders: the printable A6 card or the bare code.
 enum QrPicture { card, image }
@@ -121,11 +122,11 @@ class _QrPreviewState extends ConsumerState<QrPreview> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                   border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: AppRadius.smAll,
                   child: switch (file) {
                     AsyncData(:final value) => Image.memory(
                       value.bytes,

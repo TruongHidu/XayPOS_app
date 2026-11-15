@@ -23,7 +23,7 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (session == null) return const SizedBox.shrink();
     final canViewRestaurant = AccessPolicy.hasPermission(
       session,

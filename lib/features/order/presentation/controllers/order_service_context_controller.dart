@@ -46,15 +46,30 @@ class OrderServiceContextController extends OrderController {
   List<RestaurantTable> _tables = const [];
   List<TableArea> _areas = const [];
   List<TableArea> get areas => current ? _areas : const [];
-  List<RestaurantTable> get tables => !tableAccess
-      ? const []
-      : List.unmodifiable(
-          _tables.where(
-            (t) =>
-                (query.occupied == null || t.occupied == query.occupied) &&
-                (query.areaId == null || t.area?.id == query.areaId),
-          ),
-        );
+  List<RestaurantTable>? _filteredTables;
+  (List<RestaurantTable>, bool?, String?)? _filteredFor;
+
+  List<RestaurantTable> get tables {
+    if (!tableAccess) return const [];
+    final key = (_tables, query.occupied, query.areaId);
+    final cached = _filteredTables;
+    final previous = _filteredFor;
+    if (cached != null &&
+        previous != null &&
+        identical(previous.$1, key.$1) &&
+        previous.$2 == key.$2 &&
+        previous.$3 == key.$3) {
+      return cached;
+    }
+    _filteredFor = key;
+    return _filteredTables = List.unmodifiable(
+      _tables.where(
+        (t) =>
+            (query.occupied == null || t.occupied == query.occupied) &&
+            (query.areaId == null || t.area?.id == query.areaId),
+      ),
+    );
+  }
 
   /// Tables in the chosen area that a filter would show: null counts all,
   /// true the ones in use, false the free ones.

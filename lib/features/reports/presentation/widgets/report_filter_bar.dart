@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../order/domain/entities/order_entities.dart' show ServiceType;
 import '../../domain/entities/report_date.dart';
 import '../../domain/entities/report_enums.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class DailyReportFilterBar extends StatelessWidget {
   final ReportDate? selectedDate;
@@ -41,7 +42,7 @@ class DailyReportFilterBar extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),

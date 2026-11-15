@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/widgets/anchored_overlay.dart';
 import '../../../reports/domain/entities/report_date.dart';
@@ -14,7 +14,7 @@ class CashbookFilterAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canCashbook(session, 'CASHBOOK_VIEW')) {
       return const SizedBox.shrink();
     }

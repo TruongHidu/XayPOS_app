@@ -11,7 +11,7 @@ import 'menu_group_form.dart';
 import 'menu_item_form.dart';
 
 List<SpeedDialOption> _createOptions(WidgetRef ref) {
-  final session = ref.watch(authControllerProvider).state.session;
+  final session = ref.watch(currentSessionProvider);
   final canMenu = AccessPolicy.canMenu(session, 'MENU_CREATE');
   final canIngredient = AccessPolicy.canIngredient(
     session,

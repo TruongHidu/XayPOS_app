@@ -5,6 +5,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/menu_item.dart';
 import 'menu_details.dart';
 import 'menu_dialogs.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Compact menu tile: photo, selling state, name, group and price.
 ///
@@ -42,26 +43,22 @@ class MenuItemCard extends StatelessWidget {
 
     return Container(
       clipBehavior: Clip.antiAlias,
+      // Flat card with a hairline, like every other card: a blurred shadow
+      // per tile is costly in a grid of hundreds of dishes.
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: AppRadius.mdAll,
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Stack(
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Opacity(
+              MenuImage(
+                url: item.imageUrl,
+                borderRadius: 0,
                 opacity: item.sellable ? 1 : 0.55,
-                child: MenuImage(url: item.imageUrl, borderRadius: 0),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -220,7 +217,7 @@ class _StatusPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: colors.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: AppRadius.pillAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

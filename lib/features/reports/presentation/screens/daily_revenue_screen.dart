@@ -8,6 +8,7 @@ import '../widgets/completed_orders_breakdown_card.dart';
 import '../widgets/report_filter_bar.dart';
 import '../widgets/report_kpi_card.dart';
 import '../widgets/report_kpi_grid.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class DailyRevenueScreen extends ConsumerWidget {
   const DailyRevenueScreen({super.key});
@@ -176,15 +177,15 @@ class DailyRevenueScreen extends ConsumerWidget {
 
     return Card(
       color: AppColors.dangerSoft,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: AppColors.dangerBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.danger),
+            const Icon(Icons.error_outline, size: 48, color: AppColors.danger),
             const SizedBox(height: 12),
             Text(
               'Không thể tải báo cáo doanh thu ngày',
@@ -197,7 +198,7 @@ class DailyRevenueScreen extends ConsumerWidget {
             Text(
               fail.message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.dangerStrong),
+              style: const TextStyle(color: AppColors.dangerStrong),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

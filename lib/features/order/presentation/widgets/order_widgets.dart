@@ -167,7 +167,7 @@ class _WarehouseSettingsLink extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = GoRouter.maybeOf(context);
     final allowed = AccessPolicy.canInventory(
-      ref.watch(authControllerProvider).state.session,
+      ref.watch(currentSessionProvider),
       'WAREHOUSE_UPDATE',
     );
     if (!allowed || router == null || ModalRoute.of(context) is PopupRoute) {
@@ -209,7 +209,7 @@ class OrderScopeGuard extends ConsumerWidget {
   final Widget child;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppSession? session = ref.watch(authControllerProvider).state.session;
+    final AppSession? session = ref.watch(currentSessionProvider);
     if (AccessPolicy.orderScope(session) != scope ||
         !AccessPolicy.canOrders(session, permission)) {
       final route = ModalRoute.of(context);

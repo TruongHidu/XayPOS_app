@@ -6,6 +6,8 @@ import '../../domain/entities/reference_margin_enums.dart';
 import '../../domain/entities/reference_margin_report.dart';
 import 'reference_margin_common.dart';
 import 'reference_margin_format.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import '../../../../app/theme/app_tokens.dart';
 
 class MarginSeries extends StatefulWidget {
   const MarginSeries({
@@ -256,7 +258,7 @@ class _MarginSeriesState extends State<MarginSeries> {
     final index = _selected;
     final decoration = BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
     );
     if (index == null || index >= points.length) {
       return Container(
@@ -565,5 +567,29 @@ class _MarginSeriesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _MarginSeriesPainter oldDelegate) => true;
+  // A new painter comes with every rebuild; repaint only when what it draws
+  // actually changed.
+  bool shouldRepaint(covariant _MarginSeriesPainter old) =>
+      old.selected != selected ||
+      old.leftInset != leftInset ||
+      old.rightInset != rightInset ||
+      old.labelStyle != labelStyle ||
+      old.textScaler != textScaler ||
+      old.gridColor != gridColor ||
+      old.axisColor != axisColor ||
+      !listEquals(old.empty, empty) ||
+      !listEquals(old.colors, colors) ||
+      !listEquals(old.visible, visible) ||
+      !listEquals(old.ticks, ticks) ||
+      !listEquals(old.tickLabels, tickLabels) ||
+      !listEquals(old.xLabels, xLabels) ||
+      !_sameSeries(old.values, values);
+
+  static bool _sameSeries(List<List<double>> a, List<List<double>> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!listEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
 }

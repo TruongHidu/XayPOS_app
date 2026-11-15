@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../app/router/app_router.dart';
 import 'inventory_alert_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class InventoryAlertNoticeOverlay extends ConsumerWidget {
   const InventoryAlertNoticeOverlay({super.key});
@@ -11,22 +12,24 @@ class InventoryAlertNoticeOverlay extends ConsumerWidget {
     final notice = ref.watch(inventoryAlertNoticeControllerProvider).notice;
     final available = ref.watch(inventoryAlertNoticeAvailableProvider);
     if (notice == null || !available) return const SizedBox.shrink();
-    final media = MediaQuery.of(context),
+    // Only the insets this box uses, so other MediaQuery changes don't rebuild it.
+    final padding = MediaQuery.paddingOf(context),
+        insets = MediaQuery.viewInsetsOf(context),
         colors = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bottom = 16 + media.padding.bottom + media.viewInsets.bottom;
-        final width = (constraints.maxWidth - 32 - media.padding.horizontal)
+        final bottom = 16 + padding.bottom + insets.bottom;
+        final width = (constraints.maxWidth - 32 - padding.horizontal)
             .clamp(0.0, 420.0)
             .toDouble();
-        final height = (constraints.maxHeight - bottom - media.padding.top - 16)
+        final height = (constraints.maxHeight - bottom - padding.top - 16)
             .clamp(0.0, double.infinity)
             .toDouble();
         if (width < 120 || height < 72) return const SizedBox.shrink();
         return Stack(
           children: [
             Positioned(
-              right: 16 + media.padding.right,
+              right: 16 + padding.right,
               bottom: bottom,
               width: width,
               child: Semantics(
@@ -37,7 +40,7 @@ class InventoryAlertNoticeOverlay extends ConsumerWidget {
                   elevation: 8,
                   color: colors.surface,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.mdAll,
                     side: BorderSide(color: colors.outlineVariant),
                   ),
                   clipBehavior: Clip.antiAlias,

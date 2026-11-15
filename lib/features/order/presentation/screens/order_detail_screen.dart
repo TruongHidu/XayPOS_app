@@ -17,6 +17,7 @@ import '../widgets/order_ingredient_dialog.dart';
 import '../widgets/order_mutation_forms.dart';
 import '../widgets/order_payment_dialog.dart';
 import '../widgets/order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({
@@ -178,7 +179,7 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget _lineThumbnail(String? itemId) {
     final cached = itemId != null ? getCachedCatalogImage(itemId) : null;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.smAll,
       child: Container(
         width: 48,
         height: 48,
@@ -200,7 +201,7 @@ class OrderDetailScreen extends ConsumerWidget {
     final c = ref.watch(orderDetailProvider(id));
     if (initialOrder != null) c.seed(initialOrder!);
     final order = c.order;
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canOrders(session, 'ORDER_VIEW') &&
         initialOrder == null) {
       return const Center(child: Text('Bạn không có quyền xem đơn.'));
@@ -311,7 +312,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     s.orderCode,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.grey700,
                                     ),
@@ -321,13 +322,13 @@ class OrderDetailScreen extends ConsumerWidget {
                                     horizontal: 6,
                                     vertical: 2,
                                   ),
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: AppColors.infoSoft,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: AppRadius.xsAll,
                                   ),
                                   child: Text(
                                     s.status.label,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.infoStrong,
                                       fontWeight: FontWeight.w600,
@@ -345,7 +346,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                             OrderPaymentStatus.paid
                                         ? AppColors.successTint
                                         : AppColors.warningSoft,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: AppRadius.xsAll,
                                   ),
                                   child: Text(
                                     s.paymentStatus.label,
@@ -488,8 +489,8 @@ class OrderDetailScreen extends ConsumerWidget {
                         Card(
                           color: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppRadius.mdAll,
                             side: BorderSide(color: AppColors.grey200),
                           ),
                           child: Padding(
@@ -497,14 +498,14 @@ class OrderDetailScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                const Row(
                                   children: [
                                     Icon(
                                       Icons.info_outline,
                                       size: 16,
                                       color: AppColors.grey700,
                                     ),
-                                    const SizedBox(width: 6),
+                                    SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
                                         'Thông tin đơn',
@@ -556,7 +557,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                   const SizedBox(height: 6),
                                   Text(
                                     'Ghi chú: ${order.note}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.warning,
                                     ),
@@ -597,8 +598,8 @@ class OrderDetailScreen extends ConsumerWidget {
                             color: Colors.white,
                             elevation: 0,
                             margin: const EdgeInsets.only(bottom: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadius.mdAll,
                               side: BorderSide(color: AppColors.grey200),
                             ),
                             child: OrderLineActions(
@@ -632,7 +633,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                       const SizedBox(height: 3),
                                       Text(
                                         '${line.quantity} ${line.unit} × ${orderMoney(BigInt.from(line.unitPrice.minorUnits), currency: s.currencyCode)}',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: AppColors.grey700,
                                         ),
@@ -642,7 +643,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                         const SizedBox(height: 2),
                                         Text(
                                           'Ghi chú: ${line.note}',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: AppColors.warning,
                                           ),
@@ -670,7 +671,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                         ),
                                         child: Text(
                                           line.status.label,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
                                             color: AppColors.grey800,
                                           ),
@@ -757,8 +758,8 @@ class OrderDetailScreen extends ConsumerWidget {
                         Card(
                           color: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppRadius.mdAll,
                             side: BorderSide(color: AppColors.grey200),
                           ),
                           child: Padding(
@@ -803,7 +804,7 @@ class OrderDetailScreen extends ConsumerWidget {
                                     ),
                                     Text(
                                       'Đã trả: ${orderMoney(BigInt.from(s.paidAmount.minorUnits), currency: s.currencyCode)}',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         color: AppColors.grey700,
                                       ),

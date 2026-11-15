@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/report_money.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class ReportKpiCard extends StatelessWidget {
   final String title;
@@ -79,7 +80,7 @@ class ReportKpiCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           side: BorderSide(
             color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
           ),
@@ -98,7 +99,7 @@ class ReportKpiCard extends StatelessWidget {
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       color: cardColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     child: Icon(icon, size: 18, color: cardColor),
                   ),
@@ -125,9 +126,9 @@ class ReportKpiCard extends StatelessWidget {
                               color: Colors.white,
                               fontSize: 13,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppColors.grey900,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: AppRadius.smAll,
                             ),
                             child: Icon(
                               Icons.info_outline,

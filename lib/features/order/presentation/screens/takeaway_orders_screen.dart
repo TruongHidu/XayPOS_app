@@ -9,6 +9,7 @@ import '../../domain/entities/order_entities.dart';
 import '../controllers/takeaway_orders_controller.dart';
 import '../widgets/order_widgets.dart';
 import '../widgets/takeaway_order_card.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Board of takeaway orders still in progress, so staff can find them again
 /// after leaving the order screen and act without opening each one.
@@ -44,7 +45,7 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canOrders(session, 'ORDER_VIEW')) {
       return const Center(child: Text('Bạn không có quyền xem đơn.'));
     }
@@ -117,8 +118,8 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
                 children: [
                   header,
                   status,
-                  Padding(
-                    padding: const EdgeInsets.all(32),
+                  const Padding(
+                    padding: EdgeInsets.all(32),
                     child: Column(
                       children: [
                         Icon(
@@ -126,8 +127,8 @@ class _TakeawayOrdersScreenState extends ConsumerState<TakeawayOrdersScreen> {
                           size: 48,
                           color: AppColors.grey400,
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
+                        SizedBox(height: 12),
+                        Text(
                           'Chưa có đơn mang đi nào đang xử lý.',
                           textAlign: TextAlign.center,
                         ),
@@ -226,7 +227,7 @@ class _StageColumn extends StatelessWidget {
     margin: const EdgeInsets.symmetric(horizontal: 4),
     decoration: BoxDecoration(
       color: AppColors.grey50,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.lgAll,
       border: Border.all(color: AppColors.grey200),
     ),
     child: Column(

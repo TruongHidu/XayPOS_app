@@ -163,10 +163,18 @@ class _TableActionMenuState extends ConsumerState<TableActionMenu> {
   bool _opening = false;
   @override
   Widget build(BuildContext context) {
-    final c = ref.watch(restaurantTableControllerProvider), t = widget.table;
+    final t = widget.table;
+    // One card per table: watch only this table's busy flag, not the whole
+    // controller, so a change elsewhere does not rebuild every card's menu.
+    final busy = ref.watch(
+      restaurantTableControllerProvider.select(
+        (c) => c.pending('table:${t.id}'),
+      ),
+    );
+    final c = ref.read(restaurantTableControllerProvider);
     return PopupMenuButton<String>(
       tooltip: 'Thao tác bàn',
-      enabled: !_opening && !c.pending('table:${t.id}'),
+      enabled: !_opening && !busy,
       onSelected: (a) async {
         setState(() => _opening = true);
         try {

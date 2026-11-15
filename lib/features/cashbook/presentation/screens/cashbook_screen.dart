@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../reports/domain/entities/report_date.dart';
 import '../../domain/entities/cashbook_meta.dart';
@@ -15,7 +15,7 @@ class CashbookScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canCashbook(session, 'CASHBOOK_VIEW')) {
       return const CashbookAccessDenied(
         message:
@@ -46,7 +46,7 @@ class _CashbookWorkspaceState extends ConsumerState<_CashbookWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final flow = ref.watch(cashbookFlowProvider);
     final meta = ref.watch(cashbookRangeProvider.select((c) => c.meta));
     final range = ref.watch(cashbookRangeProvider.select((c) => c.applied));

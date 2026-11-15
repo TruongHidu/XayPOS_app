@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/revenue_series_point.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class RevenueSeriesChart extends StatefulWidget {
   final List<RevenueSeriesPoint> points;
@@ -45,7 +46,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
@@ -279,7 +280,7 @@ class _RevenueSeriesChartState extends State<RevenueSeriesChart> {
         constraints: const BoxConstraints(maxWidth: 240),
         decoration: BoxDecoration(
           color: AppColors.grey900.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.smAll,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),

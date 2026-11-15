@@ -30,6 +30,11 @@ class _EndlessListFooterState extends State<EndlessListFooter> {
   ScrollPosition? _position;
   bool _checkScheduled = false;
 
+  /// The end of the list is within reach. A lazy list may build this footer
+  /// in its off-screen cache; until the end is near, its spinner stays
+  /// still so it does not keep a ticker running for nothing.
+  bool _near = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -60,6 +65,11 @@ class _EndlessListFooterState extends State<EndlessListFooter> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkScheduled = false;
       final position = _position;
+      final near =
+          position != null &&
+          position.hasContentDimensions &&
+          position.extentAfter <= _preload;
+      if (mounted && near != _near) setState(() => _near = near);
       if (mounted &&
           widget.hasMore &&
           widget.failureMessage == null &&
@@ -102,10 +112,13 @@ class _EndlessListFooterState extends State<EndlessListFooter> {
                 child: const Text('Tải thêm'),
               ),
             )
-          : const Center(
-              child: SizedBox.square(
-                dimension: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+          : Center(
+              child: TickerMode(
+                enabled: _near,
+                child: const SizedBox.square(
+                  dimension: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
               ),
             ),
     );

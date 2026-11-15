@@ -14,6 +14,7 @@ import '../widgets/report_kpi_grid.dart';
 import '../widgets/report_orders_table.dart';
 import '../widgets/revenue_series_chart.dart';
 import '../widgets/top_items_table.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -67,7 +68,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
         summaryCtrl.seriesData?.meta ??
         summaryCtrl.paymentsData?.meta;
 
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canViewOrder =
         session != null && AccessPolicy.canOrders(session, 'ORDER_VIEW');
 
@@ -88,7 +89,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
               ),
               child: TabBar(
                 controller: _tabController,
-                isScrollable: MediaQuery.of(context).size.width < 500,
+                isScrollable: MediaQuery.sizeOf(context).width < 500,
                 tabs: const [
                   Tab(icon: Icon(Icons.dashboard_outlined), text: 'Tổng quan'),
                   Tab(
@@ -212,7 +213,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
     ReportSummaryController summaryCtrl,
     String currencyCode,
   ) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -461,19 +462,19 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
   }) {
     return Card(
       color: AppColors.dangerSoft,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: AppColors.dangerBorder),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 36, color: AppColors.danger),
+            const Icon(Icons.error_outline, size: 36, color: AppColors.danger),
             const SizedBox(height: 8),
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.dangerStrong,
               ),
@@ -482,7 +483,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.dangerStrong),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.dangerStrong,
+              ),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(

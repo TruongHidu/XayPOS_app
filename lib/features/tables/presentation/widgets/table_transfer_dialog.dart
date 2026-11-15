@@ -6,6 +6,7 @@ import '../../domain/entities/table_entities.dart';
 import '../providers/tables_providers.dart';
 import 'table_area_picker.dart';
 import 'table_dialogs.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<TableSessionTransferResult?> showTableTransferDialog(
   BuildContext context,
@@ -103,7 +104,7 @@ class _TableTransferDialogState extends ConsumerState<TableTransferDialog> {
           onReload: uncertain ? null : controller.loadContext,
         ),
         if (uncertain)
-          _Notice(
+          const _Notice(
             text:
                 'Chưa xác định lần chuyển trước đã thành công hay chưa. Bàn đích, version và lý do đã được khóa. Hãy thử lại đúng yêu cầu cũ.',
           ),
@@ -204,7 +205,7 @@ class _TableTransferDialogState extends ConsumerState<TableTransferDialog> {
                     onTap: controller.frozen
                         ? null
                         : () => controller.select(table),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.mdAll,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.all(12),
@@ -217,7 +218,7 @@ class _TableTransferDialogState extends ConsumerState<TableTransferDialog> {
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.outlineVariant,
                         ),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.mdAll,
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -281,7 +282,7 @@ class _Notice extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
     ),
     child: Text(text),
   );

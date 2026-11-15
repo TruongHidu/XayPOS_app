@@ -36,6 +36,7 @@ abstract final class AppRadius {
   static const double xl = 20;
   static const double pill = 999;
 
+  static const xsAll = BorderRadius.all(Radius.circular(xs));
   static const smAll = BorderRadius.all(Radius.circular(sm));
   static const buttonAll = BorderRadius.all(Radius.circular(button));
   static const mdAll = BorderRadius.all(Radius.circular(md));

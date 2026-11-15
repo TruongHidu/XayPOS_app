@@ -73,10 +73,10 @@ void main() {
   });
 
   group('CashbookRequests', () {
-    final range = CashbookRangeFilter(
+    const range = CashbookRangeFilter(
       range: ReportDateRange(
-        fromDate: const ReportDate(2026, 10, 1),
-        toDate: const ReportDate(2026, 10, 29),
+        fromDate: ReportDate(2026, 10, 1),
+        toDate: ReportDate(2026, 10, 29),
       ),
     );
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// A centered dialog of readable width that becomes near full-screen on
 /// phones. Header and footer stay fixed while the body scrolls.
@@ -32,7 +33,7 @@ class CashbookDialogFrame extends StatelessWidget {
         horizontal: narrow ? 8 : 24,
         vertical: narrow ? 12 : 24,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),

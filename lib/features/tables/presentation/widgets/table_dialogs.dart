@@ -37,7 +37,7 @@ class TableScopeGuard extends ConsumerWidget {
   final Widget child;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (AccessPolicy.tableScope(session) != scope ||
         !AccessPolicy.canTables(session, permission)) {
       final route = ModalRoute.of(context);

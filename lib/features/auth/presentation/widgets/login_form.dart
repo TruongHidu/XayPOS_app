@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../controllers/login_form_controller.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class LoginForm extends StatelessWidget {
   const LoginForm({
@@ -101,8 +102,8 @@ class LoginForm extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.buttonAll,
                   ),
                   textStyle: const TextStyle(
                     fontSize: 16,
@@ -175,9 +176,9 @@ class _LoginTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: AppColors.grey300, width: 1.2),
+    const border = OutlineInputBorder(
+      borderRadius: AppRadius.buttonAll,
+      borderSide: BorderSide(color: AppColors.grey300, width: 1.2),
     );
     return TextField(
       controller: controller,

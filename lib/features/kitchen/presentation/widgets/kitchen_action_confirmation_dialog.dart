@@ -21,7 +21,7 @@ class KitchenActionConfirmationDialog extends ConsumerWidget {
     final actions = ref.watch(kitchenActionsProvider);
     final display = ref.watch(kitchenDisplayProvider);
     final currentScope = AccessPolicy.kitchenScope(
-      ref.watch(authControllerProvider).state.session,
+      ref.watch(currentSessionProvider),
     );
     if (currentScope != scope) {
       final route = ModalRoute.of(context);

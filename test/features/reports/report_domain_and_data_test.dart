@@ -32,16 +32,16 @@ void main() {
     });
 
     test('calculates difference and range days correctly', () {
-      final d1 = ReportDate(2026, 1, 1);
-      final d2 = ReportDate(2026, 1, 7);
+      const d1 = ReportDate(2026, 1, 1);
+      const d2 = ReportDate(2026, 1, 7);
       expect(d1.differenceInDays(d2), 6);
-      final range = ReportDateRange(fromDate: d1, toDate: d2);
+      const range = ReportDateRange(fromDate: d1, toDate: d2);
       expect(range.daysCount, 7); // inclusive of both ends
       expect(range.isValid, isTrue);
     });
 
     test('validates 366 days max limit', () {
-      final start = ReportDate(2026, 1, 1);
+      const start = ReportDate(2026, 1, 1);
       // 366 days inclusive
       final validEnd = start.addDays(365);
       final validRange = ReportDateRange(fromDate: start, toDate: validEnd);
@@ -56,9 +56,9 @@ void main() {
     });
 
     test('rejects fromDate > toDate', () {
-      final d1 = ReportDate(2026, 10, 15);
-      final d2 = ReportDate(2026, 10, 10);
-      final range = ReportDateRange(fromDate: d1, toDate: d2);
+      const d1 = ReportDate(2026, 10, 15);
+      const d2 = ReportDate(2026, 10, 10);
+      const range = ReportDateRange(fromDate: d1, toDate: d2);
       expect(range.isValid, isFalse);
     });
   });
@@ -138,7 +138,7 @@ void main() {
       final envelope = ReportDto.parseOverviewEnvelope(json);
       expect(envelope.meta.timezone, 'Asia/Ho_Chi_Minh');
       expect(envelope.meta.currencyCode, 'VND');
-      expect(envelope.meta.fromDate, ReportDate(2026, 10, 15));
+      expect(envelope.meta.fromDate, const ReportDate(2026, 10, 15));
       expect(envelope.meta.serviceType?.name, 'dineIn');
       expect(envelope.meta.sourceChannel, ReportSourceChannel.waiter);
 
@@ -188,7 +188,7 @@ void main() {
 
       final envelope = ReportDto.parseRevenueSeriesEnvelope(json);
       expect(envelope.data.length, 2);
-      expect(envelope.data[0].bucketStartDate, ReportDate(2026, 10, 1));
+      expect(envelope.data[0].bucketStartDate, const ReportDate(2026, 10, 1));
       expect(envelope.data[0].collectedAmount.majorValueString, '2000000');
       expect(envelope.data[1].collectedAmount.majorValueString, '0');
     });

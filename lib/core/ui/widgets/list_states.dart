@@ -44,7 +44,7 @@ class ListSkeleton extends StatelessWidget {
               height: height,
               decoration: BoxDecoration(
                 color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: AppRadius.mdAll,
               ),
             ),
         ],

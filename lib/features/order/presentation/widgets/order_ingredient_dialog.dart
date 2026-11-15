@@ -14,6 +14,7 @@ import '../../domain/entities/order_entities.dart';
 import '../../domain/entities/order_recipe_snapshot.dart';
 import '../providers/order_recipe_snapshot_providers.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderIngredientsButton extends ConsumerWidget {
   const OrderIngredientsButton({
@@ -25,7 +26,7 @@ class OrderIngredientsButton extends ConsumerWidget {
   final OrderLine line;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final recipeAllowed = AccessPolicy.canViewOrderRecipeSnapshot(session);
     if (!recipeAllowed && !AccessPolicy.canViewOrderItemAllocation(session)) {
       return const SizedBox.shrink();
@@ -62,7 +63,7 @@ class _OrderIngredientDialogState extends ConsumerState<OrderIngredientDialog> {
   bool _allocation = false, _allocationRequested = false;
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final recipeAllowed = AccessPolicy.canViewOrderRecipeSnapshot(session);
     final allocationAllowed = AccessPolicy.canViewOrderItemAllocation(session);
     if (!recipeAllowed && !allocationAllowed) {
@@ -362,7 +363,7 @@ class _StatusCard extends StatelessWidget {
         color: done
             ? scheme.primary.withValues(alpha: 0.08)
             : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +397,7 @@ class _StatusCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: scheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius: AppRadius.pillAll,
                         ),
                         child: Text(
                           badge!,
@@ -430,7 +431,7 @@ class _Info extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,7 +482,7 @@ class _IngredientList extends StatelessWidget {
         DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(color: scheme.outlineVariant),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.mdAll,
           ),
           child: Column(
             children: [

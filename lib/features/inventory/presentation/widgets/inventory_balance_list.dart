@@ -10,6 +10,7 @@ import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/inventory_quantity.dart';
 import 'inventory_widgets.dart';
 import 'inventory_threshold_dialog.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class InventoryBalanceList extends ConsumerWidget {
   const InventoryBalanceList({
@@ -292,7 +293,7 @@ class _BalanceCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: row.lowStock ? AppColors.warningTint : colors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: row.lowStock
               ? AppColors.warningBorder
@@ -326,7 +327,7 @@ class _BalanceCard extends StatelessWidget {
               if (tracked) ...[
                 const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: AppRadius.pillAll,
                   child: LinearProgressIndicator(
                     // Full at twice the threshold, half-way at the threshold.
                     value:

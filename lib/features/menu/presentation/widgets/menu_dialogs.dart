@@ -9,6 +9,7 @@ import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/menu_price.dart';
 import '../../../../core/ui/widgets/list_states.dart';
 import '../../../../core/ui/widgets/confirm_dialog.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<T?> showMenuDialog<T>(
   BuildContext context,
@@ -39,7 +40,7 @@ class MenuScopeGuard extends ConsumerWidget {
   final Widget child;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (AccessPolicy.menuScope(session) != scope ||
         !AccessPolicy.canMenu(session, permission)) {
       final route = ModalRoute.of(context);
@@ -150,7 +151,7 @@ class MenuBusyOverlay extends StatelessWidget {
         child: Material(
           color: theme.colorScheme.surface,
           elevation: 6,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.lgAll,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
             child: Semantics(

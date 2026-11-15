@@ -16,7 +16,7 @@ class InventoryAlertDetailScreen extends ConsumerWidget {
   final String id;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canViewInventoryAlerts(session)) {
       return const Center(
         child: Padding(

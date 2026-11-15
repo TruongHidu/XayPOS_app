@@ -11,6 +11,7 @@ import '../../../../core/ui/widgets/list_states.dart';
 import '../../domain/entities/order_entities.dart';
 import '../controllers/order_list_controller.dart';
 import '../widgets/order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderListScreen extends ConsumerStatefulWidget {
   const OrderListScreen({super.key, this.sessionId, this.initialServiceType});
@@ -80,7 +81,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           decoration: InputDecoration(
             isDense: true,
             hintText: 'Tìm theo mã đơn (ví dụ: OD-001)...',
-            hintStyle: TextStyle(fontSize: 13, color: AppColors.grey400),
+            hintStyle: const TextStyle(fontSize: 13, color: AppColors.grey400),
             prefixIcon: const Icon(
               Icons.search_rounded,
               color: OrderPalette.primary,
@@ -103,20 +104,17 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
               horizontal: 14,
               vertical: 10,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
               borderSide: BorderSide(color: AppColors.grey200),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
               borderSide: BorderSide(color: AppColors.grey200),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: OrderPalette.primary,
-                width: 1.5,
-              ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
+              borderSide: BorderSide(color: OrderPalette.primary, width: 1.5),
             ),
             counterText: '',
           ),
@@ -199,9 +197,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.grey200),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
+        side: BorderSide(color: AppColors.grey200),
       ),
       color: Colors.white,
       child: ListTile(
@@ -210,9 +208,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
         leading: Container(
           width: 44,
           height: 44,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.warningTint,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: AppRadius.buttonAll,
           ),
           child: Icon(
             order.serviceType == ServiceType.takeaway
@@ -247,13 +245,13 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                       horizontal: 6,
                       vertical: 1.5,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.grey100,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.xsAll,
                     ),
                     child: Text(
                       order.serviceType.label,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: AppColors.grey700,
@@ -272,7 +270,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                           : (order.status == OrderStatus.completed
                                 ? AppColors.grey100
                                 : AppColors.infoSoft),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.xsAll,
                     ),
                     child: Text(
                       order.status.label,
@@ -297,7 +295,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                       color: order.paymentStatus == OrderPaymentStatus.paid
                           ? AppColors.successSoft
                           : AppColors.warningSoft,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppRadius.xsAll,
                     ),
                     child: Text(
                       order.paymentStatus.label,
@@ -315,7 +313,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
               const SizedBox(height: 4),
               Text(
                 formatLocalDate(order.createdAt),
-                style: TextStyle(fontSize: 12, color: AppColors.grey500),
+                style: const TextStyle(fontSize: 12, color: AppColors.grey500),
               ),
             ],
           ),
@@ -338,7 +336,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(orderListProvider(widget.sessionId));
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canOrders(session, 'ORDER_VIEW')) {
       return const Center(child: Text('Bạn không có quyền xem đơn.'));
     }
@@ -354,11 +352,11 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.warningTint,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: AppRadius.buttonAll,
               border: Border.all(color: AppColors.warningBorder),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.info_outline, size: 16, color: OrderPalette.primary),
                 SizedBox(width: 8),
                 Expanded(

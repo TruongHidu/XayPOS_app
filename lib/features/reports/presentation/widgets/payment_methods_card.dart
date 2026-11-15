@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/payment_method_report_row.dart';
 import '../../domain/entities/report_enums.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class PaymentMethodsCard extends StatelessWidget {
   final List<PaymentMethodReportRow> rows;
@@ -32,7 +33,7 @@ class PaymentMethodsCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
@@ -86,7 +87,7 @@ class PaymentMethodsCard extends StatelessWidget {
             else ...[
               // Ratio Bar
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
                 child: SizedBox(
                   height: 16,
                   child: Row(
@@ -193,7 +194,7 @@ class PaymentMethodsCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: AppRadius.xsAll,
           ),
           child: Text(
             '${percentage.toStringAsFixed(1)}%',

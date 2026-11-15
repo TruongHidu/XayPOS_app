@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/ui/widgets/responsive_dialog.dart';
 
 import '../../domain/entities/staff_member.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class ToggleStatusDialog extends StatefulWidget {
   const ToggleStatusDialog({
@@ -128,7 +129,7 @@ class _ToggleStatusDialogState extends State<ToggleStatusDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                   child: Row(
                     children: [

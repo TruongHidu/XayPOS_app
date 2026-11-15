@@ -5,6 +5,8 @@ import '../../domain/entities/cashbook_enums.dart';
 import '../../domain/entities/cashbook_records.dart';
 import 'cashbook_common.dart';
 import 'cashbook_format.dart';
+import 'package:flutter/foundation.dart' show listEquals;
+import '../../../../app/theme/app_tokens.dart';
 
 /// Paired income/expense bars per bucket with the difference as a line.
 /// A table view gives exact figures for every bucket.
@@ -221,7 +223,7 @@ class _CashbookSeriesChartState extends State<CashbookSeriesChart> {
     final index = _selected;
     final decoration = BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
     );
     if (index == null || index >= widget.points.length) {
       return Container(
@@ -528,5 +530,28 @@ class _SeriesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SeriesPainter oldDelegate) => true;
+  // A new painter comes with every rebuild; repaint only when what it draws
+  // actually changed.
+  bool shouldRepaint(covariant _SeriesPainter old) =>
+      old.selected != selected ||
+      old.highlight != highlight ||
+      old.leftInset != leftInset ||
+      old.labelStyle != labelStyle ||
+      old.textScaler != textScaler ||
+      old.gridColor != gridColor ||
+      old.axisColor != axisColor ||
+      !listEquals(old.colors, colors) ||
+      !listEquals(old.visible, visible) ||
+      !listEquals(old.ticks, ticks) ||
+      !listEquals(old.tickLabels, tickLabels) ||
+      !listEquals(old.xLabels, xLabels) ||
+      !_sameSeries(old.values, values);
+
+  static bool _sameSeries(List<List<double>> a, List<List<double>> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!listEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
 }

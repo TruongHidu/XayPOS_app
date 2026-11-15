@@ -16,7 +16,7 @@ class RecipeApplicationControl extends ConsumerWidget {
   final MenuItem? initialMenuItem;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canMenu(session, 'MENU_VIEW')) {
       return const SizedBox.shrink();
     }

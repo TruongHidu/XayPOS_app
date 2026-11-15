@@ -10,6 +10,7 @@ import '../../../../core/values/vietnam_banks.dart';
 import '../../domain/entities/order_transfer_qr.dart';
 import '../providers/order_transfer_qr_providers.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// The VietQR a customer scans to pay by transfer, with what it encodes.
 /// Display only: confirming the money arrived stays a manual step.
@@ -83,7 +84,7 @@ class _Notice extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadius.buttonAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +148,7 @@ class _QrContent extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.grey50,
         border: Border.all(color: AppColors.grey200),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -166,7 +167,7 @@ class _QrContent extends StatelessWidget {
                     child: InkWell(
                       key: const ValueKey('transfer-qr-image'),
                       onTap: () => showTransferQrFullScreen(context, code),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: AppRadius.buttonAll,
                       child: _QrPicture(png: code.png, size: size),
                     ),
                   ),
@@ -231,9 +232,9 @@ class _QrPicture extends StatelessWidget {
     width: size,
     height: size,
     padding: const EdgeInsets.all(8),
-    decoration: BoxDecoration(
+    decoration: const BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AppRadius.smAll,
     ),
     child: Image.memory(
       png,

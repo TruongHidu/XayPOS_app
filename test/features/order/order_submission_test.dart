@@ -103,7 +103,10 @@ void main() {
               expectedVersion: 5,
               submissionMode: OrderSubmissionMode.submit,
               items: [
-                CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one),
+                const CreateOrderLine(
+                  itemId: itemId,
+                  quantity: OrderQuantity.one,
+                ),
               ],
             ),
             'append-original-key',
@@ -118,7 +121,7 @@ void main() {
   test(
     'legacy serializers omit mode; SUBMIT is explicit, append input immutable',
     () {
-      final line = CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one);
+      const line = CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one);
       final old = CreateOrderInput(
         context: const OrderCreationContext.takeaway(),
         items: [line],

@@ -101,7 +101,7 @@ class StockAuditCreateController extends StockAuditController {
       intent = StockAuditCreateIntent(keys.next(), input);
     }
     final pending = intent!;
-    final key = InventoryEvents.stockAuditCreateKey;
+    const key = InventoryEvents.stockAuditCreateKey;
     if (!canManage || !events.lock(key)) {
       return const Error(InventoryController.busy);
     }

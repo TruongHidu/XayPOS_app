@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/ui/formatters/local_date.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
@@ -10,6 +10,7 @@ import '../../domain/policies/recipe_cost_comparison.dart';
 import '../providers/recipe_providers.dart';
 import 'recipe_cost_format.dart';
 import 'recipe_dialogs.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class RecipeCostPanel extends ConsumerWidget {
   const RecipeCostPanel({
@@ -87,7 +88,7 @@ class RecipeCostPanel extends ConsumerWidget {
                 action:
                     cost.failure!.code == 'INGREDIENT_COST_NOT_CONFIGURED' &&
                         AccessPolicy.canIngredient(
-                          ref.watch(authControllerProvider).state.session,
+                          ref.watch(currentSessionProvider),
                           'INGREDIENT_VIEW',
                         ) &&
                         GoRouter.maybeOf(context) != null
@@ -285,7 +286,7 @@ class _Metric extends StatelessWidget {
         border: Border.all(
           color: warning ? colors.error : colors.outlineVariant,
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +380,7 @@ class _IngredientCosts extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
                 border: Border.all(
                   color: Theme.of(context).colorScheme.outlineVariant,
                 ),

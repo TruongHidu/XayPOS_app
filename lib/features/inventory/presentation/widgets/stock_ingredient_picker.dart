@@ -5,6 +5,7 @@ import '../../../../core/values/item_type.dart';
 import '../../domain/entities/inventory_entities.dart';
 import '../../domain/entities/stock_document.dart';
 import 'inventory_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<InventoryBalance?> pickStockIngredient(
   BuildContext context,
@@ -113,7 +114,7 @@ class _StockItemOption extends StatelessWidget {
         color: enabled ? scheme.surface : scheme.surfaceContainerHighest,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           side: BorderSide(color: scheme.outlineVariant),
         ),
         child: InkWell(
@@ -135,7 +136,7 @@ class _StockItemOption extends StatelessWidget {
                           color: menuItem
                               ? scheme.tertiaryContainer
                               : scheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: AppRadius.buttonAll,
                         ),
                         child: Icon(
                           menuItem
@@ -191,7 +192,7 @@ class _StockItemOption extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.smAll,
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,

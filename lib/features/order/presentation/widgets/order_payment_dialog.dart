@@ -15,6 +15,7 @@ import '../providers/order_transfer_qr_providers.dart';
 import 'order_widgets.dart';
 import 'transfer_qr_panel.dart';
 import '../../../../core/ui/widgets/section_header.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<void> showOrderPaymentDialog(
   BuildContext context,
@@ -82,7 +83,7 @@ class _SettlementScopeGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final allowed = completing
         ? AccessPolicy.canCompleteOrder(session, takeaway: takeaway)
         : AccessPolicy.canRecordOrderPayment(session);
@@ -112,7 +113,7 @@ class OrderSettlementActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settlement = ref.watch(orderSettlementProvider(order.id));
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final summary = order.summary;
     if (settlement.ownsMutationBlock || settlement.needsReview) {
       final completing = settlement.completionAttempt;
@@ -438,8 +439,8 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
                     suffixText: currency.isEmpty
                         ? defaultCurrencySymbol
                         : currency,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    border: const OutlineInputBorder(
+                      borderRadius: AppRadius.mdAll,
                     ),
                   ),
                   onChanged: (_) => setState(() {}),
@@ -483,8 +484,8 @@ class _OrderPaymentDialogState extends ConsumerState<OrderPaymentDialog> {
                         : 'Nhập mã giao dịch đã đối soát từ ngân hàng.',
                     helperMaxLines: 3,
                     prefixIcon: const Icon(Icons.tag_rounded),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    border: const OutlineInputBorder(
+                      borderRadius: AppRadius.mdAll,
                     ),
                   ),
                   onChanged: (_) => setState(() {}),
@@ -704,7 +705,7 @@ class _CashChangeLine extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: short ? colors.errorContainer : AppColors.successSoft,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadius.buttonAll,
       ),
       child: Text(
         short
@@ -772,9 +773,9 @@ class _SettlementDialogFrame extends StatelessWidget {
             child: Container(
               key: const ValueKey('settlement-order-code'),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.grey100,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
               ),
               child: Text(
                 'Đơn ${_shortOrderCode(orderCode)}',
@@ -812,7 +813,7 @@ class _SettlementDialogFrame extends StatelessWidget {
     final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.xlAll),
       clipBehavior: Clip.antiAlias,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -866,9 +867,9 @@ class _AmountDue extends StatelessWidget {
     return Container(
       key: const ValueKey('payment-amount-due'),
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,7 +966,7 @@ class _MethodTile extends StatelessWidget {
       child: Material(
         color: selected ? AppColors.primarySoft : Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           side: BorderSide(
             color: selected ? AppColors.primary : AppColors.grey300,
             width: selected ? 1.5 : 1,
@@ -973,7 +974,7 @@ class _MethodTile extends StatelessWidget {
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Column(
@@ -1014,7 +1015,7 @@ class _StatusNote extends StatelessWidget {
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: AppColors.warningTint,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
       border: Border.all(color: AppColors.warningBorder),
     ),
     child: Row(

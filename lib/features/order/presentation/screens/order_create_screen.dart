@@ -22,6 +22,7 @@ import '../widgets/order_widgets.dart';
 import '../widgets/takeaway_submitted_view.dart';
 import 'order_detail_screen.dart';
 import 'order_list_screen.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderCreateScreen extends ConsumerWidget {
   const OrderCreateScreen({
@@ -35,7 +36,7 @@ class OrderCreateScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => _OrderCreateBody(
     key: ValueKey((
-      AccessPolicy.orderScope(ref.watch(authControllerProvider).state.session),
+      AccessPolicy.orderScope(ref.watch(currentSessionProvider)),
       sessionId,
       tableId,
       takeaway,
@@ -123,7 +124,7 @@ class _OrderCreateBodyState extends ConsumerState<_OrderCreateBody> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.takeaway) ref.watch(orderServiceContextProvider);
+    if (!widget.takeaway) ref.listen(orderServiceContextProvider, (_, _) {});
     if (_existingOrder != null) {
       return OrderDetailScreen(
         id: _existingOrder!.id,
@@ -372,7 +373,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       prefixIcon: Icon(icon, size: 20),
       filled: true,
       fillColor: AppColors.grey50,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      border: const OutlineInputBorder(borderRadius: AppRadius.buttonAll),
     );
     return Container(
       color: Colors.white,
@@ -514,9 +515,9 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     alignment: Alignment.centerRight,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.danger,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: AppRadius.buttonAll,
                     ),
                     child: const Text(
                       'Bỏ món',
@@ -530,8 +531,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                     color: Colors.white,
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: AppRadius.buttonAll,
                       side: BorderSide(color: AppColors.grey200),
                     ),
                     child: Padding(
@@ -562,7 +563,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                           const SizedBox(height: 4),
                           Text(
                             '${line.quantity} ${line.item.baseUnit}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.grey600,
                             ),
@@ -574,13 +575,13 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                 horizontal: 8,
                                 vertical: 3,
                               ),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: AppColors.warningSoft,
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: AppRadius.xsAll,
                               ),
                               child: Text(
                                 'Ghi chú: ${line.note}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.warning,
                                 ),
@@ -632,13 +633,11 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
               readOnly: d.frozen,
               maxLength: 100,
               onChanged: (_) => _fields(d),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Tên khách (không bắt buộc)',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
               ),
             ),
             const SizedBox(height: 8),
@@ -648,13 +647,11 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
               maxLength: 30,
               onChanged: (_) => _fields(d),
               keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Số điện thoại (không bắt buộc)',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
               ),
             ),
             const SizedBox(height: 8),
@@ -670,9 +667,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                 hintText: widget.contextInput.guestCount.toString(),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                border: const OutlineInputBorder(borderRadius: AppRadius.smAll),
               ),
               validator: (v) {
                 if (widget.contextInput.fromTable &&
@@ -692,13 +687,11 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
               maxLength: 2000,
               maxLines: 3,
               onChanged: (_) => _fields(d),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Ghi chú đơn',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
               ),
             ),
           ],
@@ -724,10 +717,10 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                   child: Row(
                     children: [
-                      Container(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: AppRadius.buttonAll,
                           border: Border.all(color: AppColors.grey200),
                         ),
                         child: IconButton(
@@ -767,7 +760,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   color: widget.contextInput.sessionAlreadyOpen
                                       ? AppColors.primarySoft
                                       : AppColors.grey100,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: AppRadius.mdAll,
                                 ),
                                 child: Text(
                                   statusText,
@@ -785,10 +778,10 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                         ),
                       ),
                       if (!_takeaway) ...[
-                        Container(
+                        DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: AppRadius.buttonAll,
                             border: Border.all(color: AppColors.grey200),
                           ),
                           child: IconButton(
@@ -804,10 +797,10 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                         ),
                         const SizedBox(width: 8),
                       ],
-                      Container(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: AppRadius.buttonAll,
                           border: Border.all(color: AppColors.grey200),
                         ),
                         child: PopupMenuButton<String>(
@@ -856,7 +849,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
 
                 // ── Tab Bar ───────────────────────────────────────────────
                 if (!_wide)
-                  Container(
+                  ColoredBox(
                     color: Colors.white,
                     child: TabBar(
                       controller: _tabController,
@@ -915,7 +908,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   ? menuPane
                                   : Column(
                                       children: [
-                                        Container(
+                                        ColoredBox(
                                           color: Colors.white,
                                           child: TabBar(
                                             controller: _wideTabs,
@@ -1006,7 +999,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                 ),
                                 Text(
                                   'Tạm tính : ${orderMoney(d.previewMinor)}',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.grey700,
                                   ),
@@ -1030,13 +1023,13 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                         horizontal: 14,
                                         vertical: 10,
                                       ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: AppRadius.buttonAll,
                                       ),
                                     ),
-                                    child: Row(
+                                    child: const Row(
                                       mainAxisSize: MainAxisSize.min,
-                                      children: const [
+                                      children: [
                                         Text('Xem đơn'),
                                         SizedBox(width: 4),
                                         Icon(Icons.arrow_upward, size: 15),
@@ -1062,8 +1055,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                       horizontal: 16,
                                       vertical: 10,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: AppRadius.buttonAll,
                                     ),
                                   ),
                                   child: Text(

@@ -113,7 +113,7 @@ void main() {
       tables: TableServer()..table = tableData(occupied: false),
       qrRequests: qr,
     );
-    final card = find.byKey(ValueKey('order-table-$tableId'));
+    final card = find.byKey(const ValueKey('order-table-$tableId'));
     expect(
       find.descendant(of: card, matching: find.text('Còn trống')),
       findsOneWidget,

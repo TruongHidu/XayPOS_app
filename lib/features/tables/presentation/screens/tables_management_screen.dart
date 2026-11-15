@@ -14,12 +14,13 @@ import '../widgets/table_area_form.dart';
 import '../widgets/restaurant_table_form.dart';
 import '../widgets/table_details.dart';
 import '../widgets/table_navigation.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class TablesManagementScreen extends ConsumerWidget {
   const TablesManagementScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canTables(session, 'TABLE_VIEW')) {
       return const Center(child: Text('Bạn không có quyền xem bàn.'));
     }
@@ -257,7 +258,7 @@ class _TableCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: colors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Column(
@@ -299,7 +300,7 @@ class _TableCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: tint,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: AppRadius.pillAll,
                   ),
                   child: Text(
                     label,
@@ -434,7 +435,7 @@ class _AreasTabState extends ConsumerState<_AreasTab> {
                   elevation: 0,
                   color: Theme.of(context).colorScheme.surface,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: AppRadius.mdAll,
                     side: BorderSide(
                       color: Theme.of(
                         context,

@@ -2,12 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
+import '../../../../app/theme/app_typography.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/formatters/elapsed.dart';
+import '../../../../core/ui/widgets/elapsed_text.dart';
 import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../tables/domain/entities/table_entities.dart';
 import '../../../qr_order/presentation/widgets/qr_request_inbox.dart';
 import '../../../qr_order/presentation/widgets/qr_inbox_visibility.dart';
@@ -46,7 +50,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(orderServiceContextProvider);
     final qr = ref.watch(qrInboxProvider);
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final menuAllowed = AccessPolicy.canMenu(session, 'MENU_VIEW');
     // Each part shows only to someone who can use it, instead of a notice.
     final qrAllowed = AccessPolicy.canHandleQrRequests(session);
@@ -105,17 +109,16 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     label: Text('Yêu cầu QR (${qr.pending.length})'),
                   ),
                   if (qr.failure != null)
-                    const Text(
-                      'QR chưa đồng bộ',
-                      style: TextStyle(fontSize: 12),
+                    const StatusBadge(
+                      label: 'QR chưa đồng bộ',
+                      tone: AppTone.warning,
+                      icon: Icons.sync_problem,
                     ),
                   if (qr.arrivals > 0 && qr.failure == null)
-                    Text(
-                      'Có ${qr.arrivals} yêu cầu QR mới',
-                      style: const TextStyle(
-                        color: AppColors.infoStrong,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    StatusBadge(
+                      label: 'Có ${qr.arrivals} yêu cầu QR mới',
+                      tone: AppTone.info,
+                      dot: true,
                     ),
                 ],
               ),
@@ -133,7 +136,6 @@ class OrderServiceContextScreen extends ConsumerWidget {
                   child: ChoiceChip(
                     label: const Text('Tất cả khu vực'),
                     selected: c.query.areaId == null,
-                    selectedColor: OrderPalette.clear,
                     onSelected: c.selecting
                         ? null
                         : (_) => c.filter(occupied: c.query.occupied),
@@ -145,8 +147,6 @@ class OrderServiceContextScreen extends ConsumerWidget {
                     child: ChoiceChip(
                       label: Text(area.name),
                       selected: c.query.areaId == area.id,
-                      selectedColor: OrderPalette.clear,
-                      backgroundColor: OrderPalette.grey,
                       onSelected: c.selecting
                           ? null
                           : (_) => c.filter(
@@ -185,7 +185,7 @@ class OrderServiceContextScreen extends ConsumerWidget {
                 return GridView.builder(
                   key: const ValueKey('order-table-grid'),
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount:
                         qrAllowed &&
@@ -197,11 +197,12 @@ class OrderServiceContextScreen extends ConsumerWidget {
                         : constraints.maxWidth < 600
                         ? 2
                         : (constraints.maxWidth / 200).floor().clamp(3, 6),
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    // 22 more for the guests · seated-for line.
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
+                    // Includes the status strip and badge; 22 of it is the
+                    // guests · seated-for line.
                     mainAxisExtent:
-                        182 +
+                        192 +
                         (MediaQuery.textScalerOf(context).scale(14) - 14) * 8 +
                         (!qrAllowed || qr.pending.isEmpty
                             ? 0
@@ -293,7 +294,7 @@ class _TakeawayCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canView = AccessPolicy.canTakeawayOrders(session);
     final counts = canView
         ? ref.watch(
@@ -367,13 +368,21 @@ class OrderContextCard extends StatelessWidget {
 
   /// Optional secondary button in the bottom row (e.g. create a new order).
   final Widget? action;
+
+  /// Waiting for confirmation stands out most, then a running bill; a free
+  /// table stays quiet so busy tables are found at a glance.
+  AppTone get _tone => hasUnconfirmedOrder
+      ? AppTone.warning
+      : hasOrder
+      ? AppTone.success
+      : AppTone.neutral;
+
   @override
   Widget build(BuildContext context) {
-    final accent = hasUnconfirmedOrder
-        ? AppColors.warning
-        : hasOrder
-        ? AppColors.success
-        : OrderPalette.primary;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final tone = context.tone(_tone);
+    final active = hasOrder || hasUnconfirmedOrder;
     return Semantics(
       button: true,
       enabled: onTap != null,
@@ -389,122 +398,144 @@ class OrderContextCard extends StatelessWidget {
             ].whereType<String>().join(', ')
           : null,
       child: Material(
-        color: hasUnconfirmedOrder
-            ? AppColors.warningTint
-            : hasOrder
-            ? AppColors.successTint
-            : OrderPalette.clear,
+        color: colors.surface,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: BorderSide(color: accent, width: 1.2),
+          borderRadius: AppRadius.mdAll,
+          side: BorderSide(
+            color: active ? tone.border : colors.outlineVariant,
+            width: active ? 1.5 : 1,
+          ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(icon, size: 18, color: accent),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-                if (qrRequests > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: TextButton(
-                      key: const ValueKey('table-qr-requests'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.infoStrong,
-                        backgroundColor: AppColors.infoSoft,
-                        minimumSize: const Size(0, 40),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                      ),
-                      onPressed: onQrTap,
-                      child: Text(
-                        'QR · $qrRequests yêu cầu mới',
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Status strip: colour reads before any text does.
+              ColoredBox(
+                color: active ? tone.foreground : colors.surface,
+                child: const SizedBox(height: 4),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                    AppSpacing.md,
+                    AppSpacing.md,
                   ),
-                if (subtitle != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Container(
-                      padding: hasUnconfirmedOrder
-                          ? const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            )
-                          : EdgeInsets.zero,
-                      decoration: hasUnconfirmedOrder
-                          ? BoxDecoration(
-                              color: AppColors.warningSoft,
-                              borderRadius: BorderRadius.circular(4),
-                            )
-                          : null,
-                      child: Text(
-                        subtitle!,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: hasUnconfirmedOrder ? accent : null,
-                          fontWeight: hasUnconfirmedOrder
-                              ? FontWeight.w700
-                              : null,
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? tone.background
+                                  : colors.surfaceContainer,
+                              borderRadius: AppRadius.smAll,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(5),
+                              child: Icon(
+                                icon,
+                                size: 18,
+                                color: active
+                                    ? tone.foreground
+                                    : colors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 3),
+                              child: Text(
+                                name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                if (seatedSince != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: _SeatedInfo(guests: guests, since: seatedSince!),
-                  ),
-                const Spacer(),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (amount != null)
-                      Expanded(
-                        child: Text(
-                          amount!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                      if (qrRequests > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: TextButton(
+                            key: const ValueKey('table-qr-requests'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: context
+                                  .tone(AppTone.info)
+                                  .foreground,
+                              backgroundColor: context
+                                  .tone(AppTone.info)
+                                  .background,
+                              minimumSize: const Size(0, 40),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 4,
+                              ),
+                            ),
+                            onPressed: onQrTap,
+                            child: Text(
+                              'QR · $qrRequests yêu cầu mới',
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelMedium,
+                            ),
                           ),
                         ),
+                      if (subtitle != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
+                          child: StatusBadge(
+                            label: subtitle!,
+                            tone: _tone,
+                            dot: true,
+                            maxLines: 3,
+                          ),
+                        ),
+                      if (seatedSince != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: _SeatedInfo(
+                            guests: guests,
+                            since: seatedSince!,
+                          ),
+                        ),
+                      const Spacer(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (amount != null)
+                            Expanded(
+                              child: Text(
+                                amount!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.money,
+                              ),
+                            ),
+                          if (amount == null && action != null) const Spacer(),
+                          if (action != null) action!,
+                          if (onTap == null)
+                            Icon(
+                              Icons.lock_outline,
+                              size: 16,
+                              color: colors.onSurfaceVariant,
+                            ),
+                        ],
                       ),
-                    if (amount == null && action != null) const Spacer(),
-                    if (action != null) action!,
-                    if (onTap == null) const Icon(Icons.lock_outline, size: 16),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -529,8 +560,9 @@ class _OccupancyTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
-    final color = selected ? primary : AppColors.grey600;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final color = selected ? colors.primary : colors.onSurfaceVariant;
     return Semantics(
       button: true,
       selected: selected,
@@ -542,7 +574,7 @@ class _OccupancyTab extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: selected ? primary : Colors.transparent,
+                color: selected ? colors.primary : Colors.transparent,
                 width: 3,
               ),
             ),
@@ -557,29 +589,30 @@ class _OccupancyTab extends StatelessWidget {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: theme.textTheme.titleSmall?.copyWith(
                   color: color,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
               if (count != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 1,
-                  ),
+                DecoratedBox(
                   decoration: BoxDecoration(
                     color: selected
-                        ? primary.withValues(alpha: 0.12)
-                        : AppColors.grey100,
-                    borderRadius: BorderRadius.circular(10),
+                        ? colors.primary.withValues(alpha: 0.12)
+                        : colors.surfaceContainer,
+                    borderRadius: AppRadius.pillAll,
                   ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: color,
-                      fontWeight: FontWeight.w700,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 1,
+                    ),
+                    child: Text(
+                      '$count',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -591,47 +624,37 @@ class _OccupancyTab extends StatelessWidget {
   }
 }
 
-/// "6 khách · 45 phút" for a table in use; the time moves on by itself.
-class _SeatedInfo extends StatefulWidget {
+/// "6 khách · 45 phút" for a table in use; the time moves on by itself with
+/// the shared minute clock instead of a timer per table.
+class _SeatedInfo extends StatelessWidget {
   const _SeatedInfo({required this.guests, required this.since});
   final int? guests;
   final DateTime since;
 
   @override
-  State<_SeatedInfo> createState() => _SeatedInfoState();
-}
-
-class _SeatedInfoState extends State<_SeatedInfo> {
-  late final Timer _tick;
-
-  @override
-  void initState() {
-    super.initState();
-    _tick = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tick.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final elapsed = DateTime.now().difference(widget.since);
-    final seated = formatElapsed(elapsed.isNegative ? Duration.zero : elapsed);
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     // One line, so the card height stays predictable at large text.
     return Row(
       key: const ValueKey('table-seated-info'),
       children: [
-        const Icon(Icons.schedule, size: 14, color: AppColors.grey600),
+        Icon(Icons.schedule, size: 14, color: muted),
         const SizedBox(width: 4),
         Expanded(
-          child: Text(
-            widget.guests == null ? seated : '${widget.guests} khách · $seated',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: AppColors.grey700),
+          child: MinuteTickerBuilder(
+            builder: (context, now) {
+              final elapsed = now.difference(since);
+              final seated = formatElapsed(
+                elapsed.isNegative ? Duration.zero : elapsed,
+              );
+              return Text(
+                guests == null ? seated : '$guests khách · $seated',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(color: muted),
+              );
+            },
           ),
         ),
       ],

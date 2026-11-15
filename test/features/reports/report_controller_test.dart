@@ -38,7 +38,7 @@ void main() {
     });
 
     test('draft filters commit on applyFilters', () async {
-      final targetDate = const ReportDate(2026, 10, 10);
+      const targetDate = ReportDate(2026, 10, 10);
       controller.setDraftDate(targetDate);
       controller.setDraftServiceType(ServiceType.takeaway);
       controller.setDraftSourceChannel(ReportSourceChannel.cashier);

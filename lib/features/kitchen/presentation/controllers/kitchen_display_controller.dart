@@ -68,13 +68,56 @@ class KitchenDisplayController extends KitchenController {
     newItemRevision++;
   }
 
-  List<KitchenQueueItem> get items {
-    if (!current) return [];
-    return _items.values.toList()..sort((a, b) {
-      final time = a.queuedAt.compareTo(b.queuedAt);
-      return time != 0 ? time : a.key.compareTo(b.key);
-    });
+  // Derived lists, computed once per change instead of on every read: a
+  // board build reads them a dozen times, and each read used to copy and
+  // sort the whole queue. Cleared by [notifyListeners] and every write to
+  // [_items].
+  List<KitchenQueueItem>? _sortedCache, _visibleCache;
+  List<List<KitchenQueueItem>>? _servingCache;
+  Map<String, List<KitchenQueueItem>>? _visibleOrdersCache;
+  Map<String, List<KitchenQueueItem>>? _byOrderCache;
+  Map<OrderItemStatus, int>? _statusCountCache;
+  final Map<String, String> _searchText = {};
+
+  void _invalidate() {
+    _sortedCache = null;
+    _visibleCache = null;
+    _servingCache = null;
+    _visibleOrdersCache = null;
+    _byOrderCache = null;
+    _statusCountCache = null;
   }
+
+  @override
+  void notifyListeners() {
+    _invalidate();
+    super.notifyListeners();
+  }
+
+  List<KitchenQueueItem> get items {
+    if (!current) return const [];
+    return _sortedCache ??= List.unmodifiable(
+      _items.values.toList()..sort((a, b) {
+        final time = a.queuedAt.compareTo(b.queuedAt);
+        return time != 0 ? time : a.key.compareTo(b.key);
+      }),
+    );
+  }
+
+  /// How many queued dishes are in each status.
+  int countOf(OrderItemStatus status) {
+    final counts = _statusCountCache ??= () {
+      final result = <OrderItemStatus, int>{};
+      for (final item in items) {
+        result[item.itemStatus] = (result[item.itemStatus] ?? 0) + 1;
+      }
+      return result;
+    }();
+    return counts[status] ?? 0;
+  }
+
+  /// Dishes the kitchen still has to cook.
+  int get todoCount => todoStatuses.fold(0, (sum, s) => sum + countOf(s));
 
   /// Default view: only what the kitchen still has to cook. Dishes already
   /// done wait in [servingOrders] until someone takes them out.
@@ -84,47 +127,72 @@ class KitchenDisplayController extends KitchenController {
     OrderItemStatus.cooking,
   };
 
-  bool _matches(KitchenQueueItem item) {
-    final q = search.toLowerCase();
-    return q.isEmpty ||
-        '${item.itemName} ${item.orderCode} ${item.tableName ?? ''} ${item.tableCode ?? ''}'
-            .toLowerCase()
-            .contains(q);
-  }
+  bool _matches(KitchenQueueItem item, String query) =>
+      query.isEmpty ||
+      _searchText
+          .putIfAbsent(
+            item.key,
+            () =>
+                '${item.itemName} ${item.orderCode} ${item.tableName ?? ''} ${item.tableCode ?? ''}'
+                    .toLowerCase(),
+          )
+          .contains(query);
 
-  List<KitchenQueueItem> get visibleItems => items
-      .where(
+  List<KitchenQueueItem> get visibleItems {
+    if (!current) return const [];
+    final query = search.toLowerCase();
+    return _visibleCache ??= List.unmodifiable(
+      items.where(
         (item) =>
             (todoOnly
                 ? todoStatuses.contains(item.itemStatus)
                 : filter == null || item.itemStatus == filter) &&
-            _matches(item),
-      )
-      .toList();
+            _matches(item, query),
+      ),
+    );
+  }
 
   /// Ready dishes grouped by order, oldest first, for the "Chờ phục vụ" list
   /// under the to-do view.
   List<List<KitchenQueueItem>> get servingOrders {
-    final result = <String, List<KitchenQueueItem>>{};
-    for (final item in items) {
-      if (item.itemStatus == OrderItemStatus.ready && _matches(item)) {
-        (result[item.orderId] ??= []).add(item);
+    if (!current) return const [];
+    return _servingCache ??= () {
+      final query = search.toLowerCase();
+      final result = <String, List<KitchenQueueItem>>{};
+      for (final item in items) {
+        if (item.itemStatus == OrderItemStatus.ready && _matches(item, query)) {
+          (result[item.orderId] ??= []).add(item);
+        }
       }
-    }
-    return result.values.toList();
+      return List<List<KitchenQueueItem>>.unmodifiable(result.values);
+    }();
   }
 
   Map<String, List<KitchenQueueItem>> get visibleOrders {
-    final ids = visibleItems.map((item) => item.orderId).toSet();
-    final result = <String, List<KitchenQueueItem>>{};
-    for (final item in items) {
-      if (ids.contains(item.orderId)) (result[item.orderId] ??= []).add(item);
-    }
-    return result;
+    if (!current) return const {};
+    return _visibleOrdersCache ??= () {
+      final ids = visibleItems.map((item) => item.orderId).toSet();
+      final result = <String, List<KitchenQueueItem>>{};
+      for (final item in items) {
+        if (ids.contains(item.orderId)) {
+          (result[item.orderId] ??= []).add(item);
+        }
+      }
+      return Map<String, List<KitchenQueueItem>>.unmodifiable(result);
+    }();
   }
 
-  List<KitchenQueueItem> forOrder(String id) =>
-      items.where((item) => item.orderId == id).toList();
+  List<KitchenQueueItem> forOrder(String id) {
+    final byOrder = _byOrderCache ??= () {
+      final result = <String, List<KitchenQueueItem>>{};
+      for (final item in items) {
+        (result[item.orderId] ??= []).add(item);
+      }
+      return result;
+    }();
+    return List.of(byOrder[id] ?? const <KitchenQueueItem>[]);
+  }
+
   KitchenQueueItem? find(String key) => _items[key];
   bool orderComplete(String id) => complete && !inconsistentOrders.contains(id);
   void setMode(KitchenViewMode value) {
@@ -348,6 +416,8 @@ class KitchenDisplayController extends KitchenController {
     _items
       ..clear()
       ..addAll(next);
+    _searchText.clear();
+    _invalidate();
     for (final e in versions.entries) {
       final max = e.value.reduce((a, b) => a > b ? a : b);
       if (max > (_minimumVersions[e.key] ?? -1)) _minimumVersions[e.key] = max;
@@ -368,6 +438,7 @@ class KitchenDisplayController extends KitchenController {
     orderStatuses[order.id] = order.summary.status;
     _statusVersions[order.id] = order.version;
     _items.removeWhere((_, item) => item.orderId == order.id);
+    _invalidate();
     if (source.isNotEmpty &&
         !const {
           OrderStatus.completed,
@@ -381,7 +452,9 @@ class KitchenDisplayController extends KitchenController {
             source.first;
         final row = origin.fromOrder(order, line);
         _items[row.key] = row;
+        _searchText.remove(row.key);
       }
+      _invalidate();
     }
     inconsistentOrders.remove(order.id);
     changed();

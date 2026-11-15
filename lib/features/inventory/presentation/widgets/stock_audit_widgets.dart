@@ -8,6 +8,7 @@ import 'inventory_widgets.dart';
 import 'stock_widgets.dart';
 import 'warehouse_picker.dart';
 import '../../domain/entities/inventory_entities.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 String stockAuditLocation(String id) =>
     '/app/inventory/audits/${Uri.encodeComponent(id)}';
@@ -103,7 +104,7 @@ class StockAuditScopeGuard extends ConsumerWidget {
   final Widget child;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (scope != AccessPolicy.inventoryScope(session) ||
         !AccessPolicy.canViewStockAudits(session) ||
         !AccessPolicy.canInventory(session, permission)) {
@@ -273,7 +274,7 @@ class StockAuditStaleDialog extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -338,7 +339,7 @@ class StockAuditStaleNotice extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Row(
         children: [

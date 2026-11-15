@@ -17,7 +17,7 @@ class StockAuditList extends ConsumerWidget {
   const StockAuditList({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canViewStockAudits(session)) {
       return const Text('Bạn chưa có quyền hoặc tính năng kiểm kê kho.');
     }

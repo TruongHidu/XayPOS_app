@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/entities/report_overview.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class CompletedOrdersBreakdownCard extends StatelessWidget {
   final ReportOrdersSummary ordersSummary;
@@ -15,7 +16,7 @@ class CompletedOrdersBreakdownCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),

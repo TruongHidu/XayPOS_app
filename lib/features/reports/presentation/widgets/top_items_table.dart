@@ -4,6 +4,7 @@ import '../../../../core/ui/widgets/endless_list_footer.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_page.dart';
 import '../../domain/entities/top_item_report_row.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class TopItemsTable extends StatelessWidget {
   final ReportPage<TopItemReportRow> page;
@@ -30,12 +31,12 @@ class TopItemsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isMobile = MediaQuery.of(context).size.width < 700;
+    final isMobile = MediaQuery.sizeOf(context).width < 700;
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
@@ -143,7 +144,7 @@ class TopItemsTable extends StatelessWidget {
                 color: theme.colorScheme.surfaceContainerHighest.withValues(
                   alpha: 0.4,
                 ),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppRadius.smAll,
               ),
               child: Row(
                 children: [

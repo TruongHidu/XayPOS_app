@@ -7,6 +7,7 @@ import '../../domain/entities/permission_catalog_item.dart';
 import '../../domain/entities/staff_member.dart';
 import '../controllers/staff_permission_controller.dart';
 import 'staff_permission_labels.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// One on/off switch per permission, starting from the staff member's role.
 /// Grants and denies stay a controller detail so owners never see them.
@@ -89,7 +90,7 @@ class _StaffPermissionDialogState extends ConsumerState<StaffPermissionDialog> {
       clipBehavior: Clip.antiAlias,
       backgroundColor: Theme.of(context).colorScheme.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.xlAll),
       child: SizedBox(
         width: double.infinity,
         height: MediaQuery.sizeOf(context).height - 48,
@@ -223,8 +224,8 @@ class _StaffPermissionDialogState extends ConsumerState<StaffPermissionDialog> {
             isDense: true,
             filled: true,
             fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.4),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.mdAll,
               borderSide: BorderSide.none,
             ),
           ),
@@ -354,7 +355,7 @@ class _PermissionGroupCard extends StatelessWidget {
       color: colors.surface,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: ExpansionTile(

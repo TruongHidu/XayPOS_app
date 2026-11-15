@@ -1,45 +1,35 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../features/order/presentation/screens/order_list_screen.dart';
-import '../../../features/overview/presentation/screens/overview_screen.dart';
-import '../../../features/order/presentation/screens/order_service_context_screen.dart';
-import '../../../features/order/presentation/screens/takeaway_orders_screen.dart';
-import '../../../features/kitchen/presentation/screens/kitchen_display_screen.dart';
 
-import '../../../app/providers.dart';
-import '../../auth/app_session.dart';
-import '../../auth/access_policy.dart';
-import '../sidebar/app_sidebar.dart';
-import '../sidebar/app_sidebar_registry.dart';
-import '../sidebar/sidebar_filter.dart';
-import '../sidebar/sidebar_menu_item.dart';
-import '../widgets/realtime_connection_banner.dart';
-import 'app_bottom_tabs.dart';
-import 'exit_confirm_dialog.dart';
-
-import '../../../features/staff/presentation/screens/staff_management_screen.dart';
-import '../../../features/menu/presentation/screens/menu_management_screen.dart';
-import '../../../features/menu/presentation/widgets/menu_filter_panel.dart';
-import '../../../features/tables/presentation/screens/tables_management_screen.dart';
-import '../../../features/reports/presentation/screens/daily_revenue_screen.dart';
-import '../../../features/reports/presentation/screens/reports_screen.dart';
-import '../../../features/reports/presentation/widgets/report_filter_panel.dart';
-import '../../../features/reference_margin_reports/presentation/screens/reference_margin_reports_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_balances_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_documents_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_alerts_screen.dart';
-import '../../../features/inventory/presentation/screens/inventory_audits_screen.dart';
-import '../../../app/theme/app_colors.dart';
+import '../../core/auth/access_policy.dart';
+import '../../core/auth/app_session.dart';
+import '../../core/ui/shell/app_bottom_tabs.dart';
+import '../../core/ui/shell/exit_confirm_dialog.dart';
+import '../../core/ui/sidebar/app_sidebar.dart';
+import '../../core/ui/sidebar/app_sidebar_rail.dart';
+import '../../core/ui/sidebar/app_sidebar_registry.dart';
+import '../../core/ui/sidebar/sidebar_filter.dart';
+import '../../core/ui/sidebar/sidebar_menu_item.dart';
+import '../../core/ui/widgets/list_states.dart';
+import '../../core/ui/widgets/realtime_connection_banner.dart';
+import '../providers.dart';
+import '../theme/app_tokens.dart';
+import 'shell_sections.dart';
+import 'shell_tabs.dart';
 
 /// The single unified shell for the entire application.
 ///
-/// Replaces the former role-specific shells (ManagementShell,
-/// CashierShell, StaffShell, KitchenShell). The sidebar content
-/// is built dynamically from [AppSidebarRegistry], filtered by the
+/// The sidebar content is built from [AppSidebarRegistry], filtered by the
 /// user's effective permissions and subscription features.
+///
+/// * Phones and portrait tablets (< 1024): bottom tabs for the role's main
+///   sections, the full sidebar as a drawer from the menu button.
+/// * Landscape tablets and POS screens (>= 1024): a rail of every section
+///   stays on the left; the menu button opens the full sidebar over it.
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({
     super.key,
@@ -93,7 +83,7 @@ class _AppShellState extends ConsumerState<AppShell>
     super.initState();
     _sidebarController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.slow,
     );
     _selectedId = widget.initialSection;
   }
@@ -156,44 +146,23 @@ class _AppShellState extends ConsumerState<AppShell>
     if (allowed) await SystemNavigator.pop();
   }
 
-  void _onItemTap(SidebarMenuItem item) async {
-    if (const {
-      'overview',
-      'orders',
-      'order-create',
-      'takeaway-orders',
-      'tables',
-      'menu',
-      'staff',
-      'kitchen-display',
-      'daily-revenue',
-      'reports',
-      'reference-margin-reports',
-      'cashbook',
-      'inventory',
-      'inventory-documents',
-      'inventory-alerts',
-      'inventory-audits',
-      'settings',
-    }.contains(item.id)) {
-      final router = GoRouter.maybeOf(context);
-      if (router != null) {
-        if (item.id == 'order-create' &&
-            GoRouterState.of(
-              context,
-            ).uri.path.startsWith('/app/order-create')) {
-          final allowed = await ref.read(orderExitGuardProvider).allow(context);
-          if (!mounted || !allowed) return;
-        }
-        _sidebarController.reverse();
-        router.go(item.routePath);
-        return;
+  Future<void> _onItemTap(SidebarMenuItem item) async {
+    final router = GoRouter.maybeOf(context);
+    final routed =
+        shellSections.containsKey(item.id) ||
+        const {'cashbook', 'settings'}.contains(item.id);
+    if (router != null && routed) {
+      if (item.id == 'order-create' &&
+          GoRouterState.of(context).uri.path.startsWith('/app/order-create')) {
+        final allowed = await ref.read(orderExitGuardProvider).allow(context);
+        if (!mounted || !allowed) return;
       }
+      _sidebarController.reverse();
+      router.go(item.routePath);
+      return;
     }
     setState(() => _selectedId = item.id);
     _sidebarController.reverse();
-    // Navigation to the actual feature screens will be wired
-    // as those screens are implemented.
   }
 
   @override
@@ -201,7 +170,7 @@ class _AppShellState extends ConsumerState<AppShell>
     final controller = ref.watch(authControllerProvider);
     final session = controller.state.session;
     if (session == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: LoadingState());
     }
 
     final visibleCategories = filterCategories(
@@ -236,30 +205,21 @@ class _AppShellState extends ConsumerState<AppShell>
         'takeaway-orders': takeawayCount,
     };
     final width = MediaQuery.sizeOf(context).width;
-    final largeScreen = width >= 1024;
+    final expanded = AppBreakpoints.isExpanded(width);
     final hasMoreSections = allVisibleItems.length > tabs.length;
     // Composing and billing hide the app bar to keep the cart in full view.
     final showTabs =
-        !largeScreen &&
+        !expanded &&
         !widget.isInner &&
         widget.showAppBar &&
         tabs.length + (hasMoreSections ? 1 : 0) >= 2;
-    final mediumScreen = width >= 600;
-    final toolbarHeight = largeScreen
-        ? 80.0
-        : mediumScreen
-        ? 72.0
-        : kToolbarHeight;
-    final menuButtonSize = largeScreen
-        ? 72.0
-        : mediumScreen
-        ? 64.0
-        : 48.0;
-    final menuIconSize = largeScreen
-        ? 36.0
-        : mediumScreen
-        ? 32.0
-        : 24.0;
+    final showRail =
+        expanded &&
+        !widget.isInner &&
+        widget.showAppBar &&
+        allVisibleItems.length >= 2;
+    final medium = width >= AppBreakpoints.medium;
+    final selected = shellSections[_selectedId];
 
     return PopScope(
       canPop: ModalRoute.of(context)?.isFirst == false,
@@ -269,49 +229,27 @@ class _AppShellState extends ConsumerState<AppShell>
       child: Scaffold(
         appBar: widget.showAppBar
             ? AppBar(
-                toolbarHeight: toolbarHeight,
-                leadingWidth: menuButtonSize + (mediumScreen ? 16 : 8),
-                leading: Center(
-                  child: SizedBox.square(
-                    dimension: menuButtonSize,
-                    child: IconButton(
-                      onPressed: widget.isInner ? _goBack : _toggleSidebar,
-                      tooltip: widget.isInner ? 'Quay lại' : 'Menu',
-                      iconSize: menuIconSize,
-                      style: IconButton.styleFrom(
-                        fixedSize: Size.square(menuButtonSize),
-                        padding: EdgeInsets.zero,
-                      ),
-                      icon: widget.isInner
-                          ? Icon(Icons.arrow_back, size: menuIconSize)
-                          : AnimatedIcon(
-                              icon: AnimatedIcons.menu_close,
-                              progress: _sidebarController,
-                              size: menuIconSize,
-                            ),
-                    ),
-                  ),
+                toolbarHeight: medium ? 64 : kToolbarHeight,
+                titleSpacing: AppSpacing.xs,
+                leading: IconButton(
+                  onPressed: widget.isInner ? _goBack : _toggleSidebar,
+                  tooltip: widget.isInner ? 'Quay lại' : 'Menu',
+                  icon: widget.isInner
+                      ? const Icon(Icons.arrow_back)
+                      : AnimatedIcon(
+                          icon: AnimatedIcons.menu_close,
+                          progress: _sidebarController,
+                        ),
                 ),
                 title: Text(
                   widget.innerTitle ?? _currentTitle(allVisibleItems),
                 ),
-                actionsIconTheme: IconThemeData(size: menuIconSize),
                 actions: [
                   ...?widget.actions,
                   // Mirrors _buildContent, which mounts these screens itself.
-                  if (widget.child == null && _selectedId == 'reports')
-                    const ReportFilterAction(),
-                  if (widget.child == null && _selectedId == 'menu')
-                    const MenuFilterAction(),
-                  SizedBox(width: mediumScreen ? 16 : 8),
+                  if (widget.child == null) ...?selected?.actions,
+                  SizedBox(width: medium ? AppSpacing.md : AppSpacing.xs),
                 ],
-                // actions: [
-                //   IconButton(
-                //     onPressed: controller.logout,
-                //     tooltip: 'Đăng xuất',
-                //     icon: const Icon(Icons.logout),
-                //   ),
-                // ],
               )
             : null,
         body: Stack(
@@ -320,10 +258,26 @@ class _AppShellState extends ConsumerState<AppShell>
             // Main content area. Composing and billing hide the app bar and
             // draw their own safe-area header, so the strip stays off them.
             Positioned.fill(
-              child: Column(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (widget.showAppBar) const RealtimeConnectionBanner(),
-                  Expanded(child: _buildContent(session, allVisibleItems)),
+                  if (showRail)
+                    AppSidebarRail(
+                      categories: visibleCategories,
+                      selectedId: _selectedId,
+                      itemBadges: badges,
+                      onItemTap: _onItemTap,
+                    ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        if (widget.showAppBar) const RealtimeConnectionBanner(),
+                        Expanded(
+                          child: _buildContent(session, allVisibleItems),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -372,21 +326,9 @@ class _AppShellState extends ConsumerState<AppShell>
       );
     }
     if (items.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_outline, size: 56, color: AppColors.grey500),
-              SizedBox(height: 16),
-              Text(
-                'Tài khoản chưa được cấp quyền truy cập chức năng nào.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      return const EmptyState(
+        icon: Icons.lock_outline,
+        message: 'Tài khoản chưa được cấp quyền truy cập chức năng nào.',
       );
     }
 
@@ -394,98 +336,13 @@ class _AppShellState extends ConsumerState<AppShell>
     if (selected == null) {
       return const Center(child: Text('Chọn chức năng từ menu.'));
     }
-    if (selected.id == 'overview') {
-      return OverviewScreen(key: ValueKey(AccessPolicy.reportScope(session)));
-    }
-    if (selected.id == 'orders') return const OrderListScreen();
-    if (selected.id == 'order-create') return const OrderServiceContextScreen();
-    if (selected.id == 'takeaway-orders') return const TakeawayOrdersScreen();
-    if (selected.id == 'kitchen-display') {
-      return KitchenDisplayScreen(
-        key: ValueKey(AccessPolicy.kitchenScope(session)),
-      );
-    }
+    final section = shellSections[selected.id];
+    if (section != null) return section.build(session);
 
-    if (selected.id == 'staff') {
-      return const StaffManagementScreen();
-    }
-    if (selected.id == 'menu') {
-      return MenuManagementScreen(
-        key: ValueKey(AccessPolicy.menuScope(session)),
-      );
-    }
-    if (selected.id == 'tables') {
-      return TablesManagementScreen(
-        key: ValueKey(AccessPolicy.tableScope(session)),
-      );
-    }
-    if (selected.id == 'daily-revenue') {
-      return DailyRevenueScreen(
-        key: ValueKey(AccessPolicy.reportScope(session)),
-      );
-    }
-    if (selected.id == 'reports') {
-      return ReportsScreen(key: ValueKey(AccessPolicy.reportScope(session)));
-    }
-    if (selected.id == 'reference-margin-reports') {
-      return ReferenceMarginReportsScreen(
-        key: ValueKey(AccessPolicy.referenceMarginScope(session)),
-      );
-    }
-    if (selected.id == 'inventory') {
-      return const InventoryBalancesScreen();
-    }
-    if (selected.id == 'inventory-documents') {
-      return const InventoryDocumentsScreen();
-    }
-    if (selected.id == 'inventory-alerts') {
-      return const InventoryAlertsScreen();
-    }
-    if (selected.id == 'inventory-audits') {
-      return const InventoryAuditsScreen();
-    }
-
-    // Placeholder content for each section.
-    // Will be replaced by real feature widgets when implemented.
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  selected.icon,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        selected.label,
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Màn hình ${selected.label} đang được hoàn thiện.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return EmptyState(
+      icon: selected.icon,
+      message: selected.label,
+      hint: 'Màn hình ${selected.label} đang được hoàn thiện.',
     );
   }
 

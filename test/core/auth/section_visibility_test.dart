@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/auth/access_policy.dart';
 import 'package:pos_saas_app/core/auth/app_session.dart';
-import 'package:pos_saas_app/core/ui/shell/app_bottom_tabs.dart';
+import 'package:pos_saas_app/app/shell/shell_tabs.dart';
 import 'package:pos_saas_app/core/ui/sidebar/app_sidebar_registry.dart';
 import 'package:pos_saas_app/core/ui/sidebar/sidebar_filter.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';

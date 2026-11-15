@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../controllers/reference_margin_reports_controller.dart';
 import '../providers/reference_margin_providers.dart';
@@ -19,7 +19,7 @@ class ReferenceMarginReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canViewReferenceMarginReports(session)) {
       return const Center(
         child: SingleChildScrollView(

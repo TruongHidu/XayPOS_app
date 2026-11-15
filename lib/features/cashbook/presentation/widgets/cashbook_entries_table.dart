@@ -4,6 +4,7 @@ import '../../domain/entities/cashbook_enums.dart';
 import '../../domain/entities/cashbook_records.dart';
 import 'cashbook_common.dart';
 import 'cashbook_format.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Where a row's source document can be opened, when the viewer may open it.
 typedef CashbookSourceLink = ({String label, VoidCallback? open});
@@ -187,7 +188,7 @@ class _EntryCard extends StatelessWidget {
       children: [
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.smAll,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             child: Row(

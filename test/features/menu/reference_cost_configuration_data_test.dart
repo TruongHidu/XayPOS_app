@@ -116,7 +116,7 @@ void main() {
         expect(MenuValidation.itemPatch(menu), isEmpty);
         expect(IngredientValidation.patch(ingredient), isEmpty);
       }
-      final toggle = const UpdateMenuItemInput(
+      const toggle = UpdateMenuItemInput(
         expectedVersion: 25,
         recipeEnabled: false,
       );
@@ -125,7 +125,7 @@ void main() {
         'expectedVersion': 25,
         'recipeEnabled': false,
       });
-      final enabled = const UpdateMenuItemInput(
+      const enabled = UpdateMenuItemInput(
         expectedVersion: 26,
         recipeEnabled: true,
       );

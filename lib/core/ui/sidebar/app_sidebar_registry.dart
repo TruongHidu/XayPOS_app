@@ -42,6 +42,7 @@ abstract final class AppSidebarRegistry {
         SidebarMenuItem(
           id: 'takeaway-orders',
           label: 'Đơn mang đi',
+          shortLabel: 'Mang đi',
           icon: Icons.shopping_bag_outlined,
           routePath: '/app/takeaway',
           requiredPermissions: ['ORDER_VIEW'],
@@ -59,6 +60,7 @@ abstract final class AppSidebarRegistry {
         SidebarMenuItem(
           id: 'kitchen-display',
           label: 'Màn hình bếp',
+          shortLabel: 'Bếp',
           icon: Icons.monitor_outlined,
           routePath: '/app/kitchen',
           requiredPermissions: ['KITCHEN_VIEW'],
@@ -90,6 +92,7 @@ abstract final class AppSidebarRegistry {
         SidebarMenuItem(
           id: 'tables',
           label: 'Sơ đồ bàn',
+          shortLabel: 'Bàn',
           icon: Icons.table_restaurant_outlined,
           routePath: '/app/tables',
           requiredPermissions: ['TABLE_VIEW'],

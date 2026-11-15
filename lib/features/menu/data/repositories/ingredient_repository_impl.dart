@@ -16,7 +16,7 @@ class IngredientRepositoryImpl implements IngredientRepository {
     try {
       return Success(await operation());
     } on FormatException {
-      return Error(
+      return const Error(
         Failure(
           type: FailureType.internal,
           code: 'INVALID_INGREDIENT_RESPONSE',

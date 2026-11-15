@@ -28,7 +28,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
     c.seed(order);
     final live = c.order ?? order;
     final s = live.summary;
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final router = GoRouter.maybeOf(context);
     final draft = s.status == OrderStatus.open;
     final done = s.status == OrderStatus.completed;
@@ -222,8 +222,8 @@ class _Action extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = ButtonStyle(
-      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(48)),
+    const style = ButtonStyle(
+      minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)),
     );
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),

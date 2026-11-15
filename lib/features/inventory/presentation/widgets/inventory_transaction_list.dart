@@ -25,7 +25,7 @@ class InventoryTransactionList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(inventoryTransactionsProvider(target)), q = c.query;
     final canOpenOrder = AccessPolicy.canOrders(
-      ref.watch(authControllerProvider).state.session,
+      ref.watch(currentSessionProvider),
       'ORDER_VIEW',
     );
     String price(InventoryTransaction row) =>

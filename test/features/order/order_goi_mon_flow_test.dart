@@ -125,7 +125,8 @@ void main() {
   ) async {
     final tables = TableServer()..table = tableData(occupied: true);
     final orders = FakeOrders()
-      ..onActive = (_) async => Success<OrderDetail?>(null); // 204 No Content
+      ..onActive = (_) async =>
+          const Success<OrderDetail?>(null); // 204 No Content
     final container = await pumpOrder(
       tester,
       tables: tables,

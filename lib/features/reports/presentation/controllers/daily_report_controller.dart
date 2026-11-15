@@ -15,12 +15,12 @@ class DailyReportController extends ChangeNotifier {
 
   DailyReportController({required GetDailyReport getDailyReport})
     : _getDailyReport = getDailyReport {
-    _draftFilter = DailyReportFilter();
+    _draftFilter = const DailyReportFilter();
     _appliedFilter = _draftFilter;
   }
 
-  DailyReportFilter _draftFilter = DailyReportFilter();
-  DailyReportFilter _appliedFilter = DailyReportFilter();
+  DailyReportFilter _draftFilter = const DailyReportFilter();
+  DailyReportFilter _appliedFilter = const DailyReportFilter();
 
   bool _isLoading = false;
   bool _isRefreshing = false;
@@ -78,7 +78,7 @@ class DailyReportController extends ChangeNotifier {
   }
 
   void resetToDefaults() {
-    _draftFilter = DailyReportFilter();
+    _draftFilter = const DailyReportFilter();
     applyFilters();
   }
 

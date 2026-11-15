@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../app/theme/app_tokens.dart';
 
 /// Shows [child] as a floating panel just below the widget owning
 /// [anchorContext] (typically an app bar action). Right-aligned on wide
@@ -78,7 +79,7 @@ class OverlayPanel extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       elevation: 8,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.lgAll,
       color: theme.colorScheme.surface,
       clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(

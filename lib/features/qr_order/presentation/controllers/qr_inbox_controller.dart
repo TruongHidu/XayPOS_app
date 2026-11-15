@@ -21,14 +21,31 @@ class QrInboxController extends OrderController {
   List<QrRequest> get pending => !can('ORDER_VIEW')
       ? const []
       : _rows.where((row) => row.pendingAt(clock())).toList(growable: false);
-  List<QrRequest> forTable(String id, String? sessionId) => pending
-      .where(
-        (row) =>
-            row.tableId == id &&
+  List<QrRequest>? _indexedRows;
+  Map<String?, List<QrRequest>> _byTable = const {};
+
+  List<QrRequest> forTable(String id, String? sessionId) {
+    if (!can('ORDER_VIEW')) return const [];
+    if (!identical(_indexedRows, _rows)) {
+      final index = <String?, List<QrRequest>>{};
+      for (final row in _rows) {
+        (index[row.tableId] ??= []).add(row);
+      }
+      _byTable = index;
+      _indexedRows = _rows;
+    }
+    final rows = _byTable[id];
+    if (rows == null) return const [];
+    final now = clock();
+    return [
+      for (final row in rows)
+        if (row.pendingAt(now) &&
             (row.observedSessionId == null ||
-                row.observedSessionId == sessionId),
-      )
-      .toList();
+                row.observedSessionId == sessionId))
+          row,
+    ];
+  }
+
   bool loading = false;
   Failure? failure;
   DateTime? lastUpdated, retryAt;

@@ -97,7 +97,7 @@ class ReportFilterPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _SectionLabel('Khoảng thời gian'),
+          const _SectionLabel('Khoảng thời gian'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -123,7 +123,7 @@ class ReportFilterPanel extends ConsumerWidget {
                 _pickRange(context, range, summaryCtrl.setDraftRange),
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Loại phục vụ'),
+          const _SectionLabel('Loại phục vụ'),
           const SizedBox(height: 8),
           DropdownButtonFormField<ServiceType?>(
             value: draft.serviceType,
@@ -146,7 +146,7 @@ class ReportFilterPanel extends ConsumerWidget {
             onChanged: summaryCtrl.setDraftServiceType,
           ),
           const SizedBox(height: 16),
-          _SectionLabel('Kênh tạo'),
+          const _SectionLabel('Kênh tạo'),
           const SizedBox(height: 8),
           DropdownButtonFormField<ReportSourceChannel?>(
             value: draft.sourceChannel,

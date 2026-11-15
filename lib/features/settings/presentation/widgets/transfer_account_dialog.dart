@@ -8,6 +8,7 @@ import '../../../../core/values/vietnam_banks.dart';
 import '../../../../core/values/vietnamese_text.dart';
 import '../../domain/entities/transfer_account.dart';
 import '../providers/settings_providers.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Adds or edits the receiving bank account; returns the saved account.
 class TransferAccountDialog extends ConsumerStatefulWidget {
@@ -121,7 +122,7 @@ class _TransferAccountDialogState extends ConsumerState<TransferAccountDialog> {
                 builder: (field) => InkWell(
                   key: const ValueKey('transfer-account-bank'),
                   onTap: _saving ? null : _pickBank,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: AppRadius.xsAll,
                   child: InputDecorator(
                     isEmpty: _bin.isEmpty,
                     decoration: InputDecoration(

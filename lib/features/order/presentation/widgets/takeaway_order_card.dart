@@ -11,6 +11,7 @@ import 'order_append_navigation.dart';
 import 'order_mutation_forms.dart';
 import 'order_payment_dialog.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 enum TakeawayQuickAction {
   confirm('Xác nhận', Icons.send_outlined),
@@ -36,7 +37,7 @@ List<TakeawayQuickAction> takeawayQuickActions(
   OrderSummary order,
   WidgetRef ref,
 ) {
-  final session = ref.watch(authControllerProvider).state.session;
+  final session = ref.watch(currentSessionProvider);
   final unpaid = order.paymentStatus == OrderPaymentStatus.unpaid;
   return [
     if (order.status == OrderStatus.open &&
@@ -150,7 +151,7 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
       margin: const EdgeInsets.only(bottom: 8),
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: order.status == OrderStatus.ready
               ? AppColors.success
@@ -159,7 +160,7 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         onTap: widget.onOpen,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -183,12 +184,16 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.schedule, size: 14, color: AppColors.grey600),
+                      const Icon(
+                        Icons.schedule,
+                        size: 14,
+                        color: AppColors.grey600,
+                      ),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           takeawayWaited(order.createdAt, DateTime.now()),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.grey700,
                           ),
@@ -288,10 +293,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(
-      color: background,
-      borderRadius: BorderRadius.circular(4),
-    ),
+    decoration: BoxDecoration(color: background, borderRadius: AppRadius.xsAll),
     child: Text(
       label,
       style: TextStyle(

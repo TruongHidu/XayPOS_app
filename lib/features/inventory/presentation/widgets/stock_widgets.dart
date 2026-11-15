@@ -196,7 +196,7 @@ class StockPageFrame extends ConsumerWidget {
   final Future<void> Function()? onRefresh;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canInventory(session, 'INVENTORY_VIEW') ||
         !AccessPolicy.canInventory(session, permission)) {
       return const Center(child: Text('Bạn chưa có quyền mở chức năng này.'));

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../app/theme/app_tokens.dart';
 
 /// One entry of [CreateSpeedDialFab].
 class SpeedDialOption {
@@ -130,10 +131,10 @@ class _OptionRow extends StatelessWidget {
           child: Material(
             elevation: 3,
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.smAll,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.smAll,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,

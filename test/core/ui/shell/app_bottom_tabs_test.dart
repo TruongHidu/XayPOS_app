@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/ui/shell/app_bottom_tabs.dart';
+import 'package:pos_saas_app/app/shell/shell_tabs.dart';
 import 'package:pos_saas_app/app/shell/app_shell.dart';
+import 'package:pos_saas_app/core/ui/sidebar/app_sidebar_rail.dart';
 import 'package:pos_saas_app/core/ui/sidebar/sidebar_menu_item.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/user_role.dart';
@@ -231,6 +233,36 @@ void main() {
     testWidgets('large screens stay with the sidebar', (tester) async {
       await pumpShell(tester, width: 1200);
       expect(find.byType(NavigationBar), findsNothing);
+    });
+
+    testWidgets('tablets get a rail that opens a section in one tap', (
+      tester,
+    ) async {
+      await pumpShell(tester, width: 1280);
+      expect(find.byType(AppSidebarRail), findsOneWidget);
+      final rail = tester.getRect(find.byType(AppSidebarRail));
+      expect(rail.left, 0);
+      expect(rail.width, AppSidebarRail.width);
+      // Content starts right of the rail instead of under it.
+      expect(
+        tester.getCenter(find.text('Nội dung')).dx,
+        closeTo(AppSidebarRail.width + (1280 - AppSidebarRail.width) / 2, 1),
+      );
+      await tester.tap(find.byKey(const ValueKey('rail-item-order-create')));
+      await tester.pumpAndSettle();
+      expect(find.text('Màn gọi món'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('phones, inner and composing screens have no rail', (
+      tester,
+    ) async {
+      await pumpShell(tester);
+      expect(find.byType(AppSidebarRail), findsNothing);
+      await pumpShell(tester, width: 1280, inner: true);
+      expect(find.byType(AppSidebarRail), findsNothing);
+      await pumpShell(tester, width: 1280, showAppBar: false);
+      expect(find.byType(AppSidebarRail), findsNothing);
     });
   });
 }

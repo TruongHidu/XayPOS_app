@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/ui/widgets/responsive_columns.dart';
 import '../controllers/staff_list_controller.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class StaffFilterPanel extends StatelessWidget {
   const StaffFilterPanel({super.key, required this.controller});
@@ -16,7 +17,7 @@ class StaffFilterPanel extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
@@ -146,14 +147,14 @@ class StaffFilterPanel extends StatelessWidget {
     IconData? icon,
   }) {
     final colors = Theme.of(context).colorScheme;
-    final radius = BorderRadius.circular(10);
+    const radius = AppRadius.buttonAll;
     return InputDecoration(
       labelText: label,
       prefixIcon: icon == null ? null : Icon(icon),
       filled: true,
       fillColor: colors.surfaceContainerLow,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      border: OutlineInputBorder(
+      border: const OutlineInputBorder(
         borderRadius: radius,
         borderSide: BorderSide.none,
       ),

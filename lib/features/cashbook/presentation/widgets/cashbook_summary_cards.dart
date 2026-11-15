@@ -4,6 +4,7 @@ import '../../../reports/domain/entities/report_money.dart';
 import '../../domain/entities/cashbook_records.dart';
 import 'cashbook_common.dart';
 import 'cashbook_format.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Income, expense and their difference. The expense breakdown lines are
 /// parts of the total, so they are drawn as sub-rows, never as extra cards.
@@ -101,7 +102,7 @@ class _KpiCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: AppRadius.buttonAll,
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),

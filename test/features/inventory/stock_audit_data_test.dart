@@ -130,7 +130,7 @@ void main() {
           StockAuditCountsInput(
             expectedVersion: 2,
             items: [
-              StockAuditCountInput(
+              const StockAuditCountInput(
                 auditItemId: 'ai1',
                 countedQuantity: InventoryQuantity.zero,
                 note: '',
@@ -236,11 +236,11 @@ void main() {
         StockAuditCountsInput(
           expectedVersion: 4,
           items: [
-            StockAuditCountInput(
+            const StockAuditCountInput(
               auditItemId: 'ai1',
               countedQuantity: InventoryQuantity.zero,
             ),
-            StockAuditCountInput(
+            const StockAuditCountInput(
               auditItemId: 'ai2',
               countedQuantity: InventoryQuantity.zero,
               note: '  ',
@@ -504,7 +504,7 @@ void main() {
         ),
       );
       final repo = StockAuditRepositoryImpl(StockAuditRemoteDataSource(dio));
-      final row = StockAuditCountInput(
+      const row = StockAuditCountInput(
         auditItemId: 'ai1',
         countedQuantity: InventoryQuantity.zero,
       );
@@ -611,7 +611,7 @@ void main() {
           StockAuditCountsInput(
             expectedVersion: 0,
             items: [
-              StockAuditCountInput(
+              const StockAuditCountInput(
                 auditItemId: 'ai1',
                 countedQuantity: InventoryQuantity.zero,
               ),
@@ -716,7 +716,7 @@ void main() {
                 StockAuditCountsInput(
                   expectedVersion: 2,
                   items: [
-                    StockAuditCountInput(
+                    const StockAuditCountInput(
                       auditItemId: 'foreign-item',
                       countedQuantity: InventoryQuantity.zero,
                     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../controllers/order_draft_controller.dart' show OrderDraftLine;
+import '../../../../app/theme/app_tokens.dart';
 
 /// From this width the menu and the cart sit side by side, as on a tablet in
 /// landscape, so the cart never hides behind a tab.
@@ -112,7 +113,7 @@ class OrderRemovedLineTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
       decoration: BoxDecoration(
         color: AppColors.grey100,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadius.buttonAll,
         border: Border.all(color: AppColors.grey300),
       ),
       child: Row(

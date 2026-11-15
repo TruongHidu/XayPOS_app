@@ -11,6 +11,7 @@ class SidebarMenuItem {
     required this.label,
     required this.icon,
     required this.routePath,
+    this.shortLabel,
     this.requiredPermissions = const [],
     this.requiredAnyPermissions = const [],
     this.requiredFeatures = const [],
@@ -21,6 +22,13 @@ class SidebarMenuItem {
 
   /// Display label for this menu item.
   final String label;
+
+  /// A shorter label for bottom tabs and the tablet rail, when [label] is
+  /// too long for them.
+  final String? shortLabel;
+
+  /// [shortLabel] when set, otherwise [label].
+  String get compactLabel => shortLabel ?? label;
 
   /// Icon shown next to the label.
   final IconData icon;

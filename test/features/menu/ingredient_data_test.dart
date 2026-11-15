@@ -77,7 +77,7 @@ void main() {
       expect(
         await repository.update(
           'ingredient-1',
-          UpdateIngredientInput(
+          const UpdateIngredientInput(
             expectedVersion: 4,
             sku: '',
             description: '',

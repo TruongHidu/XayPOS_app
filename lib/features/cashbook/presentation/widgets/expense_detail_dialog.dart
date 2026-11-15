@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart'
+    show authControllerProvider, currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../inventory/presentation/widgets/stock_widgets.dart'
@@ -14,6 +15,7 @@ import '../providers/cashbook_providers.dart';
 import 'cashbook_common.dart';
 import 'cashbook_dialog_frame.dart';
 import 'cashbook_format.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<void> showExpenseDetailDialog(
   BuildContext context, {
@@ -88,7 +90,7 @@ class _ExpenseDetailDialogState extends ConsumerState<ExpenseDetailDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final timezone = ref.watch(
       cashbookRangeProvider.select((c) => c.meta?.timezone),
     );
@@ -248,7 +250,7 @@ class _ExpenseDetailDialogState extends ConsumerState<ExpenseDetailDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.mdAll,
               border: Border.all(color: theme.colorScheme.error),
             ),
             child: Column(

@@ -1,10 +1,12 @@
 import '../../../../core/ui/formatters/elapsed.dart';
+import '../../../../core/ui/widgets/elapsed_text.dart';
 import 'package:flutter/material.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/kitchen_queue.dart';
 import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/theme/app_status_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 abstract final class KitchenStyle {
   static const background = AppColors.grey100;
@@ -60,12 +62,21 @@ class KitchenStatusBadge extends StatelessWidget {
 }
 
 class KitchenQueueContext extends StatelessWidget {
-  const KitchenQueueContext({super.key, required this.item, required this.now});
+  const KitchenQueueContext({
+    super.key,
+    required this.item,
+    required this.clock,
+  });
   final KitchenQueueItem item;
-  final DateTime now;
+
+  /// The board's clock; the waited time below refreshes each minute.
+  final DateTime Function() clock;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      MinuteTickerBuilder(builder: (context, _) => _build(context, clock()));
+
+  Widget _build(BuildContext context, DateTime now) {
     final elapsed = now.difference(item.queuedAt);
     final local = item.queuedAt.toLocal();
     final time =
@@ -106,7 +117,7 @@ class KitchenQueueContext extends StatelessWidget {
           children: [
             Text(
               item.orderCode,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.grey700,
                 fontWeight: FontWeight.w600,
                 fontSize: 12.5,
@@ -131,14 +142,16 @@ class KitchenItemCard extends StatelessWidget {
   const KitchenItemCard({
     super.key,
     required this.item,
-    required this.now,
+    required this.clock,
     required this.busy,
     this.onStart,
     this.onReady,
     this.onServe,
   });
   final KitchenQueueItem item;
-  final DateTime now;
+
+  /// The board's clock; the waited time below refreshes each minute.
+  final DateTime Function() clock;
   final bool busy;
   final VoidCallback? onStart, onReady, onServe;
 
@@ -149,8 +162,8 @@ class KitchenItemCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: AppColors.grey200),
       ),
       clipBehavior: Clip.antiAlias,
@@ -177,7 +190,7 @@ class KitchenItemCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: KitchenStyle.bgColor(item.itemStatus),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: AppRadius.smAll,
                         border: Border.all(
                           color: KitchenStyle.borderColorFor(item.itemStatus),
                           width: 0.8,
@@ -214,7 +227,7 @@ class KitchenItemCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.warningTint,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadius.smAll,
                       border: Border.all(color: AppColors.warningBorder),
                     ),
                     child: Text(
@@ -233,7 +246,7 @@ class KitchenItemCard extends StatelessWidget {
                   thickness: 1,
                   color: AppColors.grey100,
                 ),
-                KitchenQueueContext(item: item, now: now),
+                KitchenQueueContext(item: item, clock: clock),
                 const SizedBox(height: 10),
                 if (item.itemStatus == OrderItemStatus.ready &&
                     (onServe != null || busy))
@@ -272,8 +285,8 @@ class KitchenItemCard extends StatelessWidget {
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                       elevation: 0,
                     ),
@@ -321,7 +334,7 @@ class KitchenOrderCard extends StatelessWidget {
   const KitchenOrderCard({
     super.key,
     required this.items,
-    required this.now,
+    required this.clock,
     required this.complete,
     required this.busy,
     required this.actionFor,
@@ -330,7 +343,9 @@ class KitchenOrderCard extends StatelessWidget {
     this.orderStatus,
   });
   final List<KitchenQueueItem> items;
-  final DateTime now;
+
+  /// The board's clock; the waited time below refreshes each minute.
+  final DateTime Function() clock;
   final bool complete, busy;
   final OrderStatus? orderStatus;
   final VoidCallback? onReadyOrder;
@@ -358,8 +373,8 @@ class KitchenOrderCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: AppColors.grey200),
       ),
       clipBehavior: Clip.antiAlias,
@@ -383,11 +398,11 @@ class KitchenOrderCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                KitchenQueueContext(item: items.first, now: now),
+                KitchenQueueContext(item: items.first, clock: clock),
                 const SizedBox(height: 8),
                 Text(
                   '$ready/${items.length} món đã xong${complete ? '' : ' · Chưa đủ dữ liệu'}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
                     color: AppColors.grey700,
@@ -435,8 +450,8 @@ class KitchenOrderCard extends StatelessWidget {
                               horizontal: 10,
                               vertical: 4,
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: AppRadius.smAll,
                             ),
                           ),
                           onPressed: busy ? null : actionFor(item),
@@ -495,8 +510,8 @@ class KitchenOrderCard extends StatelessWidget {
                         horizontal: 12,
                         vertical: 8,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.smAll,
                       ),
                       elevation: 0,
                     ),
@@ -535,7 +550,7 @@ class KitchenServeButton extends StatelessWidget {
       backgroundColor: AppColors.success,
       minimumSize: Size(compact ? 64 : double.infinity, 48),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.smAll),
       elevation: 0,
     ),
     onPressed: busy ? null : onPressed,
@@ -558,14 +573,16 @@ class KitchenServingList extends StatelessWidget {
   const KitchenServingList({
     super.key,
     required this.orders,
-    required this.now,
+    required this.clock,
     required this.expanded,
     required this.onToggle,
     required this.busy,
     required this.onServe,
   });
   final List<List<KitchenQueueItem>> orders;
-  final DateTime now;
+
+  /// The board's clock; the waited time below refreshes each minute.
+  final DateTime Function() clock;
   final bool expanded;
   final VoidCallback onToggle;
   final bool Function(String orderId) busy;
@@ -579,7 +596,7 @@ class KitchenServingList extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         border: Border.all(color: AppColors.successBorder),
       ),
       clipBehavior: Clip.antiAlias,
@@ -621,7 +638,7 @@ class KitchenServingList extends StatelessWidget {
               _ServingRow(
                 key: ValueKey('kitchen-serving-${orders[i].first.orderId}'),
                 items: orders[i],
-                now: now,
+                clock: clock,
                 busy: busy(orders[i].first.orderId),
                 onServe: onServe(orders[i].first.orderId),
               ),
@@ -636,12 +653,14 @@ class _ServingRow extends StatelessWidget {
   const _ServingRow({
     super.key,
     required this.items,
-    required this.now,
+    required this.clock,
     required this.busy,
     this.onServe,
   });
   final List<KitchenQueueItem> items;
-  final DateTime now;
+
+  /// The board's clock; the waited time below refreshes each minute.
+  final DateTime Function() clock;
   final bool busy;
   final VoidCallback? onServe;
   @override
@@ -651,7 +670,6 @@ class _ServingRow extends StatelessWidget {
     final since = items
         .map((r) => r.queuedAt)
         .reduce((a, b) => a.isBefore(b) ? a : b);
-    final elapsed = now.difference(since);
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
       child: Row(
@@ -680,15 +698,20 @@ class _ServingRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  'Chờ ${kitchenWaited(elapsed)}',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: elapsed >= KitchenStyle.warningAfter
-                        ? AppColors.dangerStrong
-                        : AppColors.grey700,
-                  ),
+                MinuteTickerBuilder(
+                  builder: (context, _) {
+                    final elapsed = clock().difference(since);
+                    return Text(
+                      'Chờ ${kitchenWaited(elapsed)}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: elapsed >= KitchenStyle.warningAfter
+                            ? AppColors.dangerStrong
+                            : AppColors.grey700,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -724,7 +747,7 @@ class KitchenSummaryBar extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         border: Border.all(color: AppColors.grey200),
       ),
       child: Column(
@@ -754,7 +777,7 @@ class KitchenSummaryBar extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: KitchenStyle.background,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                     border: Border.all(color: AppColors.grey200),
                   ),
                   child: Text(

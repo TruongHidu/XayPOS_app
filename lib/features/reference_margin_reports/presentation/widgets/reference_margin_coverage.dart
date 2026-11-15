@@ -3,6 +3,7 @@ import '../../domain/entities/reference_margin_enums.dart';
 import '../../domain/entities/reference_margin_report.dart';
 import 'reference_margin_common.dart';
 import 'reference_margin_format.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// States the scope of every covered figure before the figures themselves.
 class MarginCoverageCard extends StatelessWidget {
@@ -57,7 +58,7 @@ class MarginCoverageCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ClipRRect(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: AppRadius.pillAll,
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,

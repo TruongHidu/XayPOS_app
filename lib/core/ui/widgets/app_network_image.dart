@@ -16,6 +16,7 @@ class AppNetworkImage extends ConsumerWidget {
     this.fit = BoxFit.cover,
     this.maxExtent = 2048,
     this.oversample = 1,
+    this.opacity = 1,
   });
 
   /// Null or empty shows [placeholder] without any request.
@@ -31,6 +32,10 @@ class AppNetworkImage extends ConsumerWidget {
 
   /// More pixels than the box needs, for views the user can zoom into.
   final double oversample;
+
+  /// Below 1 dims the picture, e.g. a dish that cannot be sold. Applied by
+  /// the image itself, which is far cheaper than an [Opacity] layer.
+  final double opacity;
 
   /// Cropping to fill a box needs the short side of a wide photo to cover
   /// it: asking 1.5× the box keeps a 16:9 photo sharp in a square.
@@ -67,6 +72,7 @@ class AppNetworkImage extends ConsumerWidget {
           image: image,
           fit: fit,
           gaplessPlayback: true,
+          opacity: opacity < 1 ? AlwaysStoppedAnimation(opacity) : null,
           frameBuilder: (context, child, frame, synchronous) =>
               frame == null && !synchronous ? placeholder : child,
           errorBuilder: (_, _, _) => error ?? placeholder,

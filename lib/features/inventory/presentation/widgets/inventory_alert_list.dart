@@ -26,7 +26,7 @@ class _InventoryAlertListState extends ConsumerState<InventoryAlertList> {
   Warehouse? _warehouse;
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canViewInventoryAlerts(session)) {
       return const Text(
         'Bạn cần quyền xem kho và tính năng cảnh báo tồn thấp.',

@@ -4,6 +4,7 @@ import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
 
 import '../../domain/entities/staff_role.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class CreateStaffDialog extends StatefulWidget {
   const CreateStaffDialog({
@@ -145,7 +146,7 @@ class _CreateStaffDialogState extends State<CreateStaffDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: AppRadius.smAll,
                   ),
                   child: Row(
                     children: [

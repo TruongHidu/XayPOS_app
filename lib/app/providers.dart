@@ -18,6 +18,7 @@ export '../features/reports/presentation/providers/report_providers.dart';
 export '../features/reference_margin_reports/presentation/providers/reference_margin_providers.dart';
 export '../features/cashbook/presentation/providers/cashbook_providers.dart';
 
+import '../core/auth/app_session.dart';
 import '../core/auth/session_events.dart';
 import '../core/auth/access_policy.dart';
 import '../core/network/api_client.dart';
@@ -105,6 +106,14 @@ final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
   Future.microtask(controller.restore);
   return controller;
 });
+
+/// The signed-in session alone. Screens that only need permissions or the
+/// tenant watch this instead of the whole [AuthController], so a login form
+/// state change or a busy flag does not rebuild every mounted screen.
+final currentSessionProvider = Provider<AppSession?>(
+  (ref) => ref.watch(authControllerProvider.select((c) => c.state.session)),
+  name: 'currentSession',
+);
 
 // ── Staff Management Providers ─────────────────────────────
 

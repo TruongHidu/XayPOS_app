@@ -80,7 +80,7 @@ class _CatalogItemCreateDialogState
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final currentScope = AccessPolicy.menuScope(session);
     final canMenuItem = AccessPolicy.canMenu(session, 'MENU_CREATE');
     final canIngredient = AccessPolicy.canIngredient(

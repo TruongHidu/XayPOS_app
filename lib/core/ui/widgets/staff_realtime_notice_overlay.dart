@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/realtime_notice.dart';
+import '../../../app/theme/app_tokens.dart';
 
 class StaffRealtimeNoticeOverlay extends ConsumerWidget {
   const StaffRealtimeNoticeOverlay({super.key});
@@ -22,7 +23,7 @@ class StaffRealtimeNoticeOverlay extends ConsumerWidget {
                 key: const ValueKey('staff-realtime-notice'),
                 elevation: 8,
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
                 child: SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.only(left: 12),

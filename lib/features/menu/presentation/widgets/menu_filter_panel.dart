@@ -27,7 +27,7 @@ class MenuFilterAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canMenuView = AccessPolicy.canMenu(session, 'MENU_VIEW');
     final canIngredientView = AccessPolicy.canIngredient(
       session,
@@ -80,7 +80,7 @@ class MenuFilterPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canMenuView = AccessPolicy.canMenu(session, 'MENU_VIEW');
     final canIngredientView = AccessPolicy.canIngredient(
       session,
@@ -170,7 +170,7 @@ class MenuFilterPanel extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: 20),
-          _SectionLabel('Sắp xếp'),
+          const _SectionLabel('Sắp xếp'),
           const SizedBox(height: 8),
           _select(
             'Sắp xếp theo',
@@ -247,7 +247,7 @@ class MenuFilterPanel extends ConsumerWidget {
             (v) => controller.setTrackInventoryFilter(_bool(v)),
           ),
           const SizedBox(height: 20),
-          _SectionLabel('Sắp xếp'),
+          const _SectionLabel('Sắp xếp'),
           const SizedBox(height: 8),
           _select('Sắp xếp theo', query.sortBy, const {
             'createdAt': 'Ngày tạo',

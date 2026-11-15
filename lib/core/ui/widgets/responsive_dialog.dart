@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../app/theme/app_tokens.dart';
 
 /// Dialogs rise from the bottom on phones, within reach of the thumb.
 Alignment? phoneDialogAlignment(BuildContext context) =>
@@ -16,7 +17,7 @@ class ResponsiveDialog extends StatelessWidget {
     return Dialog(
       alignment: phoneDialogAlignment(context),
       insetPadding: EdgeInsets.fromLTRB(16, 24, 16, compact ? 12 : 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
       child: SizedBox(
         width: double.infinity,
         child: Padding(

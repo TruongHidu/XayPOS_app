@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart'
+    show authControllerProvider, currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../order/domain/entities/order_entities.dart' show ServiceType;
 import '../../../reports/domain/entities/report_meta.dart';
@@ -9,6 +10,7 @@ import '../providers/reference_margin_providers.dart';
 import 'reference_margin_common.dart';
 import 'reference_margin_format.dart';
 import 'reference_margin_summary.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 String marginServiceLabel(ServiceType type) =>
     type == ServiceType.dineIn ? 'Tại bàn' : 'Mang đi';
@@ -31,7 +33,7 @@ Future<void> showMarginOrderDetail(
     context: context,
     builder: (context) => Consumer(
       builder: (context, ref, _) {
-        final currentSession = ref.watch(authControllerProvider).state.session;
+        final currentSession = ref.watch(currentSessionProvider);
         final validScope =
             scope == AccessPolicy.referenceMarginScope(currentSession) &&
             AccessPolicy.canViewReferenceMarginReports(currentSession);
@@ -82,9 +84,7 @@ Future<void> showMarginOrderDetail(
             horizontal: 16,
             vertical: 24,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.lgAll),
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxWidth: 640,
@@ -196,7 +196,7 @@ class _MarginOrderDetailBody extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         ClipRRect(
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: AppRadius.pillAll,
           child: LinearProgressIndicator(value: costed, minHeight: 6),
         ),
         section(

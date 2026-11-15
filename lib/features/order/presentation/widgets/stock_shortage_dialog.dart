@@ -3,6 +3,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/values/ingredient_quantity.dart';
 import '../../domain/policies/stock_shortage_summary.dart';
 import 'order_ingredient_dialog.dart' show ingredientNumber;
+import '../../../../app/theme/app_tokens.dart';
 
 String _amount(IngredientQuantity q, String unit) =>
     '${ingredientNumber(q)} $unit';
@@ -142,7 +143,7 @@ class _DishCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(color: scheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +168,7 @@ class _DishCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: chipBack,
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: AppRadius.pillAll,
                   ),
                   child: Text(
                     chip,

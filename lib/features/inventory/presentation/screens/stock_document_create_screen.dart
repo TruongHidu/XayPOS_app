@@ -17,7 +17,7 @@ class StockDocumentCreateScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scope = ref.watch(inventoryScopeProvider);
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canInventory(session, 'INVENTORY_VIEW')) {
       return const Center(child: Text('Bạn chưa có quyền xem kho.'));
     }

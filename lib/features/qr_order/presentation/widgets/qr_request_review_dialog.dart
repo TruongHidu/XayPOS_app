@@ -9,6 +9,7 @@ import 'qr_request_format.dart';
 import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/theme/app_status_colors.dart';
 import '../../../../core/ui/widgets/app_section_card.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class QrRequestReviewDialog extends ConsumerStatefulWidget {
   const QrRequestReviewDialog({
@@ -185,7 +186,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                       ),
                       if (review.quoteChanged) ...[
                         const SizedBox(height: 8),
-                        _WarningBanner(
+                        const _WarningBanner(
                           icon: Icons.price_change,
                           message:
                               'Giá đã thay đổi so với lúc khách gửi. Hãy đối chiếu với khách trước khi duyệt.',
@@ -234,7 +235,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                   if (row.observedSessionId == null &&
                       review.context?.sessionId != null) ...[
                     const SizedBox(height: 8),
-                    _WarningBanner(
+                    const _WarningBanner(
                       icon: Icons.warning_amber,
                       message:
                           'Khi khách gửi chưa có phiên bàn. Cần xác nhận yêu cầu này thuộc đúng lượt khách hiện tại.',
@@ -242,7 +243,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                   ],
                   if (!c.pending) ...[
                     const SizedBox(height: 8),
-                    _WarningBanner(
+                    const _WarningBanner(
                       icon: Icons.timer_off,
                       message: 'Yêu cầu đã hết hạn, không thể duyệt.',
                       isError: true,
@@ -258,7 +259,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                   ],
                   if (c.localBlocked) ...[
                     const SizedBox(height: 8),
-                    _WarningBanner(
+                    const _WarningBanner(
                       icon: Icons.lock_outline,
                       message:
                           'Đơn hoặc phiên bàn đang có thao tác khác cần xử lý. Hãy kiểm tra lại sau.',
@@ -272,7 +273,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                       c.pending &&
                       !c.localBlocked) ...[
                     const SizedBox(height: 8),
-                    _WarningBanner(
+                    const _WarningBanner(
                       icon: Icons.no_accounts,
                       message:
                           'Bạn chưa có đủ quyền hoặc tính năng để duyệt yêu cầu này.',
@@ -289,7 +290,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
                           : colors.surfaceContainerHighest,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.mdAll,
                         side: BorderSide(
                           color: _confirmed
                               ? colors.primary
@@ -364,7 +365,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
               // ── Uncertain / reload ──
               if (c.uncertain) ...[
                 const SizedBox(height: 8),
-                _WarningBanner(
+                const _WarningBanner(
                   icon: Icons.help_outline,
                   message:
                       'Chưa xác định kết quả. Tải lại đúng yêu cầu này để kiểm tra; không gửi lại hoặc tạo đơn thay thế.',
@@ -373,7 +374,7 @@ class _QrRequestReviewDialogState extends ConsumerState<QrRequestReviewDialog> {
               ],
               if (c.needsReload && !c.uncertain) ...[
                 const SizedBox(height: 8),
-                _WarningBanner(
+                const _WarningBanner(
                   icon: Icons.sync_problem,
                   message:
                       'Hãy tải lại yêu cầu, kiểm tra thay đổi rồi xác nhận lại trước khi gửi.',
@@ -707,7 +708,7 @@ class _ItemTile extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: colors.secondaryContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.smAll,
             ),
             child: Text(
               '${line.quantity}',
@@ -784,10 +785,7 @@ class _WarningBanner extends StatelessWidget {
     final fg = isError ? colors.onErrorContainer : colors.onTertiaryContainer;
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: bg, borderRadius: AppRadius.buttonAll),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

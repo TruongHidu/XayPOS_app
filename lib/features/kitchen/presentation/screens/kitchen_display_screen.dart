@@ -11,6 +11,7 @@ import '../controllers/kitchen_display_controller.dart';
 import '../providers/kitchen_providers.dart';
 import '../widgets/kitchen_cards.dart';
 import '../widgets/kitchen_action_confirmation_dialog.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class KitchenDisplayScreen extends ConsumerStatefulWidget {
   const KitchenDisplayScreen({super.key});
@@ -22,7 +23,6 @@ class KitchenDisplayScreen extends ConsumerStatefulWidget {
 class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
     with WidgetsBindingObserver, RouteAware {
   final _search = TextEditingController();
-  Timer? _tick;
   KitchenDisplayController? _display;
   ModalRoute<void>? _route;
   RouteObserver<ModalRoute<void>>? _observer;
@@ -31,13 +31,6 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _tick = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted &&
-          _route?.isCurrent == true &&
-          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        setState(() {});
-      }
-    });
   }
 
   @override
@@ -60,7 +53,6 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
       _display?.setForeground(state == AppLifecycleState.resumed);
   @override
   void dispose() {
-    _tick?.cancel();
     _search.dispose();
     _observer?.unsubscribe(this);
     _display?.setVisible(false);
@@ -181,7 +173,6 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
           final count = display.mode == KitchenViewMode.items
               ? rows.length
               : groups.length;
-          final now = display.clock();
           final trouble = actions.states.entries
               .where(
                 (e) =>
@@ -207,25 +198,25 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                               controller: _search,
                               onChanged: display.setSearch,
                               maxLength: 100,
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                 hintText: 'Tìm món, mã đơn, tên bàn…',
-                                prefixIcon: const Icon(Icons.search, size: 20),
+                                prefixIcon: Icon(Icons.search, size: 20),
                                 counterText: '',
                                 isDense: true,
                                 filled: true,
                                 fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(
+                                contentPadding: EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 10,
                                 ),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: AppRadius.buttonAll,
                                   borderSide: BorderSide(
                                     color: AppColors.grey300,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: AppRadius.buttonAll,
                                   borderSide: BorderSide(
                                     color: AppColors.grey300,
                                   ),
@@ -285,9 +276,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                             ),
                             ChoiceChip(
                               key: const ValueKey('kitchen-filter-todo'),
-                              label: Text(
-                                'Cần làm (${display.items.where((r) => KitchenDisplayController.todoStatuses.contains(r.itemStatus)).length})',
-                              ),
+                              label: Text('Cần làm (${display.todoCount})'),
                               selected: display.todoOnly,
                               onSelected: (_) => display.showTodo(),
                             ),
@@ -302,7 +291,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                               const SizedBox(width: 6),
                               ChoiceChip(
                                 label: Text(
-                                  '${KitchenStyle.label(status)} (${display.items.where((r) => r.itemStatus == status).length})',
+                                  '${KitchenStyle.label(status)} (${display.countOf(status)})',
                                 ),
                                 selected:
                                     !display.todoOnly &&
@@ -320,7 +309,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                             : (display.loading
                                   ? 'Đang đồng bộ...'
                                   : 'Cập nhật ${_time(display.lastUpdated!)}'),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.grey700,
                         ),
@@ -458,7 +447,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                             'kitchen-item-${row.key}',
                                           ),
                                           item: row,
-                                          now: now,
+                                          clock: display.clock,
                                           busy:
                                               actions
                                                   .state(row.orderId)
@@ -524,7 +513,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                                           'kitchen-order-${group.first.orderId}',
                                         ),
                                         items: group,
-                                        now: now,
+                                        clock: display.clock,
                                         complete: display.orderComplete(
                                           group.first.orderId,
                                         ),
@@ -577,7 +566,7 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
                   sliver: SliverToBoxAdapter(
                     child: KitchenServingList(
                       orders: serving,
-                      now: now,
+                      clock: display.clock,
                       expanded: _servingExpanded,
                       onToggle: () =>
                           setState(() => _servingExpanded = !_servingExpanded),
@@ -607,9 +596,9 @@ class _KitchenDisplayScreenState extends ConsumerState<KitchenDisplayScreen>
   Widget _swipeHint(String label) => Container(
     alignment: Alignment.centerLeft,
     padding: const EdgeInsets.symmetric(horizontal: 20),
-    decoration: BoxDecoration(
+    decoration: const BoxDecoration(
       color: AppColors.success,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
     ),
     child: Text(
       label,

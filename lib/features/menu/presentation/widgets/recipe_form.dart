@@ -751,7 +751,7 @@ class _RecipeFormState extends ConsumerState<RecipeForm> {
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(recipeControllerProvider(widget.menuItemId));
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final application = AccessPolicy.canMenu(session, 'MENU_UPDATE')
         ? ref.watch(recipeApplicationProvider(widget.menuItemId))
         : null;

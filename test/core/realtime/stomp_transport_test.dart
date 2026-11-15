@@ -40,7 +40,7 @@ void main() {
       );
     }
     expect(
-      RealtimeConfig(
+      const RealtimeConfig(
         urlOverride: 'wss://ws.example.test:9443/custom/ws',
       ).endpoint.toString(),
       'wss://ws.example.test:9443/custom/ws',
@@ -65,7 +65,7 @@ void main() {
     'STOMP decoder supports split UTF-8, content-length, batched frames and CRLF',
     () {
       final decoder = StompDecoder();
-      final body = 'Món bò\u0000ghi chú';
+      const body = 'Món bò\u0000ghi chú';
       final frame = utf8.encode(
         'MESSAGE\r\nsubscription:s1\r\ncontent-length:${utf8.encode(body).length}\r\nx:a\\cb\\nline\r\n\r\n$body\u0000\n',
       );

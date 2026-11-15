@@ -72,7 +72,7 @@ void main() {
   test(
     'date filters stay calendar dates, allow366days and reject invalid ranges/currency',
     () {
-      final from = const ReportDate(2026, 1, 1);
+      const from = ReportDate(2026, 1, 1);
       final valid = ReferenceMarginFilter(
         range: ReportDateRange(fromDate: from, toDate: from.addDays(365)),
       );

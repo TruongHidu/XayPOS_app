@@ -5,6 +5,7 @@ import '../../../../core/ui/widgets/app_network_image.dart';
 import '../../../menu/domain/entities/menu_item.dart';
 import '../../domain/entities/order_quantity.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderMenuItemCard extends StatelessWidget {
   const OrderMenuItemCard({
@@ -56,7 +57,7 @@ class OrderMenuItemCard extends StatelessWidget {
       elevation: 0,
       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         side: BorderSide(
           color: isSelected
               ? OrderPalette.primary.withValues(alpha: 0.35)
@@ -66,7 +67,7 @@ class OrderMenuItemCard extends StatelessWidget {
       ),
       color: Colors.white,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         // The whole card opens the dish; quick +/− stay on the buttons.
         onTap: onOpen,
         child: Padding(
@@ -78,7 +79,7 @@ class OrderMenuItemCard extends StatelessWidget {
               final narrow = box.maxWidth < 300;
               final thumbSize = narrow ? 48.0 : 72.0;
               final thumbnail = ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
                 child: SizedBox(
                   width: thumbSize,
                   height: thumbSize,
@@ -111,7 +112,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       item.description!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.grey600,
                         height: 1.25,
@@ -133,9 +134,9 @@ class OrderMenuItemCard extends StatelessWidget {
                             horizontal: 8,
                             vertical: 3,
                           ),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColors.dangerSoft,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadius.smAll,
                           ),
                           child: Text(
                             statusLabel,
@@ -154,9 +155,9 @@ class OrderMenuItemCard extends StatelessWidget {
                             horizontal: 8,
                             vertical: 3,
                           ),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColors.warningSoft,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: AppRadius.smAll,
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -208,7 +209,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       if (item.baseUnit.isNotEmpty)
                         Text(
                           '• ${item.baseUnit}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.grey500,
                           ),
@@ -216,15 +217,15 @@ class OrderMenuItemCard extends StatelessWidget {
                       if (hasMultipleConfigurations)
                         InkWell(
                           onTap: onOpen,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: AppRadius.xsAll,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 1.5,
                             ),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: OrderPalette.clear,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: AppRadius.xsAll,
                             ),
                             child: const Text(
                               'Nhiều ghi chú',
@@ -279,7 +280,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       disabledBackgroundColor: AppColors.grey50,
                       disabledForegroundColor: AppColors.grey300,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: AppRadius.buttonAll,
                         side: BorderSide(
                           color: isSelected && canInteract
                               ? AppColors.primaryBorder
@@ -334,8 +335,8 @@ class OrderMenuItemCard extends StatelessWidget {
                           : AppColors.grey400,
                       disabledBackgroundColor: AppColors.grey200,
                       disabledForegroundColor: AppColors.grey400,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: AppRadius.buttonAll,
                       ),
                       padding: EdgeInsets.zero,
                       minimumSize: const Size(44, 44),

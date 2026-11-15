@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import 'brand_logo.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Brand mark and ways to reach Xây POS under the login form. The website
 /// link is left out when no address is configured.
@@ -100,7 +101,7 @@ class _FooterAction extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.smAll,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
           child: Row(

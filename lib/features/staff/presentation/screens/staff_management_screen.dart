@@ -13,6 +13,7 @@ import '../widgets/staff_member_card.dart';
 import '../widgets/edit_staff_dialog.dart';
 import '../widgets/staff_permission_dialog.dart';
 import '../widgets/toggle_status_dialog.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class StaffManagementScreen extends ConsumerWidget {
   const StaffManagementScreen({super.key});
@@ -29,7 +30,7 @@ class StaffManagementScreen extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => Consumer(
         builder: (context, ref, _) {
-          final current = ref.watch(authControllerProvider).state.session;
+          final current = ref.watch(currentSessionProvider);
           final allowed = target == null
               ? AccessPolicy.canStaff(current, permission)
               : AccessPolicy.canManageStaff(
@@ -186,7 +187,7 @@ class StaffManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canStaff(session, 'STAFF_VIEW')) {
       return const Center(
         child: Text('Bạn không có quyền truy cập quản lý nhân viên.'),
@@ -434,7 +435,7 @@ class _StaffPanel extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         border: Border.all(color: colors.outlineVariant),
       ),
       child: child,
@@ -468,7 +469,7 @@ class _StaffNotice extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isError ? colors.errorContainer : colors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         border: Border.all(
           color: isError ? colors.errorContainer : colors.outlineVariant,
         ),

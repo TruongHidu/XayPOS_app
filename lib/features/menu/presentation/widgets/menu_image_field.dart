@@ -7,6 +7,7 @@ import '../../../../core/ui/images/image_sizing.dart';
 import '../providers/menu_image_picker.dart';
 import '../providers/menu_providers.dart';
 import 'menu_details.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Shows the item's photo and lets the user replace it. A new photo stays on
 /// the device as [pending] until the form saves the item.
@@ -109,7 +110,7 @@ class _MenuImageFieldState extends ConsumerState<MenuImageField> {
       return MenuImage(url: widget.url, aspectRatio: 4 / 3, borderRadius: 10);
     }
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: AppRadius.buttonAll,
       child: AspectRatio(
         aspectRatio: 4 / 3,
         // A freshly taken photo can be 12 MP: decode it at the preview size.

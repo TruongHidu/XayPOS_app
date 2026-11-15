@@ -43,7 +43,7 @@ class InventoryScopeGuard extends ConsumerWidget {
   final Widget child;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (scope != AccessPolicy.inventoryScope(session) ||
         !AccessPolicy.canInventory(session, 'INVENTORY_VIEW') ||
         !AccessPolicy.canInventory(session, permission)) {

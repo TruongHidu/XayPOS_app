@@ -246,7 +246,7 @@ void main() {
       expect(c.order!.version, 6);
       repo.current = OrderDto.detail(orderJson(version: 7));
       await c.addItems(6, [
-        CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one),
+        const CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one),
       ]);
       expect(repo.writes.last, ('add', 6));
       expect(c.order!.version, 7);

@@ -19,10 +19,10 @@ void main() {
     permissions: cashbookPermissions,
     features: cashbookFeatures,
   );
-  final october = CashbookRangeFilter(
+  const october = CashbookRangeFilter(
     range: ReportDateRange(
-      fromDate: const ReportDate(2026, 10, 1),
-      toDate: const ReportDate(2026, 10, 29),
+      fromDate: ReportDate(2026, 10, 1),
+      toDate: ReportDate(2026, 10, 29),
     ),
   );
 
@@ -59,10 +59,10 @@ void main() {
       expect(repo.entryCalls.last.$2.page, 1);
       expect(c.granularity, CashbookGranularity.day);
       await c.setRange(
-        CashbookRangeFilter(
+        const CashbookRangeFilter(
           range: ReportDateRange(
-            fromDate: const ReportDate(2026, 1, 1),
-            toDate: const ReportDate(2026, 10, 29),
+            fromDate: ReportDate(2026, 1, 1),
+            toDate: ReportDate(2026, 10, 29),
           ),
         ),
       );
@@ -116,9 +116,9 @@ void main() {
     expect(c.applied.currencyCode, 'USD');
     expect(c.isFiltered, isTrue);
     c.setDraftRange(
-      ReportDateRange(
-        fromDate: const ReportDate(2024, 1, 1),
-        toDate: const ReportDate(2026, 10, 29),
+      const ReportDateRange(
+        fromDate: ReportDate(2024, 1, 1),
+        toDate: ReportDate(2026, 10, 29),
       ),
     );
     expect(c.apply(), isFalse);

@@ -7,6 +7,7 @@ import '../../../order/domain/entities/order_entities.dart';
 import '../../domain/entities/report_enums.dart';
 import '../../domain/entities/report_order_row.dart';
 import '../../domain/entities/report_page.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class ReportOrdersTable extends StatelessWidget {
   final ReportPage<ReportOrderRow> page;
@@ -47,12 +48,12 @@ class ReportOrdersTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isMobile = MediaQuery.of(context).size.width < 800;
+    final isMobile = MediaQuery.sizeOf(context).width < 800;
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(
           color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
         ),
@@ -466,7 +467,7 @@ class ReportOrdersTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.smAll,
         border: Border.all(color: fg.withValues(alpha: 0.3)),
       ),
       child: Text(
@@ -508,7 +509,7 @@ class ReportOrdersTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AppRadius.smAll,
         border: Border.all(color: fg.withValues(alpha: 0.3)),
       ),
       child: Text(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../domain/entities/cashbook_enums.dart';
 import '../../domain/entities/cashbook_inputs.dart';
@@ -200,7 +200,7 @@ class _ExpenseFormDialogState extends ConsumerState<ExpenseFormDialog> {
     final theme = Theme.of(context);
     final submitter = ref.watch(expenseSubmitProvider);
     final categories = ref.watch(cashbookCategoriesProvider);
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final canLink = AccessPolicy.canLinkCashbookStockReceipt(session);
     final busy = submitter.submitting;
     final expenseCategories = [

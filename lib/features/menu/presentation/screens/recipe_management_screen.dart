@@ -16,6 +16,7 @@ import '../widgets/recipe_details.dart';
 import '../widgets/recipe_dialogs.dart';
 import '../widgets/recipe_form.dart';
 import '../widgets/recipe_application_control.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class RecipeManagementScreen extends ConsumerWidget {
   const RecipeManagementScreen({
@@ -32,7 +33,7 @@ class RecipeManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canRecipe(session, 'RECIPE_VIEW')) {
       return const Center(
         child: Padding(
@@ -440,7 +441,7 @@ class _RecipeWorkspaceState extends ConsumerState<_RecipeWorkspace> {
               margin: const EdgeInsets.only(bottom: 8),
               child: InkWell(
                 key: ValueKey('recipe-history-${row.id}'),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
                 onTap: () => _detail(row),
                 child: Padding(
                   padding: const EdgeInsets.all(16),

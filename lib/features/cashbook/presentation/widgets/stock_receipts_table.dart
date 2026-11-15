@@ -3,6 +3,7 @@ import '../../../reports/domain/entities/report_page.dart';
 import '../../domain/entities/cashbook_records.dart';
 import 'cashbook_common.dart';
 import 'cashbook_format.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// A receipt's value with its unit; an UNKNOWN currency gets no unit at all.
 String receiptMoney(CashbookStockReceipt receipt) => receipt.currencyUnknown
@@ -72,7 +73,7 @@ class _ReceiptRow extends StatelessWidget {
       children: [
         InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: AppRadius.smAll,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             child: Column(

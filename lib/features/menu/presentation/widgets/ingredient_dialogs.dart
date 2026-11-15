@@ -42,7 +42,7 @@ class IngredientScopeGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (AccessPolicy.ingredientScope(session) != scope ||
         !AccessPolicy.canIngredient(session, permission)) {
       final route = ModalRoute.of(context);

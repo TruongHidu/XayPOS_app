@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/auth/app_session.dart';
 import '../../../../core/ui/widgets/endless_list_footer.dart';
@@ -26,7 +26,7 @@ class CashbookFlowTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(cashbookFlowProvider);
     final categories = ref.watch(cashbookCategoriesProvider).value;
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

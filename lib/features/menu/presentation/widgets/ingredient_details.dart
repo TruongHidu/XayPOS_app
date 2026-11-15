@@ -7,6 +7,7 @@ import '../../../../core/ui/widgets/responsive_dialog.dart';
 import '../../domain/entities/ingredient.dart';
 import '../providers/menu_providers.dart';
 import 'menu_dialogs.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class IngredientDetailsDialog extends ConsumerStatefulWidget {
   const IngredientDetailsDialog({super.key, required this.initial});
@@ -89,7 +90,7 @@ class _IngredientDetailsDialogState
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: colors.primaryContainer.withAlpha(50),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppRadius.mdAll,
               ),
               child: Row(
                 children: [

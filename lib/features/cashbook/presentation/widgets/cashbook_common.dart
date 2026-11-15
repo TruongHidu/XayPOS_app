@@ -7,6 +7,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/theme/app_status_colors.dart';
 import '../../../../core/ui/widgets/app_section_card.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Width classes measured on the cashbook's own content area, so the shell
 /// sidebar never makes a phone layout appear on a narrow desktop window.
@@ -109,7 +110,7 @@ class CashbookNotice extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -322,7 +322,7 @@ void main() {
         ),
         {'name': 'Changed', 'expectedVersion': 9},
       );
-      final reset = UpdateMenuItemInput(
+      const reset = UpdateMenuItemInput(
         expectedVersion: 9,
         costPrice: MenuPrice.zero,
       );

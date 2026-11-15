@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../domain/entities/inventory_entities.dart';
 import 'inventory_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<void> pickInventoryWarehouse(BuildContext context, WidgetRef ref) async {
   final selector = ref.read(warehouseSelectorProvider);
@@ -116,7 +117,7 @@ class _WarehouseOption extends StatelessWidget {
             : scheme.surface,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
           side: BorderSide(
             color: selected ? scheme.primary : scheme.outlineVariant,
             width: selected ? 1.5 : 1,
@@ -136,7 +137,7 @@ class _WarehouseOption extends StatelessWidget {
                     color: muted
                         ? scheme.surfaceContainerHighest
                         : scheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: AppRadius.buttonAll,
                   ),
                   child: Icon(
                     Icons.warehouse_outlined,

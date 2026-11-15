@@ -15,6 +15,7 @@ import '../controllers/order_draft_controller.dart' show OrderDraftLine;
 import 'order_cart_layout.dart';
 import 'order_widgets.dart';
 import '../../../../core/ui/widgets/section_header.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Opens the dish's own sheet over the menu: what it is, the lines of it
 /// already in the cart, and a composer for a new portion. The menu stays on
@@ -220,13 +221,13 @@ class _MenuItemSheetState extends State<MenuItemSheet> with OrderCartUndo {
                       minLines: 1,
                       maxLines: 3,
                       textInputAction: TextInputAction.done,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Ghi chú món (không bắt buộc)',
                         hintText: 'Ví dụ: ít cay, không hành',
                         counterText: '',
-                        prefixIcon: const Icon(Icons.edit_note),
+                        prefixIcon: Icon(Icons.edit_note),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadius.mdAll,
                         ),
                       ),
                     ),
@@ -301,7 +302,7 @@ class _Header extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppRadius.mdAll,
           child: SizedBox.square(
             dimension: 88,
             child: AppNetworkImage(
@@ -360,7 +361,7 @@ class _Header extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: soft,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadius.smAll,
                     ),
                     child: Text(
                       label,
@@ -377,9 +378,9 @@ class _Header extends StatelessWidget {
                         horizontal: 8,
                         vertical: 2,
                       ),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppColors.grey100,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: AppRadius.smAll,
                       ),
                       child: Text(
                         item.group!.name,
@@ -434,7 +435,7 @@ class _CartLineRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
       decoration: BoxDecoration(
         color: AppColors.grey50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
         border: Border.all(color: AppColors.grey200),
       ),
       child: Row(

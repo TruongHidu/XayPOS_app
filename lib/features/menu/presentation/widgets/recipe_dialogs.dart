@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 Future<T?> showRecipeDialog<T>(
   BuildContext context,
@@ -37,7 +38,7 @@ class RecipeScopeGuard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (scope != AccessPolicy.recipeScope(session) ||
         !AccessPolicy.canRecipe(session, permission)) {
       final route = ModalRoute.of(context);
@@ -80,7 +81,7 @@ class RecipeNotice extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: error ? colors.errorContainer : colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.mdAll,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

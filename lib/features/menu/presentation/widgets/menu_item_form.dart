@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/failure.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/result/result.dart';
 import '../../../../core/ui/widgets/responsive_columns.dart';
@@ -269,7 +269,7 @@ class _MenuItemFormState extends ConsumerState<MenuItemForm> {
   Widget build(BuildContext context) {
     final controller = ref.watch(menuItemControllerProvider);
     final creating = _baseline == null;
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final direct = _inventoryMode == InventoryMode.direct;
     return Form(
       key: _form,

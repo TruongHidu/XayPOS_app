@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/providers.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/app/shell/app_shell.dart';
+import 'package:pos_saas_app/core/ui/sidebar/app_sidebar_rail.dart';
 import 'package:pos_saas_app/features/staff/domain/entities/staff_permission_config.dart';
 import 'package:pos_saas_app/features/staff/presentation/controllers/staff_permission_controller.dart';
 import 'package:pos_saas_app/features/staff/presentation/widgets/staff_permission_dialog.dart';
@@ -88,9 +89,13 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Alice'), findsOneWidget);
+        // From 1024 px the section rail takes the left edge.
+        final contentWidth = size.width >= 1024
+            ? size.width - AppSidebarRail.width
+            : size.width;
         expect(
           tester.getSize(find.byType(StaffMemberCard).first).width,
-          closeTo(size.width - 32, 0.1),
+          closeTo(contentWidth - 32, 0.1),
         );
         if (size.width >= 1440) {
           expect(

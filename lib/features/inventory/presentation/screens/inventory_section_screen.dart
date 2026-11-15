@@ -30,7 +30,7 @@ class InventorySectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scope = ref.watch(inventoryScopeProvider);
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canInventory(session, 'INVENTORY_VIEW')) {
       return const Center(
         child: Padding(
@@ -146,7 +146,7 @@ class _InventoryWorkspaceState extends ConsumerState<_InventoryWorkspace> {
   Widget build(BuildContext context) {
     final warehouseTab = _tab == InventorySection.balances;
     final selector = warehouseTab ? ref.watch(warehouseSelectorProvider) : null;
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final warehouse = selector?.selected;
     final lowAllowed = session?.features.contains('LOW_STOCK_ALERT') == true;
     final canFilterLow =

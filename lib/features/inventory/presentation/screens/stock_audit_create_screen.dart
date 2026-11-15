@@ -11,7 +11,7 @@ class StockAuditCreateScreen extends ConsumerWidget {
   const StockAuditCreateScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     if (!AccessPolicy.canManageStockAudits(session)) {
       return const Center(
         child: Text('Bạn chưa có quyền quản lý kiểm kê kho.'),

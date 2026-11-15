@@ -124,7 +124,9 @@ void main() {
           tableId: tableId,
           guestCount: 6,
         ),
-        items: [CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one)],
+        items: [
+          const CreateOrderLine(itemId: itemId, quantity: OrderQuantity.one),
+        ],
         submissionMode: OrderSubmissionMode.submit,
       );
       final body = OrderRequests.create(input);

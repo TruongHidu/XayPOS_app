@@ -7,6 +7,7 @@ import '../../domain/entities/order_item_action.dart';
 import '../../domain/policies/order_access_policy.dart';
 import 'order_mutation_forms.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderLineLayout extends StatelessWidget {
   const OrderLineLayout({
@@ -77,7 +78,7 @@ class OrderLineActions extends ConsumerWidget {
             controller.lineCancellable(line));
     return InkWell(
       key: ValueKey('order-line-actions-${line.id}'),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppRadius.mdAll,
       onTap: !enabled
           ? null
           : () async {

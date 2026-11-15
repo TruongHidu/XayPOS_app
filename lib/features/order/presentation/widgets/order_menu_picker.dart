@@ -10,6 +10,7 @@ import '../controllers/order_draft_controller.dart' show OrderDraftLine;
 import '../../../../app/providers.dart';
 import 'order_menu_item_card.dart';
 import 'order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderMenuPicker extends ConsumerStatefulWidget {
   const OrderMenuPicker({
@@ -117,10 +118,10 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'THỰC ĐƠN',
                             style: TextStyle(
@@ -149,7 +150,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                         padding: const EdgeInsets.only(left: 8),
                         child: Text(
                           '$totalCount món',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                             color: AppColors.grey600,
@@ -176,7 +177,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                       backgroundColor: Colors.white,
                       showCheckmark: false,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: AppRadius.xlAll,
                         side: BorderSide(
                           color: picker.query.groupId == null
                               ? OrderPalette.primary
@@ -205,7 +206,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                         backgroundColor: Colors.white,
                         showCheckmark: false,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadius.xlAll,
                           side: BorderSide(
                             color: picker.query.groupId == group.id
                                 ? OrderPalette.primary
@@ -247,7 +248,10 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                 },
                 decoration: InputDecoration(
                   hintText: 'Tìm món...',
-                  hintStyle: TextStyle(color: AppColors.grey400, fontSize: 13),
+                  hintStyle: const TextStyle(
+                    color: AppColors.grey400,
+                    fontSize: 13,
+                  ),
                   prefixIcon: const Icon(
                     Icons.search,
                     size: 20,
@@ -269,17 +273,17 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                   ),
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  border: const OutlineInputBorder(
+                    borderRadius: AppRadius.mdAll,
                     borderSide: BorderSide(color: AppColors.grey200),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  enabledBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.mdAll,
                     borderSide: BorderSide(color: AppColors.grey200),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: OrderPalette.primary),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: AppRadius.mdAll,
+                    borderSide: BorderSide(color: OrderPalette.primary),
                   ),
                   counterText: '',
                 ),

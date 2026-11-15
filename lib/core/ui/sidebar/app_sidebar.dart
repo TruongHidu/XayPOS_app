@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_status_colors.dart';
+import '../../../app/theme/app_tokens.dart';
+import '../widgets/status_badge.dart';
 import 'sidebar_category.dart';
 import 'sidebar_menu_item.dart';
 
@@ -60,18 +63,61 @@ class AppSidebar extends StatefulWidget {
 
 class _AppSidebarState extends State<AppSidebar> {
   static const double _width = 280;
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(-1, 0),
+    end: Offset.zero,
+  );
   final Map<String, bool> _expanded = {};
+
+  // Built once per animation, not per frame: a curve made in build adds a
+  // status listener to the controller on every frame and never removes it.
+  late CurvedAnimation _slideCurve;
+  late CurvedAnimation _fadeCurve;
+  late Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
     _syncExpansion();
+    _bindAnimation();
   }
 
   @override
   void didUpdateWidget(covariant AppSidebar oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncExpansion(selectionChanged: oldWidget.selectedId != widget.selectedId);
+    if (oldWidget.animation != widget.animation) {
+      _disposeAnimation();
+      _bindAnimation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposeAnimation();
+    super.dispose();
+  }
+
+  void _bindAnimation() {
+    _slideCurve = CurvedAnimation(
+      parent: widget.animation,
+      curve: Curves.easeOutCubic,
+    );
+    _fadeCurve = CurvedAnimation(
+      parent: widget.animation,
+      curve: Curves.easeOut,
+    );
+    _slide = _slideTween.animate(_slideCurve);
+  }
+
+  void _disposeAnimation() {
+    _slideCurve.dispose();
+    _fadeCurve.dispose();
+  }
+
+  void _close() {
+    final animation = widget.animation;
+    if (animation is AnimationController) animation.reverse();
   }
 
   void _syncExpansion({bool selectionChanged = false}) {
@@ -96,78 +142,51 @@ class _AppSidebarState extends State<AppSidebar> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    // The panel is built once per sidebar update and handed to the
+    // per-frame builder as its child, so a slide repaints, never rebuilds it.
+    final panel = SizedBox(
+      width: _width,
+      height: double.infinity,
+      child: ColoredBox(
+        color: colorScheme.surface,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(child: _buildCategoryList(context)),
+              const Divider(height: 1),
+              _LogoutTile(onTap: widget.onLogout),
+            ],
+          ),
+        ),
+      ),
+    );
 
     return ListenableBuilder(
       listenable: widget.animation,
-      builder: (context, child) {
-        final slide =
-            Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
-              CurvedAnimation(
-                parent: widget.animation,
-                curve: Curves.easeOutCubic,
-              ),
-            );
-        final fade = Tween<double>(begin: 0, end: 0.5).animate(
-          CurvedAnimation(parent: widget.animation, curve: Curves.easeOut),
-        );
-
+      child: panel,
+      builder: (context, panel) {
+        final open = widget.animation.value > 0;
         return Stack(
           children: [
             // Scrim – tapping anywhere dismisses the sidebar.
-            if (widget.animation.value > 0)
+            if (open)
               Positioned.fill(
                 child: GestureDetector(
-                  onTap: () {
-                    if (widget.animation is AnimationController) {
-                      (widget.animation as AnimationController).reverse();
-                    }
-                  },
+                  onTap: _close,
                   child: ColoredBox(
-                    color: Colors.black.withValues(alpha: fade.value),
+                    color: Colors.black.withValues(
+                      alpha: 0.4 * _fadeCurve.value,
+                    ),
                   ),
                 ),
               ),
-
-            // Sidebar panel
             SlideTransition(
-              position: slide,
+              position: _slide,
               child: Material(
-                elevation: widget.animation.value == 0 ? 0 : 16,
+                elevation: open ? 16 : 0,
                 shadowColor: Colors.black26,
-                child: SizedBox(
-                  width: _width,
-                  height: double.infinity,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          colorScheme.surface,
-                          colorScheme.surfaceContainerLowest,
-                        ],
-                      ),
-                    ),
-                    child: SafeArea(
-                      child: Column(
-                        children: [
-                          // _Header(
-                          //   userName: userName,
-                          //   userRole: userRole,
-                          //   restaurantName: restaurantName,
-                          //   packageCode: packageCode,
-                          // ),
-                          const Divider(height: 1),
-                          Expanded(child: _buildCategoryList(context)),
-                          const Divider(height: 1),
-                          _LogoutTile(onTap: widget.onLogout),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                child: panel,
               ),
             ),
           ],
@@ -196,11 +215,11 @@ class _AppSidebarState extends State<AppSidebar> {
             if (_showHeaders) ...[
               if (i > 0) const SizedBox(height: 12),
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                padding: const EdgeInsets.fromLTRB(24, 12, 20, 6),
                 child: Text(
                   widget.categories[i].title,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.outline,
+                    color: theme.colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
                   ),
@@ -241,8 +260,8 @@ class _AppSidebarState extends State<AppSidebar> {
               key: ValueKey('sidebar-group-${category.title}'),
               minTileHeight: 56,
               contentPadding: const EdgeInsets.only(left: 16, right: 4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppRadius.mdAll,
               ),
               leading: Icon(
                 category.icon ?? Icons.folder_outlined,
@@ -306,93 +325,93 @@ class _Header extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: colorScheme.primaryContainer,
-            child: Text(
-              userName.isNotEmpty ? userName[0].toUpperCase() : '?',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: colorScheme.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerLow,
+          borderRadius: AppRadius.mdAll,
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: colorScheme.primary,
+                    child: Text(
+                      userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userName,
+                          style: theme.textTheme.titleSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        StatusBadge(label: userRole, tone: AppTone.primary),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
+              if (restaurantName != null || packageCode != null)
+                const SizedBox(height: AppSpacing.md),
+              if (restaurantName != null)
+                _HeaderLine(
+                  icon: Icons.storefront_outlined,
+                  text: restaurantName!,
+                ),
+              if (packageCode != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                _HeaderLine(
+                  icon: Icons.workspace_premium_outlined,
+                  text: 'Gói: $packageCode',
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 14),
-          // User name
-          Text(
-            userName,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderLine extends StatelessWidget {
+  const _HeaderLine({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(color: color),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
-          // Role badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              userRole,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSecondaryContainer,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (restaurantName != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.storefront_outlined,
-                  size: 14,
-                  color: colorScheme.outline,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    restaurantName!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.outline,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (packageCode != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.workspace_premium_outlined,
-                  size: 14,
-                  color: colorScheme.outline,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Gói: $packageCode',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.outline,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -436,17 +455,15 @@ class _MenuTileState extends State<_MenuTile> {
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: isActive
-                ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+                ? colorScheme.primaryContainer.withValues(alpha: 0.6)
                 : _hovering
-                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
+                ? colorScheme.surfaceContainer
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.mdAll,
           ),
           child: ListTile(
             dense: true,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
             leading: Icon(
               widget.item.icon,
               color: isActive
@@ -477,7 +494,7 @@ class _MenuTileState extends State<_MenuTile> {
                         ),
                         decoration: BoxDecoration(
                           color: colorScheme.error,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadius.lgAll,
                         ),
                         child: Text(
                           badgeCount > 99 ? '99+' : '$badgeCount',
@@ -511,7 +528,7 @@ class _LogoutTile extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
       child: ListTile(
         dense: true,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdAll),
         leading: Icon(Icons.logout, color: theme.colorScheme.error, size: 22),
         title: Text(
           'Đăng xuất',

@@ -14,6 +14,7 @@ import '../../../reports/presentation/controllers/daily_report_controller.dart';
 import '../../../reports/presentation/widgets/report_kpi_card.dart';
 import '../../../reports/presentation/widgets/report_kpi_grid.dart';
 import '../../../../core/ui/widgets/section_header.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// The owner's first look at the day: what came in so far and what needs
 /// attention right now. Each figure opens the screen that deals with it, and
@@ -60,7 +61,7 @@ class _OverviewScreenState extends ConsumerState<OverviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authControllerProvider).state.session;
+    final session = ref.watch(currentSessionProvider);
     final report = ref.watch(dailyReportControllerProvider);
     final qrAllowed = AccessPolicy.canHandleQrRequests(session);
 
@@ -218,7 +219,7 @@ class _Problem extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
       decoration: BoxDecoration(
         color: colors.errorContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.mdAll,
       ),
       child: Row(
         children: [
@@ -271,14 +272,14 @@ class _LiveTile extends StatelessWidget {
         key: ValueKey('overview-$tileKey'),
         color: alert == null ? Colors.white : alert!.withValues(alpha: 0.06),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppRadius.mdAll,
           side: BorderSide(
             color: alert == null ? AppColors.grey200 : alert!,
             width: alert == null ? 1 : 1.5,
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppRadius.mdAll,
           onTap: () => context.go(route),
           child: Padding(
             padding: const EdgeInsets.all(16),

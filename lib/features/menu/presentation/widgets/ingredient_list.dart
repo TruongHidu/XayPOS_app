@@ -6,6 +6,7 @@ import '../../domain/entities/ingredient.dart';
 import '../controllers/ingredient_controller.dart';
 import 'menu_details.dart';
 import 'menu_dialogs.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class IngredientList extends StatefulWidget {
   const IngredientList({
@@ -113,7 +114,7 @@ class _IngredientListState extends State<IngredientList> {
       clipBehavior: Clip.antiAlias,
       color: colors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadius.mdAll,
         side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: InkWell(

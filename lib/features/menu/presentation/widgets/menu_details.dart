@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/providers.dart' show authControllerProvider;
+import '../../../../app/providers.dart' show currentSessionProvider;
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
@@ -16,6 +16,7 @@ import 'menu_dialogs.dart';
 import 'recipe_application_control.dart';
 import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/theme/app_status_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 /// Displays a menu item image with consistent aspect ratio and placeholder.
 ///
@@ -30,6 +31,7 @@ class MenuImage extends StatelessWidget {
     this.aspectRatio = 4 / 3,
     this.borderRadius = 12.0,
     this.onTap,
+    this.opacity = 1,
   });
 
   final String? url;
@@ -47,11 +49,14 @@ class MenuImage extends StatelessWidget {
   /// Called when the user taps the image. Used for zoom/preview.
   final VoidCallback? onTap;
 
+  /// Below 1 dims the photo, e.g. for a dish that cannot be sold.
+  final double opacity;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final iconSize = size != null ? size! / 2 : 36.0;
-    final placeholder = Container(
+    final placeholder = ColoredBox(
       color: colors.surfaceContainerHighest,
       child: Center(
         child: Icon(
@@ -62,17 +67,24 @@ class MenuImage extends StatelessWidget {
       ),
     );
 
-    final picture = AppNetworkImage(url: url, placeholder: placeholder);
+    final picture = AppNetworkImage(
+      url: url,
+      placeholder: placeholder,
+      opacity: opacity,
+    );
     final Widget image = size != null
         // Legacy square mode
         ? SizedBox.square(dimension: size, child: picture)
         // Aspect ratio mode
         : AspectRatio(aspectRatio: aspectRatio, child: picture);
 
-    final clipped = ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: image,
-    );
+    // A square corner needs no clip; the card around it clips already.
+    final clipped = borderRadius <= 0
+        ? image
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: image,
+          );
 
     if (onTap != null) {
       return GestureDetector(onTap: onTap, child: clipped);
@@ -222,7 +234,7 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
     final padding = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
     final hasImage = _item.imageUrl?.isNotEmpty == true;
     final canRecipe = AccessPolicy.canRecipe(
-      ref.watch(authControllerProvider).state.session,
+      ref.watch(currentSessionProvider),
       'RECIPE_VIEW',
     );
     final hasCost = _item.costConfigured && _item.costPrice != null;
@@ -230,7 +242,7 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
       backgroundColor: colors.surface,
       clipBehavior: Clip.antiAlias,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: const RoundedRectangleBorder(borderRadius: AppRadius.xlAll),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
         child: Stack(
@@ -279,7 +291,7 @@ class _MenuItemDetailsState extends ConsumerState<MenuItemDetails> {
                               color: colors.primaryContainer.withValues(
                                 alpha: 0.3,
                               ),
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: AppRadius.mdAll,
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,

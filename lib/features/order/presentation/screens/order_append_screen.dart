@@ -13,6 +13,7 @@ import '../widgets/menu_item_sheet.dart';
 import '../widgets/order_cart_layout.dart';
 import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class OrderAppendScreen extends ConsumerStatefulWidget {
   const OrderAppendScreen({
@@ -239,8 +240,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                         color: Colors.white,
                         elevation: 0,
                         margin: const EdgeInsets.only(bottom: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: AppRadius.buttonAll,
                           side: BorderSide(color: AppColors.grey200),
                         ),
                         child: Padding(
@@ -274,7 +275,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                               const SizedBox(height: 4),
                               Text(
                                 '${line.quantity} ${line.item.baseUnit}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.grey600,
                                 ),
@@ -287,13 +288,13 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                     horizontal: 8,
                                     vertical: 3,
                                   ),
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: AppColors.warningSoft,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: AppRadius.xsAll,
                                   ),
                                   child: Text(
                                     'Ghi chú: ${line.note}',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
                                       color: AppColors.warning,
                                     ),
@@ -351,7 +352,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                       ),
                     ),
                   ),
-                  Text(
+                  const Text(
                     'Giá và tổng chính thức lấy từ backend. Các món đã lưu không đổi.',
                     style: TextStyle(fontSize: 12, color: AppColors.grey600),
                   ),
@@ -373,10 +374,10 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                         : const EdgeInsets.fromLTRB(16, 10, 16, 8),
                     child: Row(
                       children: [
-                        Container(
+                        DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: AppRadius.buttonAll,
                             border: Border.all(color: AppColors.grey200),
                           ),
                           child: IconButton(
@@ -416,9 +417,9 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                         horizontal: 8,
                                         vertical: 2,
                                       ),
-                                      decoration: BoxDecoration(
+                                      decoration: const BoxDecoration(
                                         color: AppColors.primarySoft,
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: AppRadius.mdAll,
                                       ),
                                       child: const Text(
                                         'Gọi thêm món',
@@ -442,10 +443,10 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                             ],
                           ),
                         ),
-                        Container(
+                        DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: AppRadius.buttonAll,
                             border: Border.all(color: AppColors.grey200),
                           ),
                           child: IconButton(
@@ -466,7 +467,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
 
                 // ── Navigation Tabs ─────────────────────────────────────
                 if (!_wide)
-                  Container(
+                  ColoredBox(
                     color: Colors.white,
                     child: TabBar(
                       controller: _tabController,
@@ -612,7 +613,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                               ),
                               Text(
                                 'Tạm tính : ${orderMoney(cart.previewMinor, currency: currency)}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.grey700,
                                 ),
@@ -636,13 +637,13 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                     horizontal: 14,
                                     vertical: 10,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: AppRadius.buttonAll,
                                   ),
                                 ),
-                                child: Row(
+                                child: const Row(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
+                                  children: [
                                     Text('Xem món gọi thêm'),
                                     SizedBox(width: 4),
                                     Icon(Icons.arrow_upward, size: 15),
@@ -660,8 +661,8 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                                   horizontal: 16,
                                   vertical: 10,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: AppRadius.buttonAll,
                                 ),
                               ),
                               child: Text(

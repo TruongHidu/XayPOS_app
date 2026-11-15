@@ -361,7 +361,11 @@ void main() {
     );
     await scrollToEnd(tester);
     expect(find.text(networkFailure.message), findsOneWidget);
+    // Cards build lazily, so the first page is checked back at the top.
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 6000));
+    await tester.pumpAndSettle();
     expect(find.text('Món 0'), findsWidgets);
+    await scrollToEnd(tester);
     fail = false;
     await _tapVisible(tester, find.text('Thử lại'));
     await tester.pumpAndSettle();

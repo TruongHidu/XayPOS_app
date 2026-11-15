@@ -56,7 +56,7 @@ void main() {
         _input(referenceNo: List.filled(101, 'x').join()).validationErrors,
         contains('referenceNo'),
       );
-      final invalid = RecordOrderPaymentInput(
+      const invalid = RecordOrderPaymentInput(
         expectedOrderVersion: -1,
         paymentMethod: OrderPaymentMethod.cash,
         amount: MenuPrice.zero,

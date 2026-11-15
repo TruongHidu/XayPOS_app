@@ -49,7 +49,7 @@ final getReportOrdersUseCaseProvider = Provider<GetReportOrders>((ref) {
 
 // Scope tracking provider
 final reportScopeProvider = Provider<Object?>((ref) {
-  final session = ref.watch(authControllerProvider).state.session;
+  final session = ref.watch(currentSessionProvider);
   return AccessPolicy.reportScope(session);
 });
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/staff_member.dart';
 import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/theme/app_status_colors.dart';
+import '../../../../app/theme/app_tokens.dart';
 
 class StaffMemberCard extends StatelessWidget {
   const StaffMemberCard({
@@ -40,7 +41,7 @@ class StaffMemberCard extends StatelessWidget {
       elevation: 0,
       color: colors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.lgAll,
         side: BorderSide(color: colors.outlineVariant),
       ),
       child: Column(
