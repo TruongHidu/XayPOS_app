@@ -270,11 +270,13 @@ class _LiveTile extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         key: ValueKey('overview-$tileKey'),
-        color: alert == null ? Colors.white : alert!.withValues(alpha: 0.06),
+        color: alert == null
+            ? theme.colorScheme.surface
+            : alert!.withValues(alpha: 0.06),
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.mdAll,
           side: BorderSide(
-            color: alert == null ? AppColors.grey200 : alert!,
+            color: alert == null ? theme.colorScheme.outlineVariant : alert!,
             width: alert == null ? 1 : 1.5,
           ),
         ),
@@ -301,7 +303,7 @@ class _LiveTile extends StatelessWidget {
                       Text(
                         label,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.grey700,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -309,7 +311,7 @@ class _LiveTile extends StatelessWidget {
                         value ?? '—',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: alert ?? AppColors.grey900,
+                          color: alert ?? theme.colorScheme.onSurface,
                         ),
                       ),
                       Text(
@@ -321,7 +323,7 @@ class _LiveTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.grey400),
+                Icon(Icons.chevron_right, color: theme.colorScheme.outline),
               ],
             ),
           ),

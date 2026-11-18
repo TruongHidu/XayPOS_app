@@ -177,7 +177,7 @@ class _TakeawayOrderCardState extends ConsumerState<TakeawayOrderCard> {
                     order.orderCode,
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontSize: 14,
                       color: AppColors.grey900,
                     ),
                   ),

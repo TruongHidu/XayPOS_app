@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/app/router/app_router.dart';
+import 'package:pos_saas_app/app/shell/app_shell.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/order/data/dto/order_dto.dart';
 import 'package:pos_saas_app/features/order/domain/entities/order_entities.dart';
@@ -46,8 +47,12 @@ void main() {
       );
       expect(detailWidget.id, 'o1');
 
-      // Sidebar stays in "Gọi món" (both AppShell AppBar and sidebar item)
-      expect(find.text('Gọi món'), findsWidgets);
+      // Sidebar stays in "Gọi món": the shell keeps that section selected.
+      // (The closed menu is not built, so its label is not on screen.)
+      expect(
+        tester.widget<AppShell>(find.byType(AppShell)).initialSection,
+        'order-create',
+      );
 
       // Back returns to table grid
       await tester.tap(find.byTooltip('Quay lại'));

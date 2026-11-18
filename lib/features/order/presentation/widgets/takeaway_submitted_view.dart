@@ -113,7 +113,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                           s.orderCode,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -139,7 +139,7 @@ class TakeawaySubmittedView extends ConsumerWidget {
                                 currency: s.currencyCode,
                               ),
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
                                 color: OrderPalette.primary,
                               ),

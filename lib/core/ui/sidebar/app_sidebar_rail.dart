@@ -1,31 +1,44 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme/app_status_colors.dart';
 import '../../../app/theme/app_tokens.dart';
-import 'sidebar_category.dart';
 import 'sidebar_menu_item.dart';
 
-/// The always-visible strip of section icons on tablets and POS screens
-/// (width >= 1024): one tap to any section, the full sidebar one tap away
-/// from the menu button. Categories are separated by a line.
+/// The always-visible strip on tablets and POS screens (width >= 1024): the
+/// menu button that opens the full sidebar, then the role's main sections,
+/// one tap each. Which sections they are is the app's decision
+/// (`app/shell/shell_tabs.dart`); this widget only draws them.
 class AppSidebarRail extends StatelessWidget {
   const AppSidebarRail({
     super.key,
-    required this.categories,
+    required this.items,
     required this.selectedId,
     required this.onItemTap,
+    required this.onMenu,
+    this.menuActive = false,
     this.itemBadges = const {},
   });
 
   static const double width = 88;
 
-  final List<SidebarCategory> categories;
+  final List<SidebarMenuItem> items;
   final String? selectedId;
   final ValueChanged<SidebarMenuItem> onItemTap;
+  final VoidCallback onMenu;
+
+  /// The sidebar is open, or the open section is not on the rail.
+  final bool menuActive;
+
+  /// Counts by section id; those outside [items] add up on the menu button.
   final Map<String, int> itemBadges;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final ids = {for (final item in items) item.id};
+    final menuCount = itemBadges.entries
+        .where((entry) => !ids.contains(entry.key))
+        .fold(0, (sum, entry) => sum + entry.value);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surface,
@@ -33,17 +46,15 @@ class AppSidebarRail extends StatelessWidget {
       ),
       child: SizedBox(
         width: width,
-        child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-          children: [
-            for (var i = 0; i < categories.length; i++) ...[
-              if (i > 0)
-                const Divider(
-                  height: AppSpacing.lg,
-                  indent: AppSpacing.lg,
-                  endIndent: AppSpacing.lg,
-                ),
-              for (final item in categories[i].items)
+        // Rail labels stay short; very large text would push items off.
+        child: MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            children: [
+              _MenuButton(active: menuActive, count: menuCount, onTap: onMenu),
+              const SizedBox(height: AppSpacing.sm),
+              for (final item in items)
                 _RailItem(
                   key: ValueKey('rail-item-${item.id}'),
                   item: item,
@@ -52,7 +63,51 @@ class AppSidebarRail extends StatelessWidget {
                   onTap: () => onItemTap(item),
                 ),
             ],
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _badged(Widget child, int count) => Badge(
+  isLabelVisible: count > 0,
+  label: Text(count > 99 ? '99+' : '$count'),
+  alignment: const AlignmentDirectional(0.6, -0.9),
+  child: child,
+);
+
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.active,
+    required this.count,
+    required this.onTap,
+  });
+
+  final bool active;
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Center(
+      child: Semantics(
+        key: const ValueKey('rail-menu'),
+        selected: active,
+        child: IconButton(
+          tooltip: 'Menu',
+          onPressed: onTap,
+          style: IconButton.styleFrom(
+            minimumSize: const Size.square(48),
+            backgroundColor: active
+                ? context.tone(AppTone.primary).background
+                : Colors.transparent,
+          ),
+          icon: _badged(
+            Icon(Icons.menu, color: active ? colors.primary : colors.onSurface),
+            count,
+          ),
         ),
       ),
     );
@@ -88,43 +143,47 @@ class _RailItem extends StatelessWidget {
           waitDuration: const Duration(milliseconds: 600),
           child: InkWell(
             onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs,
-                vertical: 6,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: 56,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? colors.primaryContainer
-                          : Colors.transparent,
-                      borderRadius: AppRadius.pillAll,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xs,
+                  vertical: 6,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AnimatedContainer(
+                      duration: AppDurations.fast,
+                      width: 56,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? context.tone(AppTone.primary).background
+                            : Colors.transparent,
+                        borderRadius: AppRadius.pillAll,
+                      ),
+                      child: _badged(
+                        Center(child: Icon(item.icon, color: color)),
+                        badge,
+                      ),
                     ),
-                    child: Badge(
-                      isLabelVisible: badge > 0,
-                      label: Text(badge > 99 ? '99+' : '$badge'),
-                      alignment: const AlignmentDirectional(0.6, -0.9),
-                      child: Center(child: Icon(item.icon, color: color)),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      item.compactLabel,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: color,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    item.compactLabel,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: color,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

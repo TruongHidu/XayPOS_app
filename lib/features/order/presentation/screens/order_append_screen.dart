@@ -347,7 +347,7 @@ class _OrderAppendScreenState extends ConsumerState<OrderAppendScreen>
                     child: Text(
                       'Tổng phần mới dự kiến: ${orderMoney(cart.previewMinor, currency: currency)}',
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

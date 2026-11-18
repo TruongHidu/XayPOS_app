@@ -15,6 +15,10 @@ resolve timeout an toàn; không tự tạo đơn mới hoặc đổi occupancy 
 Ứng dụng Flutter POS SaaS với luồng đăng nhập, khôi phục phiên, refresh token
 rotation, phân quyền theo permission và giới hạn tính năng theo package.
 
+Giao diện dùng chung một hệ thống token, theme và component (màu, chữ, bo góc,
+badge, KPI, trạng thái rỗng/lỗi, rail cho tablet) kèm guard test: xem
+[hệ thống giao diện](docs/ui-design-system.md) trước khi thêm hoặc sửa màn hình.
+
 ## Chạy ứng dụng
 
 Copy file mẫu thành cấu hình cục bộ (chỉ cần khi chưa có `.env`):

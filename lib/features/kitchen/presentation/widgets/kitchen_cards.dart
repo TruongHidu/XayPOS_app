@@ -120,7 +120,7 @@ class KitchenQueueContext extends StatelessWidget {
               style: const TextStyle(
                 color: AppColors.grey700,
                 fontWeight: FontWeight.w600,
-                fontSize: 12.5,
+                fontSize: 12,
               ),
             ),
             Text(
@@ -128,7 +128,7 @@ class KitchenQueueContext extends StatelessWidget {
               style: TextStyle(
                 color: timerColor,
                 fontWeight: FontWeight.w700,
-                fontSize: 12.5,
+                fontSize: 12,
               ),
             ),
           ],
@@ -233,7 +233,7 @@ class KitchenItemCard extends StatelessWidget {
                     child: Text(
                       'Ghi chú: ${item.note}',
                       style: const TextStyle(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppColors.warning,
                       ),
@@ -270,7 +270,7 @@ class KitchenItemCard extends StatelessWidget {
                         style: TextStyle(
                           color: AppColors.success,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
+                          fontSize: 13,
                         ),
                       ),
                     ],
@@ -317,7 +317,7 @@ class KitchenItemCard extends StatelessWidget {
                           : 'Đã xong',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
+                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -392,7 +392,7 @@ class KitchenOrderCard extends StatelessWidget {
                 Text(
                   items.first.orderCode,
                   style: const TextStyle(
-                    fontSize: 17,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: AppColors.grey900,
                   ),
@@ -403,7 +403,7 @@ class KitchenOrderCard extends StatelessWidget {
                 Text(
                   '$ready/${items.length} món đã xong${complete ? '' : ' · Chưa đủ dữ liệu'}',
                   style: const TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.grey700,
                   ),
@@ -417,7 +417,7 @@ class KitchenOrderCard extends StatelessWidget {
                   Text(
                     '${item.quantity} ${item.unit} · ${item.itemName}',
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColors.grey800,
                     ),
@@ -428,7 +428,7 @@ class KitchenOrderCard extends StatelessWidget {
                       child: Text(
                         'Ghi chú: ${item.note}',
                         style: const TextStyle(
-                          fontSize: 12.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AppColors.warning,
                         ),
@@ -496,7 +496,7 @@ class KitchenOrderCard extends StatelessWidget {
                     style: TextStyle(
                       color: AppColors.success,
                       fontWeight: FontWeight.w700,
-                      fontSize: 13.5,
+                      fontSize: 13,
                     ),
                   )
                 // A button that can't be pressed is noise; it appears once
@@ -521,7 +521,7 @@ class KitchenOrderCard extends StatelessWidget {
                       busy ? 'Đang xử lý…' : 'Ready cả đơn',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
+                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -562,7 +562,7 @@ class KitchenServeButton extends StatelessWidget {
         : const Icon(Icons.room_service_outlined, size: 18),
     label: Text(
       busy ? 'Đang xử lý…' : 'Đã giao',
-      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
     ),
   );
 }
@@ -622,7 +622,7 @@ class KitchenServingList extends StatelessWidget {
                       'Chờ phục vụ · $dishes món, ${orders.length} đơn',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                        fontSize: 14,
                         color: AppColors.success,
                       ),
                     ),
@@ -682,7 +682,7 @@ class _ServingRow extends StatelessWidget {
                   first.seating.isEmpty ? first.orderCode : first.seating,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 14.5,
+                    fontSize: 14,
                     color: AppColors.grey900,
                   ),
                 ),
@@ -704,7 +704,7 @@ class _ServingRow extends StatelessWidget {
                     return Text(
                       'Chờ ${kitchenWaited(elapsed)}',
                       style: TextStyle(
-                        fontSize: 12.5,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: elapsed >= KitchenStyle.warningAfter
                             ? AppColors.dangerStrong

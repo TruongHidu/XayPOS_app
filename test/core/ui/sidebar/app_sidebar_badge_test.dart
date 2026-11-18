@@ -155,7 +155,9 @@ void main() {
       find.descendant(of: badge, matching: find.text('99+')),
       findsOneWidget,
     );
-    expect(tester.getRect(badge).right, lessThanOrEqualTo(280));
+    // The phone menu is a full-width sheet: the badge keeps a margin from
+    // the right edge instead of sitting inside a 280px drawer.
+    expect(tester.getRect(badge).right, lessThanOrEqualTo(320 - 16));
     expect(tester.takeException(), isNull);
   });
 }

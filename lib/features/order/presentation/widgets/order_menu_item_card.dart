@@ -98,7 +98,7 @@ class OrderMenuItemCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColors.grey900,
                     ),
@@ -249,7 +249,7 @@ class OrderMenuItemCard extends StatelessWidget {
                       currency: currencyCode ?? defaultCurrencySymbol,
                     ),
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: OrderPalette.primary,
                     ),

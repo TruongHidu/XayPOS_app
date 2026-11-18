@@ -27,9 +27,9 @@ import 'shell_tabs.dart';
 /// user's effective permissions and subscription features.
 ///
 /// * Phones and portrait tablets (< 1024): bottom tabs for the role's main
-///   sections, the full sidebar as a drawer from the menu button.
-/// * Landscape tablets and POS screens (>= 1024): a rail of every section
-///   stays on the left; the menu button opens the full sidebar over it.
+///   sections; "Khác" opens the full menu as a sheet above the tabs.
+/// * Landscape tablets and POS screens (>= 1024): a rail with the menu button
+///   and the role's main sections; the menu opens as a panel over it.
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({
     super.key,
@@ -76,6 +76,10 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell>
     with SingleTickerProviderStateMixin {
   late final AnimationController _sidebarController;
+
+  /// Lights "Khác" / the rail menu button while the menu shows, without
+  /// rebuilding the shell on every frame of the slide.
+  final _menuOpen = ValueNotifier(false);
   String? _selectedId;
 
   @override
@@ -83,9 +87,13 @@ class _AppShellState extends ConsumerState<AppShell>
     super.initState();
     _sidebarController = AnimationController(
       vsync: this,
-      duration: AppDurations.slow,
-    );
+      duration: AppDurations.normal,
+    )..addStatusListener(_syncMenuOpen);
     _selectedId = widget.initialSection;
+  }
+
+  void _syncMenuOpen(AnimationStatus status) {
+    _menuOpen.value = status.isForwardOrCompleted;
   }
 
   @override
@@ -99,6 +107,7 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void dispose() {
     _sidebarController.dispose();
+    _menuOpen.dispose();
     super.dispose();
   }
 
@@ -220,72 +229,102 @@ class _AppShellState extends ConsumerState<AppShell>
         allVisibleItems.length >= 2;
     final medium = width >= AppBreakpoints.medium;
     final selected = shellSections[_selectedId];
+    // "Khác" and the rail open the menu; the app bar button is only for
+    // screens that have neither.
+    final menuInAppBar = !widget.isInner && !showTabs && !showRail;
+    final hasLeading = widget.isInner || menuInAppBar;
+    final railHasSelection = tabs.any((tab) => tab.id == _selectedId);
 
     return PopScope(
       canPop: ModalRoute.of(context)?.isFirst == false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_onRootBack());
       },
-      child: Scaffold(
-        appBar: widget.showAppBar
-            ? AppBar(
-                toolbarHeight: medium ? 64 : kToolbarHeight,
-                titleSpacing: AppSpacing.xs,
-                leading: IconButton(
-                  onPressed: widget.isInner ? _goBack : _toggleSidebar,
-                  tooltip: widget.isInner ? 'Quay lại' : 'Menu',
-                  icon: widget.isInner
-                      ? const Icon(Icons.arrow_back)
-                      : AnimatedIcon(
-                          icon: AnimatedIcons.menu_close,
-                          progress: _sidebarController,
-                        ),
-                ),
-                title: Text(
-                  widget.innerTitle ?? _currentTitle(allVisibleItems),
-                ),
-                actions: [
-                  ...?widget.actions,
-                  // Mirrors _buildContent, which mounts these screens itself.
-                  if (widget.child == null) ...?selected?.actions,
-                  SizedBox(width: medium ? AppSpacing.md : AppSpacing.xs),
-                ],
-              )
-            : null,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Main content area. Composing and billing hide the app bar and
-            // draw their own safe-area header, so the strip stays off them.
-            Positioned.fill(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (showRail)
-                    AppSidebarRail(
-                      categories: visibleCategories,
+      // The menu covers the app bar too, but stops above the bottom tabs.
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Scaffold(
+            appBar: widget.showAppBar
+                ? AppBar(
+                    toolbarHeight: medium ? 64 : kToolbarHeight,
+                    automaticallyImplyLeading: false,
+                    titleSpacing: hasLeading
+                        ? AppSpacing.xs
+                        : AppSpacing.pageGutter(width),
+                    leading: hasLeading
+                        ? IconButton(
+                            onPressed: widget.isInner
+                                ? _goBack
+                                : _toggleSidebar,
+                            tooltip: widget.isInner ? 'Quay lại' : 'Menu',
+                            icon: widget.isInner
+                                ? const Icon(Icons.arrow_back)
+                                : AnimatedIcon(
+                                    icon: AnimatedIcons.menu_close,
+                                    progress: _sidebarController,
+                                  ),
+                          )
+                        : null,
+                    title: Text(
+                      widget.innerTitle ?? _currentTitle(allVisibleItems),
+                    ),
+                    actions: [
+                      ...?widget.actions,
+                      // Mirrors _buildContent, which mounts these screens itself.
+                      if (widget.child == null) ...?selected?.actions,
+                      SizedBox(width: medium ? AppSpacing.md : AppSpacing.xs),
+                    ],
+                  )
+                : null,
+            // Composing and billing hide the app bar and draw their own
+            // safe-area header, so the strip stays off them.
+            body: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (showRail)
+                  ValueListenableBuilder(
+                    valueListenable: _menuOpen,
+                    builder: (context, open, _) => AppSidebarRail(
+                      items: tabs,
                       selectedId: _selectedId,
                       itemBadges: badges,
                       onItemTap: _onItemTap,
-                    ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        if (widget.showAppBar) const RealtimeConnectionBanner(),
-                        Expanded(
-                          child: _buildContent(session, allVisibleItems),
-                        ),
-                      ],
+                      onMenu: _toggleSidebar,
+                      menuActive: open || !railHasSelection,
                     ),
                   ),
-                ],
-              ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      if (widget.showAppBar) const RealtimeConnectionBanner(),
+                      Expanded(child: _buildContent(session, allVisibleItems)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-
-            // Sidebar overlay
-            if (!widget.isInner)
-              AppSidebar(
+            bottomNavigationBar: showTabs
+                ? ValueListenableBuilder(
+                    valueListenable: _menuOpen,
+                    builder: (context, open, _) => AppBottomTabs(
+                      tabs: tabs,
+                      selectedId: _selectedId,
+                      hasMore: hasMoreSections,
+                      moreOpen: open,
+                      badges: badges,
+                      onTab: _onItemTap,
+                      onMore: _toggleSidebar,
+                    ),
+                  )
+                : null,
+          ),
+          if (!widget.isInner)
+            Positioned.fill(
+              child: AppSidebar(
                 animation: _sidebarController,
+                panel: expanded,
+                bottomTabsHeight: showTabs ? AppBottomTabs.height : 0,
                 categories: visibleCategories,
                 itemBadges: badges,
                 selectedId: _selectedId,
@@ -296,18 +335,8 @@ class _AppShellState extends ConsumerState<AppShell>
                 restaurantName: session.authenticatedUser.restaurantName,
                 packageCode: session.packageCode,
               ),
-          ],
-        ),
-        bottomNavigationBar: showTabs
-            ? AppBottomTabs(
-                tabs: tabs,
-                selectedId: _selectedId,
-                hasMore: hasMoreSections,
-                badges: badges,
-                onTab: _onItemTap,
-                onMore: _toggleSidebar,
-              )
-            : null,
+            ),
+        ],
       ),
     );
   }

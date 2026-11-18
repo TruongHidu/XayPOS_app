@@ -190,7 +190,7 @@ void main() {
       ]) {
         expect(find.widgetWithText(ListTile, label), findsNothing);
       }
-      await _tap(tester, find.byTooltip('Menu'));
+      await _tap(tester, find.byTooltip('Đóng menu'));
 
       final lowChip = find.widgetWithText(FilterChip, 'Chỉ tồn thấp');
       expect(tester.widget<FilterChip>(lowChip).selected, isFalse);

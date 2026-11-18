@@ -15,6 +15,8 @@ import '../providers/settings_providers.dart';
 import '../widgets/package_feature_labels.dart';
 import '../widgets/restaurant_profile_dialog.dart';
 import '../widgets/transfer_account_dialog.dart';
+import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/section_header.dart';
 
 /// Restaurant, package, account and app settings. Each section shows only
 /// what the signed-in account may see; Tài khoản and Ứng dụng are for everyone.
@@ -103,7 +105,6 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -111,23 +112,11 @@ class _Section extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
+            SectionHeader(
+              title,
+              icon: icon,
+              trailing: action,
               padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-              child: Row(
-                children: [
-                  Icon(icon, color: theme.colorScheme.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  ?action,
-                ],
-              ),
             ),
             ...children,
           ],
@@ -179,16 +168,10 @@ class _Failed extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _message(error),
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
-        ],
+      child: ErrorBanner(
+        message: _message(error),
+        actionsAlignment: CrossAxisAlignment.end,
+        actions: [TextButton(onPressed: onRetry, child: const Text('Thử lại'))],
       ),
     );
   }

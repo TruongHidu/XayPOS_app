@@ -224,7 +224,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           order.orderCode,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 15,
+            fontSize: 14,
             color: AppColors.grey900,
           ),
           maxLines: 1,
@@ -325,7 +325,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
           ),
           style: const TextStyle(
             fontWeight: FontWeight.w800,
-            fontSize: 15,
+            fontSize: 14,
             color: OrderPalette.primary,
           ),
         ),
@@ -362,7 +362,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                 Expanded(
                   child: Text(
                     'Lịch sử đơn trong phiên. Gọi món tại bàn từ màn hình Gọi món.',
-                    style: TextStyle(fontSize: 12.5, color: AppColors.warning),
+                    style: TextStyle(fontSize: 12, color: AppColors.warning),
                   ),
                 ),
               ],

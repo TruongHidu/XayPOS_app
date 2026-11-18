@@ -587,7 +587,7 @@ class OrderDetailScreen extends ConsumerWidget {
                             'Danh sách món (${order.items.length})',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                              fontSize: 14,
                             ),
                           ),
                         ),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
 import '../../domain/entities/report_money.dart';
-import '../../../../app/theme/app_tokens.dart';
+import '../../../../core/ui/widgets/stat_tile.dart';
 
 class ReportKpiCard extends StatelessWidget {
   final String title;
@@ -71,98 +70,17 @@ class ReportKpiCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cardColor = color ?? theme.colorScheme.primary;
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 140),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: AppRadius.mdAll,
-          side: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-          ),
-        ),
-        color: theme.colorScheme.surface,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: cardColor.withValues(alpha: 0.12),
-                      borderRadius: AppRadius.smAll,
-                    ),
-                    child: Icon(icon, size: 18, color: cardColor),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (tooltip != null) ...[
-                          const SizedBox(width: 4),
-                          Tooltip(
-                            message: tooltip!,
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            textStyle: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                            ),
-                            decoration: const BoxDecoration(
-                              color: AppColors.grey900,
-                              borderRadius: AppRadius.smAll,
-                            ),
-                            child: Icon(
-                              Icons.info_outline,
-                              size: 16,
-                              color: theme.colorScheme.outline,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                valueText,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              if (secondaryText != null || subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  secondaryText ?? subtitle!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Padding(
+    // The outer gap the tile had as a Card, so grids keep their spacing.
+    padding: const EdgeInsets.all(4),
+    child: StatTile(
+      label: title,
+      value: valueText,
+      hint: secondaryText ?? subtitle,
+      icon: icon,
+      color: color ?? Theme.of(context).colorScheme.primary,
+      tooltip: tooltip,
+      minHeight: 132,
+    ),
+  );
 }

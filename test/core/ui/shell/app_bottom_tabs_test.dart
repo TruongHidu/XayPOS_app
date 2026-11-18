@@ -7,6 +7,7 @@ import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/core/ui/shell/app_bottom_tabs.dart';
 import 'package:pos_saas_app/app/shell/shell_tabs.dart';
 import 'package:pos_saas_app/app/shell/app_shell.dart';
+import 'package:pos_saas_app/core/ui/sidebar/app_sidebar.dart';
 import 'package:pos_saas_app/core/ui/sidebar/app_sidebar_rail.dart';
 import 'package:pos_saas_app/core/ui/sidebar/sidebar_menu_item.dart';
 import 'package:pos_saas_app/features/auth/domain/entities/login_credentials.dart';
@@ -221,6 +222,73 @@ void main() {
       expect(find.text('Đăng xuất'), findsOneWidget);
     });
 
+    testWidgets('the menu is a sheet above the tabs, with Khác lit', (
+      tester,
+    ) async {
+      await pumpShell(tester);
+      // Phones open the menu from Khác, not from the app bar.
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byTooltip('Menu'),
+        ),
+        findsNothing,
+      );
+      final tabs = tester.getRect(find.byType(NavigationBar));
+      final opened = _selected(tester);
+      final more =
+          tester
+              .widget<NavigationBar>(find.byType(NavigationBar))
+              .destinations
+              .length -
+          1;
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-more')));
+      await tester.pumpAndSettle();
+      final sheetBottom = tester.getBottomLeft(find.text('Đăng xuất')).dy;
+      expect(sheetBottom, lessThanOrEqualTo(tabs.top));
+      expect(_selected(tester), more);
+
+      // Khác again closes it and lights the open section's tab.
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-more')));
+      await tester.pumpAndSettle();
+      expect(find.text('Đăng xuất'), findsNothing);
+      expect(_selected(tester), opened);
+      expect(opened, isNot(more));
+
+      // Another tab closes the menu and opens its section in one tap.
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-order-create')));
+      await tester.pumpAndSettle();
+      expect(find.text('Đăng xuất'), findsNothing);
+      expect(find.text('Màn gọi món'), findsOneWidget);
+    });
+
+    testWidgets('the menu finds a section without accents', (tester) async {
+      await pumpShell(tester);
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-more')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'goi mon');
+      await tester.pump();
+      expect(find.text('1 kết quả'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Gọi món'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Đơn hàng'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'hoá đơn');
+      await tester.pump();
+      expect(find.text('Không có chức năng “hoá đơn”'), findsOneWidget);
+      // Logout stays reachable whatever the search shows.
+      expect(find.text('Đăng xuất'), findsOneWidget);
+
+      // Reopening starts with the full list.
+      await tester.tap(find.byTooltip('Đóng menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bottom-tab-more')));
+      await tester.pumpAndSettle();
+      expect(find.text('Không có chức năng “hoá đơn”'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Đơn hàng'), findsOneWidget);
+    });
+
     testWidgets('inner and composing screens keep their full height', (
       tester,
     ) async {
@@ -252,6 +320,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Màn gọi món'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the rail menu button opens a side panel', (tester) async {
+      await pumpShell(tester, width: 1280);
+      // The rail holds the menu button; the app bar has none.
+      final menu = find.descendant(
+        of: find.byType(AppSidebarRail),
+        matching: find.byTooltip('Menu'),
+      );
+      expect(menu, findsOneWidget);
+      expect(find.byTooltip('Menu'), findsOneWidget);
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      final logout = tester.getRect(find.text('Đăng xuất'));
+      expect(logout.right, lessThanOrEqualTo(AppSidebar.panelWidth));
+      await tester.tap(find.byTooltip('Đóng menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('Đăng xuất'), findsNothing);
     });
 
     testWidgets('phones, inner and composing screens have no rail', (

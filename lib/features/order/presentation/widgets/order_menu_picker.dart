@@ -137,7 +137,7 @@ class _OrderMenuPickerState extends ConsumerState<OrderMenuPicker> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: AppColors.grey900,
                             ),
