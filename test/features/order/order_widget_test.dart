@@ -520,7 +520,7 @@ void main() {
         child: const OrderAppendScreen(orderId: 'o1', tableName: 'Bàn 1'),
       );
 
-      expect(find.text('Tìm món...'), findsOneWidget);
+      expect(find.byKey(const ValueKey('order-menu-search')), findsOneWidget);
     },
   );
   testWidgets(
@@ -599,7 +599,7 @@ void main() {
       expect(find.text('Bỏ giỏ đang nhập?'), findsOneWidget);
       await tester.tap(find.text('Giữ giỏ'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ (1)'), findsOneWidget);
+      expect(cartCount(1), findsOneWidget);
       router.go('/app/orders');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Bỏ giỏ'));
@@ -732,7 +732,7 @@ void main() {
       expect(tables.requests, isEmpty);
       await tester.tap(find.byTooltip('Thêm Trà đào'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ (1)'), findsOneWidget);
+      expect(cartCount(1), findsOneWidget);
       await tester.tap(find.text('Gửi đơn'));
       await tester.pumpAndSettle();
       expect(orders.creates.length, 1);
@@ -844,9 +844,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
     events.invalidate();
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (1)'), findsNothing);
+    expect(cartCount(1), findsNothing);
   });
 }

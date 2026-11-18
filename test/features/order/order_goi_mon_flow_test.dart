@@ -219,7 +219,7 @@ void main() {
     expect(find.text('Trà đào'), findsOneWidget);
 
     // Switch back to menu tab
-    await tester.tap(find.text('Chọn món'));
+    await tester.tap(find.widgetWithText(Tab, 'Chọn món'));
     await tester.pumpAndSettle();
 
     expect(

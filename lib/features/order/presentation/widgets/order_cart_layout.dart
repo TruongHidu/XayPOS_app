@@ -14,28 +14,89 @@ double orderCartPaneWidth(double maxWidth) =>
 
 /// Title row of the cart pane in the side-by-side layout.
 class OrderCartPaneHeader extends StatelessWidget {
-  const OrderCartPaneHeader({super.key, required this.title});
+  const OrderCartPaneHeader({super.key, required this.title, this.count});
   final String title;
 
+  /// Lines in the cart, shown as a pill after [title].
+  final int? count;
+
   @override
-  Widget build(BuildContext context) => Container(
-    color: Colors.white,
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-    child: Row(
-      children: [
-        const Icon(Icons.shopping_cart_outlined, size: 20),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) => ColoredBox(
+    color: Theme.of(context).colorScheme.surface,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+        AppSpacing.md,
+      ),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
           ),
-        ),
-      ],
+          if (count != null) ...[
+            const SizedBox(width: AppSpacing.sm),
+            OrderCartCount(count!),
+          ],
+        ],
+      ),
     ),
   );
+}
+
+/// How many lines the cart holds: blue once there is something to send.
+class OrderCartCount extends StatelessWidget {
+  const OrderCartCount(this.count, {super.key});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final has = count > 0;
+    return Semantics(
+      label: '$count món trong giỏ',
+      child: ExcludeSemantics(
+        child: DecoratedBox(
+          key: const ValueKey('cart-count'),
+          decoration: BoxDecoration(
+            color: has ? colors.primary : colors.surfaceContainerHighest,
+            borderRadius: AppRadius.pillAll,
+          ),
+          // Never stretched by a tall parent such as a tab: a 20px pill,
+          // round while the count has one digit.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: Text(
+                  '$count',
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                    applyHeightToLastDescent: false,
+                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: has ? colors.onPrimary : colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 typedef RemovedOrderLine = ({OrderDraftLine line, int index});

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_status_colors.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/ui/widgets/list_states.dart';
+import '../../../../core/ui/widgets/status_badge.dart';
 import '../../../../app/providers.dart';
 import '../../../../core/auth/access_policy.dart';
 import '../../../../core/errors/failure.dart';
@@ -17,6 +20,7 @@ import '../controllers/order_draft_controller.dart';
 import '../widgets/menu_item_sheet.dart';
 import '../widgets/order_cart_layout.dart';
 import '../widgets/order_exit_guard.dart';
+import '../widgets/order_menu_item_card.dart';
 import '../widgets/order_menu_picker.dart';
 import '../widgets/order_widgets.dart';
 import '../widgets/takeaway_submitted_view.dart';
@@ -194,6 +198,9 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
   bool get _takeaway => widget.contextInput.serviceType == ServiceType.takeaway;
   bool _moreInfo = false;
 
+  /// "Thông tin khách" is open in the cart.
+  bool _infoOpen = false;
+
   void _startNew() {
     for (final c in [_name, _phone, _note]) {
       c.clear();
@@ -229,9 +236,13 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Số khách phải là số nguyên.')),
       );
+      setState(() => _infoOpen = true);
       return;
     }
-    if (_form.currentState != null && !_form.currentState!.validate()) return;
+    if (_form.currentState != null && !_form.currentState!.validate()) {
+      setState(() => _infoOpen = true);
+      return;
+    }
     _fields(d);
     await d.submit(mode: mode);
   }
@@ -371,69 +382,493 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       counterText: '',
       hintText: hint,
       prefixIcon: Icon(icon, size: 20),
-      filled: true,
-      fillColor: AppColors.grey50,
-      border: const OutlineInputBorder(borderRadius: AppRadius.buttonAll),
     );
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const ValueKey('takeaway-customer-name'),
-                  controller: _name,
-                  readOnly: d.frozen,
-                  maxLength: 100,
-                  textInputAction: TextInputAction.done,
-                  onChanged: (_) => _fields(d),
-                  decoration: field(
-                    'Tên khách (để gọi khi lấy món)',
-                    Icons.person_outline,
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.sm,
+          AppSpacing.sm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('takeaway-customer-name'),
+                    controller: _name,
+                    readOnly: d.frozen,
+                    maxLength: 100,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (_) => _fields(d),
+                    decoration: field(
+                      'Tên khách (để gọi khi lấy món)',
+                      Icons.person_outline,
+                    ),
                   ),
                 ),
+                IconButton(
+                  tooltip: expanded ? 'Ẩn SĐT và ghi chú' : 'Thêm SĐT, ghi chú',
+                  onPressed: () => setState(() => _moreInfo = !expanded),
+                  icon: Icon(
+                    expanded ? Icons.expand_less : Icons.add_comment_outlined,
+                  ),
+                ),
+              ],
+            ),
+            if (expanded) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.only(right: AppSpacing.xs),
+                child: TextField(
+                  controller: _phone,
+                  readOnly: d.frozen,
+                  maxLength: 30,
+                  keyboardType: TextInputType.phone,
+                  onChanged: (_) => _fields(d),
+                  decoration: field('Số điện thoại', Icons.phone_outlined),
+                ),
               ),
-              IconButton(
-                tooltip: expanded ? 'Ẩn SĐT và ghi chú' : 'Thêm SĐT, ghi chú',
-                onPressed: () => setState(() => _moreInfo = !expanded),
-                icon: Icon(
-                  expanded ? Icons.expand_less : Icons.add_comment_outlined,
+              const SizedBox(height: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.only(right: AppSpacing.xs),
+                child: TextField(
+                  controller: _note,
+                  readOnly: d.frozen,
+                  maxLength: 2000,
+                  minLines: 1,
+                  maxLines: 2,
+                  onChanged: (_) => _fields(d),
+                  decoration: field('Ghi chú đơn', Icons.notes),
                 ),
               ),
             ],
-          ),
-          if (expanded) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: TextField(
-                controller: _phone,
-                readOnly: d.frozen,
-                maxLength: 30,
-                keyboardType: TextInputType.phone,
-                onChanged: (_) => _fields(d),
-                decoration: field('Số điện thoại', Icons.phone_outlined),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: TextField(
-                controller: _note,
-                readOnly: d.frozen,
-                maxLength: 2000,
-                minLines: 1,
-                maxLines: 2,
-                onChanged: (_) => _fields(d),
-                decoration: field('Ghi chú đơn', Icons.notes),
-              ),
-            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// One cart line: name and amount, a quick − n +, then its note and the
+  /// quantity/note editor and removal.
+  Widget _cartLine(OrderDraftController d, OrderDraftLine line) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final danger = context.tone(AppTone.danger);
+    final warning = context.tone(AppTone.warning);
+    final locked = d.frozen;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Dismissible(
+        key: ValueKey('cart-line-${line.id}'),
+        direction: locked ? DismissDirection.none : DismissDirection.endToStart,
+        onDismissed: (_) => _removeLine(d, line),
+        background: DecoratedBox(
+          decoration: BoxDecoration(
+            color: danger.foreground,
+            borderRadius: AppRadius.mdAll,
+          ),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: Text(
+                'Bỏ món',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colors.onError,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+        child: Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.xs,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(line.item.name, style: theme.textTheme.titleSmall),
+                        Text(
+                          // Quantity as entered, never rounded: "1.5 kg".
+                          '${'${line.quantity} ${line.item.baseUnit}'.trim()}'
+                          ' · ${orderMoney(line.previewMinor)}',
+                          style: theme.textTheme.money.copyWith(
+                            fontWeight: FontWeight.w400,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        OrderStepButton(
+                          tooltip: 'Bớt 1 ${line.item.name} trong giỏ',
+                          icon: Icons.remove,
+                          onPressed: locked
+                              ? null
+                              : () => line.quantity.milliUnits <= 1000
+                                    ? _removeLine(d, line)
+                                    : d.edit(
+                                        line.id,
+                                        line.quantity - OrderQuantity.one,
+                                        line.note,
+                                      ),
+                        ),
+                        OrderQuantityText(line.quantity),
+                        OrderStepButton(
+                          tooltip: 'Thêm 1 ${line.item.name} trong giỏ',
+                          icon: Icons.add,
+                          filled: true,
+                          onPressed: locked
+                              ? null
+                              : () => d.edit(
+                                  line.id,
+                                  line.quantity + OrderQuantity.one,
+                                  line.note,
+                                ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (line.note?.isNotEmpty == true) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: warning.background,
+                      borderRadius: AppRadius.xsAll,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 2,
+                      ),
+                      child: Text(
+                        'Ghi chú: ${line.note}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: warning.foreground,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                // Wraps in the narrow side-by-side cart pane.
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: AppSpacing.xs,
+                    children: [
+                      TextButton.icon(
+                        onPressed: locked ? null : () => _edit(d, line),
+                        icon: const Icon(Icons.edit_note),
+                        label: const Text('Số lượng / ghi chú'),
+                      ),
+                      TextButton.icon(
+                        onPressed: locked ? null : () => _removeLine(d, line),
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Bỏ món'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: danger.foreground,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Name, phone and guest count: optional at a table, so folded away. The
+  /// fields stay mounted while folded, so the form still checks them.
+  Widget _customerInfo(OrderDraftController d) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final optional = widget.contextInput.fromTable;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            key: const ValueKey('order-customer-info'),
+            minTileHeight: 56,
+            leading: Icon(Icons.person_outline, color: colors.onSurfaceVariant),
+            title: Text('Thông tin khách', style: theme.textTheme.titleSmall),
+            subtitle: ListenableBuilder(
+              listenable: Listenable.merge([_name, _guests]),
+              builder: (context, _) {
+                final name = _name.text.trim();
+                final guests = _guests.text.trim();
+                return Text(
+                  [
+                    if (optional) 'Không bắt buộc',
+                    if (name.isNotEmpty) name,
+                    if (!optional && guests.isNotEmpty) '$guests khách',
+                    if (name.isEmpty && (optional || guests.isEmpty))
+                      'Chưa nhập',
+                  ].join(' · '),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                );
+              },
+            ),
+            trailing: Icon(_infoOpen ? Icons.expand_less : Icons.expand_more),
+            onTap: () => setState(() => _infoOpen = !_infoOpen),
+          ),
+          Visibility(
+            visible: _infoOpen,
+            maintainState: true,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.xs,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _name,
+                    readOnly: d.frozen,
+                    maxLength: 100,
+                    onChanged: (_) => _fields(d),
+                    decoration: const InputDecoration(
+                      labelText: 'Tên khách (không bắt buộc)',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextFormField(
+                    controller: _phone,
+                    readOnly: d.frozen,
+                    maxLength: 30,
+                    onChanged: (_) => _fields(d),
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Số điện thoại (không bắt buộc)',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextFormField(
+                    controller: _guests,
+                    readOnly: d.frozen,
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => _fields(d),
+                    decoration: InputDecoration(
+                      labelText: optional
+                          ? 'Số khách (không bắt buộc)'
+                          : 'Số khách',
+                      hintText: widget.contextInput.guestCount.toString(),
+                    ),
+                    validator: (v) {
+                      if (optional && (v?.trim().isEmpty ?? true)) {
+                        return null;
+                      }
+                      final n = int.tryParse(v ?? '');
+                      return n == null || n < 1 || n > 32767
+                          ? 'Nhập số từ 1 đến 32767'
+                          : null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  /// Amount and the send button: under the screen on phones, at the foot of
+  /// the cart pane when it sits beside the menu.
+  Widget _footer(OrderDraftController d, {required bool pane}) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final label = theme.textTheme.bodySmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    final canSend =
+        !(d.busy ||
+            d.uncertain ||
+            !d.canPick ||
+            !d.canSubmit ||
+            d.lines.isEmpty);
+    final amount = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          children: [
+            Text('${d.lines.length} món', style: label),
+            Text(' · Tạm tính', style: label),
+          ],
+        ),
+        Text(
+          orderMoney(d.previewMinor),
+          key: const ValueKey('order-cart-total'),
+          softWrap: false,
+          style: theme.textTheme.moneyLarge,
+        ),
+      ],
+    );
+    final send = FilledButton(
+      onPressed: canSend ? () => _submit(d, OrderSubmissionMode.submit) : null,
+      style: FilledButton.styleFrom(
+        minimumSize: Size(pane ? double.infinity : 0, pane ? 56 : 48),
+        // While sending it stays blue, with the spinner, not greyed out.
+        disabledBackgroundColor: d.busy
+            ? Color.lerp(colors.primary, colors.surface, 0.3)
+            : null,
+        disabledForegroundColor: d.busy ? colors.onPrimary : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (d.busy) ...[
+            SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: colors.onPrimary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
+          Text(d.busy ? 'Đang gửi…' : 'Gửi đơn'),
+        ],
+      ),
+    );
+    // Takeaway keeps drafts in the "⋮" menu unless sending is not allowed,
+    // in which case drafting is the only way.
+    final draftRow =
+        (d.canDraft && !(_takeaway && d.canSubmit)) ||
+            (!d.canSubmit && d.canCreate)
+        ? Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (!d.canSubmit && d.canCreate)
+                  Expanded(
+                    child: Text(
+                      widget.contextInput.fromTable
+                          ? 'Bạn chưa có quyền gửi đơn hoặc mở bàn, nhưng vẫn có thể lưu nháp.'
+                          : 'Bạn chưa có quyền gửi đơn, nhưng vẫn có thể lưu nháp.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                if (d.canDraft)
+                  TextButton(
+                    onPressed:
+                        d.busy || d.uncertain || !d.canPick || d.lines.isEmpty
+                        ? null
+                        : () => _submit(d, OrderSubmissionMode.draft),
+                    child: const Text('Tạo nháp'),
+                  ),
+              ],
+            ),
+          )
+        : null;
+
+    final content = pane
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              amount,
+              const SizedBox(height: AppSpacing.md),
+              send,
+              ?draftRow,
+            ],
+          )
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Large text moves the buttons under the amount.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  amount,
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _showCart,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Xem đơn'),
+                            SizedBox(width: AppSpacing.xs),
+                            Icon(Icons.expand_less, size: 20),
+                          ],
+                        ),
+                      ),
+                      send,
+                    ],
+                  ),
+                ],
+              ),
+              ?draftRow,
+            ],
+          );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(top: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: pane
+              ? const EdgeInsets.fromLTRB(
+                  AppSpacing.xxl,
+                  AppSpacing.lg,
+                  AppSpacing.xxl,
+                  AppSpacing.xxl,
+                )
+              : const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+          child: content,
+        ),
       ),
     );
   }
@@ -459,6 +894,8 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
         tableName: widget.contextInput.tableName,
       );
     }
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final hasHistory =
         widget.contextInput.tableSessionId != null && d.can('ORDER_VIEW');
 
@@ -490,209 +927,50 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
       ],
     );
 
-    final Widget cartPane = Form(
+    Widget cartPane({required bool beside}) => Form(
       key: _form,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+        padding: EdgeInsets.all(beside ? AppSpacing.lg : AppSpacing.lg),
         children: [
           if (d.lines.isEmpty && removedLine == null)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: Text('Chưa chọn món nào.')),
+            EmptyState(
+              icon: Icons.shopping_cart_outlined,
+              message: 'Chưa chọn món nào.',
+              hint: beside ? 'Chạm + ở món bên trái để thêm.' : null,
+              action: beside
+                  ? null
+                  : OutlinedButton(
+                      onPressed: _showMenu,
+                      child: const Text('Chọn món'),
+                    ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                'MÓN ĐÃ CHỌN',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  letterSpacing: 0.6,
+                ),
+              ),
             ),
           ...withUndoTile(
             enabled: !d.frozen && d.canPick,
             onUndo: () => _undoRemove(d),
-            [
-              for (final line in d.lines)
-                Dismissible(
-                  key: ValueKey('cart-line-${line.id}'),
-                  direction: d.frozen
-                      ? DismissDirection.none
-                      : DismissDirection.endToStart,
-                  onDismissed: (_) => _removeLine(d, line),
-                  background: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    alignment: Alignment.centerRight,
-                    decoration: const BoxDecoration(
-                      color: AppColors.danger,
-                      borderRadius: AppRadius.buttonAll,
-                    ),
-                    child: const Text(
-                      'Bỏ món',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 0,
-                    margin: const EdgeInsets.only(bottom: 8),
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadius.buttonAll,
-                      side: BorderSide(color: AppColors.grey200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  line.item.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                orderMoney(line.previewMinor),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: OrderPalette.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${line.quantity} ${line.item.baseUnit}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.grey600,
-                            ),
-                          ),
-                          if (line.note?.isNotEmpty == true) ...[
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: AppColors.warningSoft,
-                                borderRadius: AppRadius.xsAll,
-                              ),
-                              child: Text(
-                                'Ghi chú: ${line.note}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.warning,
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 8),
-                          // Wraps in the narrow side-by-side cart pane.
-                          SizedBox(
-                            width: double.infinity,
-                            child: Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: 4,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: d.frozen
-                                      ? null
-                                      : () => _edit(d, line),
-                                  icon: const Icon(Icons.edit_note, size: 16),
-                                  label: const Text('Số lượng / ghi chú'),
-                                ),
-                                TextButton.icon(
-                                  onPressed: d.frozen
-                                      ? null
-                                      : () => _removeLine(d, line),
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Bỏ món'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: AppColors.danger,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            [for (final line in d.lines) _cartLine(d, line)],
           ),
           if (!_takeaway) ...[
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _name,
-              readOnly: d.frozen,
-              maxLength: 100,
-              onChanged: (_) => _fields(d),
-              decoration: const InputDecoration(
-                labelText: 'Tên khách (không bắt buộc)',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _phone,
-              readOnly: d.frozen,
-              maxLength: 30,
-              onChanged: (_) => _fields(d),
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Số điện thoại (không bắt buộc)',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _guests,
-              readOnly: d.frozen,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => _fields(d),
-              decoration: InputDecoration(
-                labelText: widget.contextInput.fromTable
-                    ? 'Số khách (không bắt buộc)'
-                    : 'Số khách',
-                hintText: widget.contextInput.guestCount.toString(),
-                filled: true,
-                fillColor: Colors.white,
-                border: const OutlineInputBorder(borderRadius: AppRadius.smAll),
-              ),
-              validator: (v) {
-                if (widget.contextInput.fromTable &&
-                    (v?.trim().isEmpty ?? true)) {
-                  return null;
-                }
-                final n = int.tryParse(v ?? '');
-                return n == null || n < 1 || n > 32767
-                    ? 'Nhập số từ 1 đến 32767'
-                    : null;
-              },
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
+            _customerInfo(d),
+            const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _note,
               readOnly: d.frozen,
               maxLength: 2000,
               maxLines: 3,
               onChanged: (_) => _fields(d),
-              decoration: const InputDecoration(
-                labelText: 'Ghi chú đơn',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: AppRadius.smAll),
-              ),
+              decoration: const InputDecoration(labelText: 'Ghi chú đơn'),
             ),
           ],
         ],
@@ -703,114 +981,72 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
         ? OrderListScreen(sessionId: widget.contextInput.tableSessionId)
         : null;
 
+    TabBar tabs(TabController controller, List<Widget> children) => TabBar(
+      controller: controller,
+      labelStyle: theme.textTheme.titleSmall,
+      tabs: children,
+    );
+
     return Material(
-      color: AppColors.grey50,
+      color: theme.scaffoldBackgroundColor,
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             _wide = constraints.maxWidth >= orderSplitMinWidth;
+            final gutter = _wide ? AppSpacing.xxl : AppSpacing.lg;
             return Column(
               children: [
-                // ── In-page Header ────────────────────────────────────────
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                  child: Row(
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppRadius.buttonAll,
-                          border: Border.all(color: AppColors.grey200),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_left, size: 22),
+                // ── In-page header ────────────────────────────────────────
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: _wide
+                        ? Border(
+                            bottom: BorderSide(color: colors.outlineVariant),
+                          )
+                        : null,
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.xs,
+                      AppSpacing.xs,
+                      gutter - AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back),
                           tooltip: 'Quay lại',
                           onPressed: _onBack,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 38,
-                            minHeight: 38,
-                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.grey900,
-                              ),
-                            ),
-                            if (!_takeaway)
-                              Container(
-                                margin: const EdgeInsets.only(top: 2),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: widget.contextInput.sessionAlreadyOpen
-                                      ? AppColors.primarySoft
-                                      : AppColors.grey100,
-                                  borderRadius: AppRadius.mdAll,
-                                ),
-                                child: Text(
-                                  statusText,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color:
-                                        widget.contextInput.sessionAlreadyOpen
-                                        ? OrderPalette.primary
-                                        : AppColors.grey700,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Wrap(
+                            spacing: AppSpacing.sm,
+                            runSpacing: AppSpacing.xs,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                title,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                      if (!_takeaway) ...[
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: AppRadius.buttonAll,
-                            border: Border.all(color: AppColors.grey200),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.search, size: 18),
-                            tooltip: 'Tìm kiếm',
-                            onPressed: _showMenu,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 38,
-                              minHeight: 38,
-                            ),
+                              if (!_takeaway)
+                                StatusBadge(
+                                  label: statusText,
+                                  dot: true,
+                                  tone: widget.contextInput.sessionAlreadyOpen
+                                      ? AppTone.primary
+                                      : AppTone.neutral,
+                                ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                      ],
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppRadius.buttonAll,
-                          border: Border.all(color: AppColors.grey200),
-                        ),
-                        child: PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, size: 18),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
                           tooltip: 'Thao tác khác',
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 38,
-                            minHeight: 38,
-                          ),
                           itemBuilder: (context) => [
                             if (_takeaway && d.canDraft && d.canSubmit)
                               PopupMenuItem(
@@ -842,31 +1078,36 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                // ── Tab Bar ───────────────────────────────────────────────
+                // ── Tab bar ───────────────────────────────────────────────
                 if (!_wide)
                   ColoredBox(
-                    color: Colors.white,
-                    child: TabBar(
-                      controller: _tabController,
-                      indicatorColor: OrderPalette.primary,
-                      labelColor: OrderPalette.primary,
-                      unselectedLabelColor: AppColors.grey700,
-                      tabs: [
-                        const Tab(text: 'Chọn món'),
-                        Tab(text: 'Giỏ (${d.lines.length})'),
-                        if (hasHistory) const Tab(text: 'Lịch sử trong phiên'),
-                      ],
-                    ),
+                    color: colors.surface,
+                    child: tabs(_tabController, [
+                      const Tab(text: 'Chọn món'),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Flexible(
+                              child: Text('Giỏ', overflow: TextOverflow.fade),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            OrderCartCount(d.lines.length),
+                          ],
+                        ),
+                      ),
+                      if (hasHistory) const Tab(text: 'Lịch sử trong phiên'),
+                    ]),
                   ),
 
                 if (d.busy) const LinearProgressIndicator(),
 
-                // ── Error & Review notices ────────────────────────────────
+                // ── Error & review notices ────────────────────────────────
                 OrderFailurePanel(
                   failure: d.failure,
                   retry: d.canRetry ? d.retry : null,
@@ -876,7 +1117,7 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                 ),
                 if (d.needsTableReview && d.can('ORDER_VIEW'))
                   Padding(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(AppSpacing.xs),
                     child: TextButton(
                       onPressed: d.busy ? null : () => _checkTable(d),
                       child: const Text('Kiểm tra đơn của bàn'),
@@ -884,20 +1125,20 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                   ),
                 if (d.keyConflict)
                   const Padding(
-                    padding: EdgeInsets.all(8),
+                    padding: EdgeInsets.all(AppSpacing.sm),
                     child: Text(
                       'Lần gửi này trùng với một lần gửi trước nhưng nội dung khác. Đừng gửi lại, hãy nhờ người quản lý kiểm tra đơn.',
                     ),
                   ),
                 if (d.uncertain)
                   const Padding(
-                    padding: EdgeInsets.all(8),
+                    padding: EdgeInsets.all(AppSpacing.sm),
                     child: Text(
                       'Chưa xác định đơn đã được tạo hay chưa. Giỏ đã khóa; thử lại giữ nguyên yêu cầu và key.',
                     ),
                   ),
 
-                // ── Main Content Area ─────────────────────────────────────
+                // ── Main content ──────────────────────────────────────────
                 Expanded(
                   child: _wide
                       ? Row(
@@ -909,19 +1150,11 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                   : Column(
                                       children: [
                                         ColoredBox(
-                                          color: Colors.white,
-                                          child: TabBar(
-                                            controller: _wideTabs,
-                                            indicatorColor:
-                                                OrderPalette.primary,
-                                            labelColor: OrderPalette.primary,
-                                            unselectedLabelColor:
-                                                AppColors.grey700,
-                                            tabs: const [
-                                              Tab(text: 'Chọn món'),
-                                              Tab(text: 'Lịch sử trong phiên'),
-                                            ],
-                                          ),
+                                          color: colors.surface,
+                                          child: tabs(_wideTabs, const [
+                                            Tab(text: 'Chọn món'),
+                                            Tab(text: 'Lịch sử trong phiên'),
+                                          ]),
                                         ),
                                         Expanded(
                                           child: TabBarView(
@@ -932,180 +1165,44 @@ class _OrderComposerState extends ConsumerState<OrderComposer>
                                       ],
                                     ),
                             ),
-                            const VerticalDivider(
+                            VerticalDivider(
                               width: 1,
                               thickness: 1,
-                              color: AppColors.grey200,
+                              color: colors.outlineVariant,
                             ),
+                            // The cart, its total and the send button stay
+                            // in view while the cashier picks dishes.
                             SizedBox(
                               key: const ValueKey('order-cart-pane'),
                               width: orderCartPaneWidth(constraints.maxWidth),
-                              child: Column(
-                                children: [
-                                  OrderCartPaneHeader(
-                                    title: 'Giỏ (${d.lines.length})',
-                                  ),
-                                  const Divider(
-                                    height: 1,
-                                    color: AppColors.grey200,
-                                  ),
-                                  Expanded(child: cartPane),
-                                ],
+                              child: ColoredBox(
+                                color: colors.surface,
+                                child: Column(
+                                  children: [
+                                    OrderCartPaneHeader(
+                                      title: 'Giỏ',
+                                      count: d.lines.length,
+                                    ),
+                                    Expanded(child: cartPane(beside: true)),
+                                    _footer(d, pane: true),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         )
                       : TabBarView(
                           controller: _tabController,
-                          children: [menuPane, cartPane, ?historyPane],
+                          children: [
+                            menuPane,
+                            cartPane(beside: false),
+                            ?historyPane,
+                          ],
                         ),
                 ),
 
-                // ── Sticky Bottom Cart Bar ────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                  child: SafeArea(
-                    top: false,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 12,
-                          runSpacing: 8,
-                          children: [
-                            Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${d.lines.length} món',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.grey900,
-                                  ),
-                                ),
-                                Text(
-                                  'Tạm tính : ${orderMoney(d.previewMinor)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.grey700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                if (!_wide)
-                                  OutlinedButton(
-                                    onPressed: _showCart,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: OrderPalette.primary,
-                                      side: const BorderSide(
-                                        color: OrderPalette.primary,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 10,
-                                      ),
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: AppRadius.buttonAll,
-                                      ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('Xem đơn'),
-                                        SizedBox(width: 4),
-                                        Icon(Icons.arrow_upward, size: 15),
-                                      ],
-                                    ),
-                                  ),
-                                FilledButton(
-                                  onPressed:
-                                      d.busy ||
-                                          d.uncertain ||
-                                          !d.canPick ||
-                                          !d.canSubmit ||
-                                          d.lines.isEmpty
-                                      ? null
-                                      : () => _submit(
-                                          d,
-                                          OrderSubmissionMode.submit,
-                                        ),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: OrderPalette.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: AppRadius.buttonAll,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    d.busy ? 'Đang xử lý...' : 'Gửi đơn',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // Takeaway keeps drafts in the "⋮" menu unless sending
-                        // is not allowed, in which case drafting is the only way.
-                        if ((d.canDraft && !(_takeaway && d.canSubmit)) ||
-                            (!d.canSubmit && d.canCreate))
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (!d.canSubmit && d.canCreate)
-                                  Expanded(
-                                    child: Text(
-                                      widget.contextInput.fromTable
-                                          ? 'Bạn chưa có quyền gửi đơn hoặc mở bàn, nhưng vẫn có thể lưu nháp.'
-                                          : 'Bạn chưa có quyền gửi đơn, nhưng vẫn có thể lưu nháp.',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                if (d.canDraft)
-                                  TextButton(
-                                    onPressed:
-                                        d.busy ||
-                                            d.uncertain ||
-                                            !d.canPick ||
-                                            d.lines.isEmpty
-                                        ? null
-                                        : () => _submit(
-                                            d,
-                                            OrderSubmissionMode.draft,
-                                          ),
-                                    child: const Text('Tạo nháp'),
-                                  ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+                // ── Sticky bottom bar (phones) ────────────────────────────
+                if (!_wide) _footer(d, pane: false),
               ],
             );
           },

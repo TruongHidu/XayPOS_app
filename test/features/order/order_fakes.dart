@@ -1,4 +1,5 @@
-import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:pos_saas_app/core/auth/app_session.dart';
 import 'package:pos_saas_app/core/result/result.dart';
 import 'package:pos_saas_app/features/order/data/dto/order_dto.dart';
@@ -385,4 +386,10 @@ OrderServiceContextController hub(
   getSession: DetailTableSession(server.sessions),
   getActive: GetActiveOrderForSession(orders ?? FakeOrders()),
   tableEvents: TableEvents(),
+);
+
+/// The count pill beside "Giỏ" on the cart tab or the cart pane.
+Finder cartCount(int count) => find.descendant(
+  of: find.byKey(const ValueKey('cart-count')),
+  matching: find.text('$count'),
 );

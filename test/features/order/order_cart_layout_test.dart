@@ -35,7 +35,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Thêm Trà đào'));
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
     expect(_inCart(find.text('Trà đào')), findsOneWidget);
 
     await tester.tap(find.text('Gửi đơn'));
@@ -71,14 +71,14 @@ void main() {
 
     await tester.tap(_inCart(find.text('Bỏ món')));
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (0)'), findsOneWidget);
+    expect(cartCount(0), findsOneWidget);
     expect(find.text('Đã bỏ Trà đào'), findsOneWidget);
     // The undo stands in for the line, so the empty-cart text stays away.
     expect(_inCart(find.text('Chưa chọn món nào.')), findsNothing);
 
     await tester.tap(find.byKey(_undo));
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
     expect(find.byKey(_undo), findsNothing);
 
     await tester.tap(find.text('Gửi đơn'));
@@ -112,10 +112,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.drag(find.text('Trà đào').last, const Offset(-500, 0));
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (0)'), findsOneWidget);
+    expect(cartCount(0), findsOneWidget);
     await tester.tap(find.byKey(_undo));
     await tester.pumpAndSettle();
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

@@ -15,6 +15,8 @@ class AppSearchField extends StatefulWidget {
     this.autofocus = false,
     this.dense = true,
     this.fieldKey,
+    this.maxLength,
+    this.enabled = true,
   });
 
   final TextEditingController? controller;
@@ -28,6 +30,10 @@ class AppSearchField extends StatefulWidget {
 
   /// Key of the inner [TextField], for tests that type into it.
   final Key? fieldKey;
+
+  /// Longest search the server accepts; no counter is shown.
+  final int? maxLength;
+  final bool enabled;
 
   @override
   State<AppSearchField> createState() => _AppSearchFieldState();
@@ -69,11 +75,14 @@ class _AppSearchFieldState extends State<AppSearchField> {
     key: widget.fieldKey,
     controller: _controller,
     autofocus: widget.autofocus,
+    enabled: widget.enabled,
+    maxLength: widget.maxLength,
     textInputAction: TextInputAction.search,
     onChanged: _changed,
     onSubmitted: widget.onSubmitted,
     decoration: InputDecoration(
       isDense: widget.dense,
+      counterText: '',
       hintText: widget.hintText,
       prefixIcon: const Icon(Icons.search),
       suffixIcon: ListenableBuilder(

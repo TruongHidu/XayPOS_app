@@ -289,7 +289,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Gửi đơn'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ (1)'), findsOneWidget);
+      expect(cartCount(1), findsOneWidget);
       expect(
         tester
             .widget<FilledButton>(find.widgetWithText(FilledButton, 'Gửi đơn'))
@@ -303,7 +303,7 @@ void main() {
       expect(find.text('Bàn đã có đơn đang phục vụ'), findsOneWidget);
       await tester.tap(find.text('Giữ giỏ, quay lại'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ (1)'), findsOneWidget);
+      expect(cartCount(1), findsOneWidget);
       expect(orders.creates.length, 1);
       expect(orders.submissions, isEmpty);
     },

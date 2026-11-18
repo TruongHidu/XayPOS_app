@@ -25,6 +25,9 @@ void _phone(WidgetTester tester, {Size size = const Size(400, 800)}) {
 }
 
 Future<void> _openDish(WidgetTester tester) async {
+  // Large text can push the dish below the bottom bar: scroll to it first.
+  await tester.ensureVisible(find.text('Trà đào').first);
+  await tester.pumpAndSettle();
   await tester.tap(find.text('Trà đào').first);
   await tester.pumpAndSettle();
   expect(find.byKey(_sheet), findsOneWidget);
@@ -118,7 +121,7 @@ void main() {
     await _openDish(tester);
     // 1 + 2 = 3 portions, a little less spicy.
     await _addFromSheet(tester, extra: 2, note: 'ít cay');
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
     // Still on the menu: its quick add button is on screen.
     expect(find.byTooltip('Thêm Trà đào'), findsOneWidget);
 
@@ -127,12 +130,12 @@ void main() {
     expect(find.text('Đang có trong giỏ'), findsOneWidget);
     expect(find.text('ít cay'), findsOneWidget);
     await _addFromSheet(tester, note: 'ít cay');
-    expect(find.text('Giỏ (1)'), findsOneWidget);
+    expect(cartCount(1), findsOneWidget);
 
     // No note: a second line.
     await _openDish(tester);
     await _addFromSheet(tester);
-    expect(find.text('Giỏ (2)'), findsOneWidget);
+    expect(cartCount(2), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -145,12 +148,12 @@ void main() {
     await _addFromSheet(tester, note: 'ít đá');
     await _openDish(tester);
     await _addFromSheet(tester);
-    expect(find.text('Giỏ (2)'), findsOneWidget);
+    expect(cartCount(2), findsOneWidget);
 
     await tester.tap(find.byTooltip('Thêm Trà đào'));
     await tester.pumpAndSettle();
     expect(find.byKey(_sheet), findsOneWidget);
-    expect(find.text('Giỏ (2)'), findsOneWidget);
+    expect(cartCount(2), findsOneWidget);
 
     // Lines can be adjusted right there; dropping one can be undone.
     final plain = find.ancestor(

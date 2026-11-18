@@ -11,12 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// adds one fails and should use a token instead.
 const _ceilings = {
   // `fontSize: 13` in a screen instead of a TextTheme style.
-  'literal fontSize': 136,
+  'literal fontSize': 113,
   // `BorderRadius.circular(12)` instead of `AppRadius.mdAll`.
   'literal corner radius': 0,
   // `AppColors.grey600` instead of a colour-scheme role such as
   // `colorScheme.onSurfaceVariant`; fixed greys block a dark theme.
-  'fixed neutral grey': 167,
+  'fixed neutral grey': 127,
 };
 
 final _patterns = {

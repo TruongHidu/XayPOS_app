@@ -254,7 +254,7 @@ void main() {
       await tester.tap(find.text('Xem đơn'));
       await tester.pumpAndSettle();
       expect(find.text('Số khách'), findsNothing);
-      await tester.tap(find.text('Chọn món'));
+      await tester.tap(find.widgetWithText(Tab, 'Chọn món'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -312,7 +312,7 @@ void main() {
       await tester.ensureVisible(find.text('Tạo đơn khác'));
       await tester.tap(find.text('Tạo đơn khác'));
       await tester.pumpAndSettle();
-      expect(find.text('Giỏ (0)'), findsOneWidget);
+      expect(cartCount(0), findsOneWidget);
       expect(
         tester
             .widget<TextField>(
@@ -349,7 +349,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byTooltip('Thêm Trà đào'));
         await tester.pumpAndSettle();
-        expect(find.text('Giỏ (1)'), findsOneWidget);
+        expect(cartCount(1), findsOneWidget);
         await tester.ensureVisible(find.text('Gửi đơn'));
         await tester.tap(find.text('Gửi đơn'));
         await tester.pumpAndSettle();
