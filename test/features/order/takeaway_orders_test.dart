@@ -93,15 +93,18 @@ void main() {
         (ServiceType.takeaway, status),
     });
     expect(find.text('Chưa có đơn mang đi nào đang xử lý.'), findsOneWidget);
-    // The app bar carries the title; creating lives only in the floating button.
+    // The app bar carries the title. A landscape tablet creates from the
+    // "Đơn mới" button in the board header instead of a floating button.
     expect(find.text('Đơn mang đi'), findsNothing);
+    expect(find.byType(FloatingActionButton), findsNothing);
     expect(
       find.descendant(
-        of: find.byType(FloatingActionButton),
+        of: find.byKey(const ValueKey('takeaway-create-action')),
         matching: find.byIcon(Icons.add),
       ),
       findsOneWidget,
     );
+    expect(find.text('Đơn mới'), findsOneWidget);
     expect(find.byTooltip('Tạo đơn mang đi'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -118,9 +121,15 @@ void main() {
         _order('d', status: 'READY', paid: true, customer: 'Chị Lan'),
       ]),
     );
-    expect(find.text('Chờ xác nhận (1)'), findsOneWidget);
-    expect(find.text('Đang làm (2)'), findsOneWidget);
-    expect(find.text('Chờ giao / thanh toán (1)'), findsOneWidget);
+    // Each stage shows its label and its count in a pill.
+    Finder count(String stage, int n) => find.descendant(
+      of: find.byKey(ValueKey('takeaway-stage-count-$stage')),
+      matching: find.text('$n'),
+    );
+    expect(find.text('Chờ xác nhận'), findsOneWidget);
+    expect(count('waiting', 1), findsOneWidget);
+    expect(count('cooking', 2), findsOneWidget);
+    expect(count('handover', 1), findsOneWidget);
     expect(find.text('Anh Nam'), findsOneWidget);
     expect(find.text('Khách lẻ'), findsNWidgets(2));
     // Within "Đang làm" the earlier order (c) comes first.
@@ -217,6 +226,36 @@ void main() {
       expect(find.byType(TakeawayOrderCard), findsWidgets);
     });
   }
+
+  testWidgets('phones: labelled Đơn mới button, history and stage shortcut', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _board([
+        _order('c', status: 'CONFIRMED'),
+        _order('b', status: 'PREPARING', createdAt: '2026-10-08T00:05:00Z'),
+      ]),
+      width: 390,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(FloatingActionButton),
+        matching: find.text('Đơn mới'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('Xem lịch sử đơn mang đi'), findsOneWidget);
+    expect(find.text('2 đơn đang xử lý'), findsOneWidget);
+
+    // The first tab is empty and points at the stage that has the orders.
+    expect(find.text('Không có đơn chờ xác nhận.'), findsOneWidget);
+    await tester.tap(find.text('Đang làm có 2 đơn · Xem'));
+    await tester.pumpAndSettle();
+    expect(find.text('OD-c'), findsOneWidget);
+    expect(find.text('OD-b'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   group('quick takeaway composer', () {
     Future<FakeOrders> pumpComposer(
